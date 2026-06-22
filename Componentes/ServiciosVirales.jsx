@@ -33,36 +33,41 @@ const C = {
   sans:       Platform.select({ ios: 'System',  android: 'sans-serif', default: 'Montserrat, sans-serif' }),
 };
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=1800';
-const GUARANTEE_IMAGE = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?crop=entropy&cs=srgb&fm=jpg&q=85&w=900';
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1800&q=80';
+const GUARANTEE_IMAGE = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=900&q=80';
 
 const CONTACT_PHONE = '+526181630471';
 const CONTACT_WA    = 'https://wa.me/526181630471';
 const CONTACT_EMAIL = 'info@inmoviral.com';
 
-// 📷 REPOSITORIO DE IMÁGENES PREMIUM RELES ASOCIADAS A TUS 4 SERVICIOS CORE
+// 📷 REPOSITORIO MULTIMEDIA DE ALTA GAMA PARA LOS 5 SERVICIOS CORE
 const GALERIAS_SERVICIOS = {
   mudanza: [
-    'https://images.unsplash.com/photo-1527453303844-40fae2828e4f?w=800&q=80', // Camión premium
-    'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80', // Cajas embalaje lujo
-    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&q=80'  // Logística/Instalación
+    'https://images.unsplash.com/photo-1527453303844-40fae2828e4f?w=800&q=80',
+    'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80'
   ],
   socials: [
-    'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&q=80', // Interfaz Instagram/TikTok
-    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80', // Métricas de marketing digital
-    'https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=800&q=80'  // Estrategia de pauta publicitaria
+    'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&q=80',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80'
   ],
   studio: [
-    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80', // Cámara profesional lente macro
-    'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&q=80', // Sesión de fotos residencial
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80'  // Drone volando sobre propiedad
+    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80',
+    'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&q=80'
   ],
   advisory: [
-    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80', // Firma de contrato de propiedad de lujo
-    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80', // Trato corporativo de agente ejecutivo
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80'  // Consultoría legal notarial premium
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80',
+    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80'
+  ],
+  limpieza: [
+    'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&q=80', // Detallado de cocina de lujo
+    'https://images.unsplash.com/photo-1528740561666-42477927365f?w=800&q=80', // Sanitización e interiores pulcro
+    'https://images.unsplash.com/photo-1603712449591-2f7e1216c59a?w=800&q=80'  // Sala reluciente de revista
   ]
 };
+
+// ─────────────────────────────────────────────
+// COMPONENTES DE SOPORTE E INTERACCIÓN NATIVA
+// ─────────────────────────────────────────────
 
 function FooterLink({ label, onPress, customStyle }) {
   const [hovered, setHovered] = useState(false);
@@ -80,6 +85,7 @@ function FooterLink({ label, onPress, customStyle }) {
   );
 }
 
+// Badge de Redes Sociales con efecto de hover dinámico
 function SocialBadge({ net }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -194,13 +200,16 @@ function PlanCard({ plan, onPress, cardWidth }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// COMPONENTE PRINCIPAL INTEGRADO
+// ─────────────────────────────────────────────
 export default function ServiciosVirales({ onIrLogin, onVolver }) {
   const { t, i18n }    = useTranslation();
   const idiomaActual   = i18n.language || 'es';
   const { width }      = useWindowDimensions();
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const carouselFade = useRef(new Animated.Value(1)).current; // Control del Fade del carrusel
+  const carouselFade = useRef(new Animated.Value(1)).current;
 
   const [cardActiva, setCardActiva] = useState(null);
   const [hoveredBack, setHoveredBack] = useState(false);
@@ -210,45 +219,55 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
   const [servicioActivoTab, setServicioActivoTab] = useState('mudanza');
   const [imagenActivaIdx, setImagenActivaIdx] = useState(0);
 
-  // 🛠️ ARREGLO DE LA GRILLA: En web grande renderiza 2 columnas simétricas para emparejar las 4 tarjetas (48% c/u)
+  // Layout responsivo adaptado para 5 elementos sin dejar huecos negros
   const isLarge = width > 1024;
-  const gridWidth = isLarge ? '48%' : width > 640 ? '50%' : '100%';
+  const gridWidth = isLarge ? '33.33%' : width > 640 ? '50%' : '100%';
   const planWidth = isLarge ? '33.33%' : width > 640 ? '50%' : '100%';
   const isWideFooter = width > 768;
 
-  // Carrusel Automático de 2 segundos
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [fadeAnim]);
+
+  // Motor de transición fluida automática de 2 segundos (Smooth Cross-Fade)
   useEffect(() => {
     const interval = setInterval(() => {
       const fotos = GALERIAS_SERVICIOS[servicioActivoTab];
       const nextIdx = (imagenActivaIdx + 1) % fotos.length;
-      animarCambioCarrusel(null, nextIdx);
+      
+      Animated.timing(carouselFade, { toValue: 0, duration: 250, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+        setImagenActivaIdx(nextIdx);
+        Animated.timing(carouselFade, { toValue: 1, duration: 350, useNativeDriver: Platform.OS !== 'web' }).start();
+      });
     }, 2000);
     return () => clearInterval(interval);
-  }, [servicioActivoTab, imagenActivaIdx]);
+  }, [servicioActivoTab, imagenActivaIdx, carouselFade]);
 
-  // Transición suave (Fade Smooth) para el cambio de diapositivas
-  const animarCambioCarrusel = (nuevaTab, nuevoIdx) => {
-    Animated.timing(carouselFade, { toValue: 0, duration: 150, useNativeDriver: Platform.OS !== 'web' }).start(() => {
-      if (nuevaTab) setServicioActivoTab(nuevaTab);
-      if (typeof nuevoIdx === 'number') setImagenActivaIdx(nuevoIdx);
-      Animated.timing(carouselFade, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }).start();
+  const animarCambioTab = (tabId) => {
+    Animated.timing(carouselFade, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+      setServicioActivoTab(tabId);
+      setImagenActivaIdx(0);
+      Animated.timing(carouselFade, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start();
     });
   };
 
   const abrirUrl = (url) => Linking.openURL(url).catch(() => {});
   const mandarCorreoOficial = () => abrirUrl(`mailto:${CONTACT_EMAIL}?subject=Consulta%20InmoViral%20Premium`);
 
+  // ESTRUCTURA CON LOS 5 SERVICIOS CORE OFICIALES
   const serviciosData = [
     { id: 1, num: '01', tag: 'Logística', tagKey: 'sv_s1_tag', titulo: 'Ayuda con la', titleKey: 'sv_s1_t', tituloEm: 'Mudanza', emKey: 'sv_s1_em', desc: 'Coordinamos cada detalle de tu traslado con empresas certificadas. Desde el embalaje profesional hasta la instalación en tu nuevo hogar.', descKey: 'sv_s1_desc', features: ['Embalaje profesional', 'Transporte asegurado', 'Coordinación total', 'Seguro de bienes incluido'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
     { id: 2, num: '02', tag: 'Marketing Digital', tagKey: 'sv_s2_tag', titulo: 'Exposición en', titleKey: 'sv_s2_t', tituloEm: 'Redes Sociales', emKey: 'sv_s2_em', desc: 'Posicionamos tu propiedad frente a miles de compradores e inversionistas activos mediante campañas segmentadas de alto impacto.', descKey: 'sv_s2_desc', features: ['Campañas pagadas', 'Contenido editorial', 'Audiencias de alto valor', 'Reportes de rendimiento'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
     { id: 3, num: '03', tag: 'Visual Premium', tagKey: 'sv_s3_tag', titulo: 'Fotografía', titleKey: 'sv_s3_t', tituloEm: 'Profesional', emKey: 'sv_s3_em', desc: 'Capturamos la esencia y el valor de cada propiedad con equipo de alto rendimiento, tours virtuales 360 y video en 4K.', descKey: 'sv_s3_desc', features: ['Fotografía de interiores', 'Video cinematic 4K', 'Tour virtual 360°', 'Entrega en 48 horas'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
     { id: 4, num: '04', tag: 'Consultoría', tagKey: 'sv_s4_tag', titulo: 'Asesoramiento', titleKey: 'sv_s4_t', tituloEm: 'Agente INMOVIRAL', emKey: 'sv_s4_em', desc: 'Un experto dedicado a tu operación de principio a fin. Negociación estratégica y acompañamiento legal certificado.', descKey: 'sv_s4_desc', features: ['Agente senior dedicado', 'Análisis de mercado', 'Due diligence legal', 'Soporte de cierre'], cta: 'Agendar Consulta', ctaKey: 'sv_cta_schedule' },
+    { id: 5, num: '05', tag: 'Preparación Estética', tagKey: 'sv_s5_tag', titulo: 'Limpieza Profunda', titleKey: 'sv_s5_t', tituloEm: 'Antes de la Visita', emKey: 'sv_s5_em', desc: 'Dejamos tu inmueble en condiciones idénticas a un hotel de 5 estrellas. Una presentación pulcra maximiza el valor percibido por los sinodales e inversionistas.', descKey: 'sv_s5_desc', features: ['Detallado pre-fotografía', 'Sanitización de alta gama', 'Pulido de superficies finas', 'Aromatización ambiental VIP'], cta: 'Solicitar Limpieza', ctaKey: 'sv_cta_clean' }
   ];
 
+  // 3 NUEVOS PAQUETES EXCLUSIVOS E HÍBRIDOS CON LABIA COMERCIAL AVANZADA
   const planesData = [
-    { label: 'VIRAL HYBRID', titulo: 'Mudanza + Exposición Social', precio: 'Cobertura Integral', features: ['Todo el embalaje y traslado de bienes premium', 'Campañas segmentadas nativas (IG, FB, TikTok Ads)', 'Pauta digital optimizada para tu demografía ideal', 'Informe quincenal de leads y clicks generados', 'Soporte logístico de campo dedicado'], featured: false, cta: 'Adquirir Paquete' },
-    { label: 'CINEMATIC LAUNCH', titulo: 'Lanzamiento VIP Editorial', precio: 'Cotización por metraje', features: ['Filmación cinemática 4K con drones e interiores', 'Sesión fotográfica de portada estilo Architectural Digest', 'Diseño de landing page exclusivo para la propiedad', 'Campaña de prensa digital off-market dirigida', 'Distribución privada en redes de inversores VIP'], featured: true, cta: 'Agendar Lanzamiento' },
-    { label: 'END-TO-END ASSET', titulo: 'Gestión Patrimonial Absoluta', precio: 'Estructura fija mensual', features: ['Asesoría legal, fiscal y notarial completa', 'Mantenimiento preventivo técnico del inmueble', 'Coordinación total de contratos de arrendamiento de lujo', 'Auditorías anuales de plusvalía y retorno de inversión', 'Soporte corporativo 24/7 sin intermediarios'], featured: false, cta: 'Contactar Advisory' }
+    { label: 'VIRAL MULTI-HYBRID', titulo: 'Mudanza + Redes + Sanitización', precio: 'Paquete de Entrada Preferencial', features: ['Traslado de bienes con embalaje premium y seguro', 'Campañas segmentadas nativas (IG, FB, TikTok Ads)', 'Limpieza profunda de grado hotelero antes del shooting', 'Informe digital quincenal de leads y llamadas', 'Soporte logístico de campo con un asesor asignado'], featured: false, cta: 'Adquirir Paquete' },
+    { label: 'ULTRA CINEMATIC LAUNCH', titulo: 'Lanzamiento VIP de Revista', precio: 'Estructura por Metraje', features: ['Filmación cinemática 4K con drones e interiores', 'Sesión fotográfica de portada estilo Architectural Digest', 'Detallado estético profundo 5 estrellas pre-visita clave', 'Diseño de Landing Page exclusivo dentro de InmoViral', 'Distribución privada en redes de inversionistas VIP'], featured: true, cta: 'Agendar Lanzamiento' },
+    { label: 'END-TO-END PATRIMONIAL', titulo: 'Gestión Absoluta de Activos', precio: 'Suscripción Fija Mensual', features: ['Asesoría legal, fiscal y notarial completa', 'Mantenimiento técnico preventivo y correctivo', 'Limpiezas profundas programadas antes de cada visita', 'Coordinación total de contratos de arrendamiento corporativo', 'Auditorías anuales de plusvalía y retorno de inversión'], featured: false, cta: 'Contactar Advisory' }
   ];
 
   return (
@@ -278,7 +297,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </View>
         </Animated.View>
 
-        {/* ════ GRID DE SERVICIOS (ARREGLADO SIMÉTRICAMENTE PARA BORRAR EL ESPACIO VACÍO) ════ */}
+        {/* ════ PORTAFOLIO DE 5 SERVICIOS CORE CON ESPACIOS ARREGLADOS ════ */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('sv_services_label', { defaultValue: 'PORTAFOLIO DE SERVICIOS' })}</Text>
           <Text style={styles.sectionTitle}>
@@ -302,23 +321,38 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </View>
         </View>
 
-        {/* ════ COMPROMISO / GARANTÍAS CORREGIDAS CON SENTIDO EMOCIONAL CORPORATIVO ════ */}
+        {/* ════ COMPROMISO / GARANTÍAS MINIMALISTAS EDITORIALES ════ */}
         <View style={[styles.section, styles.sectionDark]}>
           <Text style={styles.sectionLabel}>{t('sv_garantias_label', { defaultValue: 'NUESTRO COMPROMISO' })}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('sv_garantias_t1', { defaultValue: 'Garantías que nos ' })}
+            <Text style={styles.sectionEmphasis}>{t('sv_garantias_em', { defaultValue: 'distinguen' })}</Text>
+          </Text>
+
           <View style={[styles.garantiasWrap, { flexDirection: width > 900 ? 'row' : 'column' }]}>
-            <View style={[styles.garantiaImageWrap, { flex: width > 900 ? 1 : 'none' }]}>
-              <Image source={{ uri: GUARANTEE_IMAGE }} style={styles.garantiaImage} resizeMode="cover" />
-              <Text style={styles.garantiaImageLabel}>"Exclusividad que define tu estilo de vida."</Text>
-            </View>
+            <Pressable 
+              onHoverIn={() => Platform.OS === 'web' && setHoveredAboutImg(true)}
+              onHoverOut={() => Platform.OS === 'web' && setHoveredAboutImg(false)}
+              style={[styles.garantiaImageWrap, { flex: width > 900 ? 1 : 'none' }]}
+            >
+              <Image 
+                source={{ uri: GUARANTEE_IMAGE }} 
+                style={[styles.garantiaImage, hoveredAboutImg && { transform: [{ scale: 1.05 }] }]} 
+                resizeMode="cover" 
+              />
+              <View style={styles.garantiaImageOverlay} />
+              <Text style={styles.garantiaImageLabel}>"Exclusividad y orden que definen un nuevo estándar patrimonial."</Text>
+            </Pressable>
 
             <View style={[styles.garantiasList, { flex: width > 900 ? 1.2 : 'none' }]}>
               {[
-                { title: 'SOPORTE POST-VENTA', desc: 'Acompañamiento legal y técnico permanente.' },
-                { title: 'CONSULTORÍA PRIVADA', desc: 'Asesoría VIP, sin intermediarios impersonales.' },
-                { title: 'TRANSPARENCIA CORPORATIVA', desc: 'Honorarios alineados exclusivamente a tu beneficio.' }
+                { title: 'SOPORTE POST-VENTA ININTERRUMPIDO', subtitle: 'POST-VENTA DELUXE · PREMIUM PARTNER', desc: 'Una vez completado el cierre de la transacción, seguimos a tu disposición absoluta. Te brindamos asesoría continua en temas legales, técnicos y corporativos de por vida.' },
+                { title: 'CONSULTORÍA PRIVADA EXCLUSIVA', subtitle: 'PRIVATE ADVISORY · VIP MEMBER', desc: 'Ponemos a tu disposición un asesor de élite senior de forma completamente dedicada. Olvídate de los call centers; aquí tu patrimonio lo maneja un experto.' },
+                { title: 'ESTRATEGIA CORPORATIVA ALINEADA', subtitle: 'ENGINEERING OF EXCELLENCE · CORPORATE STANDARD', desc: 'Nuestra estructura de honorarios está diseñada para que ganemos únicamente cuando tú ganes. Transparencia total enfocada en maximizar tu retorno de inversión.' }
               ].map((g, i) => (
                 <View key={i} style={styles.garantiaMinimalItem}>
                   <Text style={styles.garantiaMinimalTitle}>{g.title}</Text>
+                  <Text style={styles.garantiaMinimalSubtitle}>{g.subtitle}</Text>
                   <Text style={styles.garantiaMinimalDesc}>{g.desc}</Text>
                 </View>
               ))}
@@ -326,7 +360,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </View>
         </View>
 
-        {/* ════ VIRAL MEDIA NOMENCLATURA CORRECTA + SMOOTH FADE TRANSITION ════ */}
+        {/* ════ VIRAL MEDIA MULTIPESTAÑA CON LOS 5 SERVICIOS CORE Y AUTOMOVIMIENTO ════ */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>VIRAL MEDIA</Text>
           <Text style={styles.sectionTitle}>Galería Multimedia Studio</Text>
@@ -337,11 +371,12 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
                 { id: 'mudanza', label: '🚚 Ayuda con la Mudanza' },
                 { id: 'socials', label: '📱 Exposición en Redes Sociales' },
                 { id: 'studio', label: '📷 Fotografía Profesional' },
-                { id: 'advisory', label: '💼 Asesoramiento Agente INMOVIRAL' }
+                { id: 'advisory', label: '💼 Asesoramiento Agente INMOVIRAL' },
+                { id: 'limpieza', label: '✨ Limpieza Profunda Pre-Visita' }
               ].map(tab => (
                 <Pressable 
                   key={tab.id} 
-                  onPress={() => animarCambioCarrusel(tab.id, 0)} 
+                  onPress={() => { setServicioActivoTab(tab.id); setImagenActivaIdx(0); }} 
                   style={[styles.tabSelectorBtn, servicioActivoTab === tab.id && styles.tabSelectorBtnActive]}
                 >
                   <Text style={[styles.mudanzaBtnText, servicioActivoTab === tab.id && { color: C.bg }]}>{tab.label}</Text>
@@ -349,13 +384,17 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
               ))}
             </View>
 
-            {/* Caja de renderizado con Opacidad Animada (Smooth Fade Effect) */}
+            {/* Contenedor del Carrusel con Opacidad Animada Continuamente */}
             <Animated.View style={[styles.carouselViewerBox, { opacity: carouselFade }]}>
               <Image source={{ uri: GALERIAS_SERVICIOS[servicioActivoTab][imagenActivaIdx] }} style={styles.carouselImageEngine} resizeMode="cover" />
               <View style={styles.carouselArrowContainer}>
                 <Pressable 
                   style={styles.carouselArrowBtn} 
-                  onPress={() => animarCambioCarrusel(null, imagenActivaIdx === 0 ? GALERIAS_SERVICIOS[servicioActivoTab].length - 1 : imagenActivaIdx - 1)}
+                  onPress={() => {
+                    const fotos = GALERIAS_SERVICIOS[servicioActivoTab];
+                    const prevIdx = (imagenActivaIdx === 0) ? fotos.length - 1 : imagenActivaIdx - 1;
+                    setImagenActivaIdx(prevIdx);
+                  }}
                 >
                   <Text style={styles.carouselArrowText}>◀</Text>
                 </Pressable>
@@ -368,7 +407,11 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
 
                 <Pressable 
                   style={styles.carouselArrowBtn} 
-                  onPress={() => animarCambioCarrusel(null, imagenActivaIdx === GALERIAS_SERVICIOS[servicioActivoTab].length - 1 ? 0 : imagenActivaIdx + 1)}
+                  onPress={() => {
+                    const fotos = GALERIAS_SERVICIOS[servicioActivoTab];
+                    const nextIdx = (imagenActivaIdx + 1) % fotos.length;
+                    setImagenActivaIdx(nextIdx);
+                  }}
                 >
                   <Text style={styles.carouselArrowText}>▶</Text>
                 </Pressable>
@@ -377,7 +420,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </View>
         </View>
 
-        {/* ════ COBERTURAS DE INVERSIÓN HÍBRIDAS COMERCIALES ════ */}
+        {/* ════ PAQUETES HÍBRIDOS CON LABIA COMERCIAL AVANZADA ════ */}
         <View style={[styles.section, styles.sectionDark]}>
           <Text style={styles.sectionLabel}>{t('sv_planes_label', { defaultValue: 'PLANES DE SERVICIO' })}</Text>
           <Text style={styles.sectionTitle}>
@@ -392,7 +435,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </View>
         </View>
 
-        {/* VOLVER */}
+        {/* BOTÓN VOLVER UNIVERSAL */}
         {onVolver && (
           <Pressable 
             onPress={onVolver}
@@ -404,9 +447,10 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
           </Pressable>
         )}
 
-        {/* FOOTER */}
+        {/* ─── FOOTER OFICIAL CON HOVERS COMPLETOS ─── */}
         <View style={styles.footerContainer}>
           <View style={[styles.footerMainRow, !isWideFooter && { flexDirection: 'column', gap: 32 }]}>
+            
             <View style={styles.footerBrandCol}>
               <Text style={styles.footerLogoText}>INMOVIRAL</Text>
               <Text style={styles.footerBrandDesc}>{t('footer.desc')}</Text>
@@ -450,6 +494,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
               <FooterLink label={`📍 ${t('footer.address')}`} />
               <FooterLink label={`🕒 ${t('footer.hours')}`} />
             </View>
+
           </View>
 
           <View style={styles.footerBottomBar}>
@@ -466,16 +511,15 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// HOJA DE ESTILOS BLINDADA NATIVA Y COMPACTA
+// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // Garantías Minimalistas
-  garantiaMinimalItem: { paddingVertical: 24, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  garantiaMinimalTitle: { color: C.text, fontSize: 13, fontFamily: C.sans, letterSpacing: 2, fontWeight: '600', marginBottom: 8 },
-  garantiaMinimalDesc: { color: C.textSub, fontSize: 12, lineHeight: 20, fontFamily: C.sans, fontWeight: '300' },
-  
   safeArea: { flex: 1, backgroundColor: C.bg },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 0 },
 
+  // Hero
   hero: { minHeight: 440, justifyContent: 'flex-end', backgroundColor: C.bg, overflow: 'hidden', position: 'relative' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,8,0.78)' },
   heroContent: { paddingHorizontal: 32, paddingTop: 60, paddingBottom: 48, maxWidth: 800 },
@@ -486,16 +530,16 @@ const styles = StyleSheet.create({
   heroEmphasis: { color: C.goldDeep, fontStyle: 'italic' },
   heroSub: { color: C.textSub, fontSize: 13, lineHeight: 22, fontFamily: C.sans, fontWeight: '300', maxWidth: 540 },
 
+  // Layout Grid Equilibrado (Ajustado para evitar espacios colgados)
   section: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40, backgroundColor: C.bg, alignSelf: 'center', width: '100%', maxWidth: 1400 },
   sectionDark: { backgroundColor: '#0A0806', borderTopWidth: 1, borderTopColor: C.borderSoft, borderBottomWidth: 1, borderBottomColor: C.borderSoft, paddingHorizontal: 32, paddingVertical: 56, width: '100%' },
   sectionLabel: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: '500' },
   sectionTitle: { color: C.text, fontSize: 32, lineHeight: 38, fontFamily: C.serif, fontWeight: '300', marginBottom: 24 },
   sectionEmphasis: { color: C.goldDeep, fontStyle: 'italic' },
-  
-  // 🛠️ ARREGLO DE MÁRGENES DE LA GRILLA: flex-start y padding balanceado para eliminar el hueco negro
   flexGridWrapper: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-start', alignItems: 'stretch' },
-  serviceCardWrapper: { padding: 6 },
+  serviceCardWrapper: { padding: 8 },
 
+  // Tarjetas de Servicios
   serviceCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 24, position: 'relative', overflow: 'hidden', height: '100%' },
   serviceCardHovered: { backgroundColor: '#171512', borderColor: 'rgba(160,120,64,0.35)' },
   serviceCardBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: 'transparent' },
@@ -511,6 +555,7 @@ const styles = StyleSheet.create({
   serviceLink: { marginTop: 'auto', paddingTop: 4 },
   serviceLinkText: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '500' },
 
+  // Panel de Contacto Expandible
   contactPanel: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.border },
   contactLabel: { color: C.textSub, fontSize: 12, fontFamily: C.sans, marginBottom: 10, lineHeight: 16 },
   contactRow: { flexDirection: 'row', gap: 10 },
@@ -519,22 +564,19 @@ const styles = StyleSheet.create({
   contactBtnText: { color: C.gold, fontSize: 11, fontFamily: C.sans, letterSpacing: 1 },
   contactBtnTextWa: { color: C.green },
 
+  // Garantías Minimalistas Editoriales
   garantiasWrap: { gap: 32, marginTop: 12 },
   garantiaImageWrap: { minHeight: 320, position: 'relative', overflow: 'hidden', backgroundColor: '#1A1714', borderWidth: 1, borderColor: C.border },
-  garantiaImage: { width: '100%', height: '100%', transition: 'transform 0.4s ease' },
+  garantiaImage: { width: '100%', height: '100%' },
   garantiaImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,13,10,0.45)' },
   garantiaImageLabel: { position: 'absolute', bottom: 24, left: 24, right: 24, color: C.text, fontFamily: C.serif, fontSize: 18, fontStyle: 'italic', fontWeight: '300', lineHeight: 24 },
   garantiasList: { gap: 4, justifyContent: 'center' },
-  garantiaItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12 },
-  garantiaItemHovered: { backgroundColor: 'rgba(160,120,64,0.04)', borderColor: C.border },
-  garantiaIconWrap: { width: 40, height: 44, borderWidth: 1, borderColor: 'rgba(160,120,64,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 16, backgroundColor: C.card },
-  garantiaIcon: { color: C.gold, fontSize: 14 },
-  garantiaTextWrap: { flex: 1 },
-  garantiaTitle: { color: C.text, fontSize: 15, fontFamily: C.serif, fontWeight: '600', marginBottom: 2 },
-  garantiaSubtitle: { color: C.goldDeep, fontSize: 10, fontFamily: C.sans, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 },
-  garantiaDesc: { color: C.textSub, fontSize: 12, lineHeight: 18, fontFamily: C.sans, fontWeight: '300' },
+  garantiaMinimalItem: { paddingVertical: 20, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 12 },
+  garantiaMinimalTitle: { color: C.text, fontSize: 14, fontFamily: C.sans, letterSpacing: 1.5, fontWeight: '600', marginBottom: 2 },
+  garantiaMinimalSubtitle: { color: C.gold, fontSize: 9, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  garantiaMinimalDesc: { color: C.textSub, fontSize: 12, lineHeight: 18, fontFamily: C.sans, fontWeight: '300' },
 
-  // Módulo Media Con Transiciones Smooth
+  // Módulo Media con Nombres Exactos y Carrusel Smooth
   mudanzaCarouselContainer: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 24, marginTop: 12 },
   mudanzaHeaderRow: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 },
   tabSelectorBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(160,120,64,0.25)', paddingVertical: 8, paddingHorizontal: 16 },
@@ -549,6 +591,7 @@ const styles = StyleSheet.create({
   indicatorDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   indicatorDotActive: { backgroundColor: C.gold, width: 16 },
 
+  // Tarjetas de Planes
   planCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.borderSoft, padding: 28, position: 'relative', overflow: 'hidden', height: '100%' },
   planCardFeatured: { borderColor: 'rgba(160,120,64,0.4)', backgroundColor: 'rgba(160,120,64,0.04)' },
   planCardHovered: { borderColor: 'rgba(160,120,64,0.3)', transform: [{ translateY: -4 }] },
@@ -570,6 +613,7 @@ const styles = StyleSheet.create({
   luxeBackButton: { alignSelf: 'center', marginTop: 32, marginBottom: 48, paddingVertical: 12, paddingHorizontal: 24, borderWidth: 1, borderColor: C.borderSoft },
   luxeBackButtonText: { color: C.textSub, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: C.sans, fontWeight: '500' },
 
+  // Footer
   footerContainer: { backgroundColor: '#0A0A0A', borderTopWidth: 1, borderTopColor: 'rgba(160,120,64,0.12)', paddingHorizontal: 48, paddingTop: 60, paddingBottom: 30, width: '100%' },
   footerMainRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', maxWidth: 1200, alignSelf: 'center', marginBottom: 48 },
   footerBrandCol: { flex: 1.5, minWidth: 220, paddingRight: 20 },
