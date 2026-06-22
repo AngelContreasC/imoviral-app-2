@@ -1,22 +1,7 @@
-/**
- * ServiciosVirales.jsx
- * InmoViral — Servicios premium universales
- * React Native / Expo Universal (iOS · Android · Web)
- *
- * Cumple estrictamente:
- *  ✅ CERO etiquetas HTML
- *  ✅ CERO propiedades CSS abreviadas
- *  ✅ Hovers con Platform.OS === 'web' + onHoverIn/onHoverOut
- *  ✅ export default function ServiciosVirales({ onIrLogin, onVolver })
- *  ✅ i18next bilingüe con { i18n, t }
- *  ✅ FlatList/map dentro de ScrollView — sin FlatList vertical anidado
- *  ✅ useWindowDimensions para grilla responsiva
- *  ✅ Footer oficial InmoViral con micro-hovers dorados
- */
-
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Animated,
   Image,
   Linking,
   Platform,
@@ -30,9 +15,6 @@ import {
   View,
 } from 'react-native';
 
-// ─────────────────────────────────────────────
-// PALETA OFICIAL INMOVIRAL
-// ─────────────────────────────────────────────
 const C = {
   bg:         '#0F0D0A',
   card:       '#141210',
@@ -47,426 +29,236 @@ const C = {
   green:      'rgba(37,211,102,0.85)',
   greenBg:    'rgba(37,211,102,0.10)',
   greenBdr:   'rgba(37,211,102,0.30)',
+  serif:      Platform.select({ ios: 'Georgia', android: 'serif', default: 'Cormorant Garamond, Georgia, serif' }),
+  sans:       Platform.select({ ios: 'System',  android: 'sans-serif', default: 'Montserrat, sans-serif' }),
 };
 
-// ─────────────────────────────────────────────
-// DATOS ESTÁTICOS
-// ─────────────────────────────────────────────
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=1800';
-const GUARANTEE_IMAGE =
-  'https://images.unsplash.com/photo-1618773928121-c32242e63f39?crop=entropy&cs=srgb&fm=jpg&q=85&w=900';
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=1800';
+const GUARANTEE_IMAGE = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?crop=entropy&cs=srgb&fm=jpg&q=85&w=900';
+
 const CONTACT_PHONE = '+526181630471';
 const CONTACT_WA    = 'https://wa.me/526181630471';
 const CONTACT_EMAIL = 'info@inmoviral.com';
 
-const TAB_SECTIONS = [
-  { id: 'compra',      label: 'Para Compradores' },
-  { id: 'venta',      label: 'Para Vendedores'   },
-  { id: 'inversion',  label: 'Para Inversionistas' },
-  { id: 'adicionales',label: 'Servicios Adicionales' },
-];
-
-const SERVICIOS = [
-  {
-    id: 1,
-    num: '01',
-    tag: 'Logística',
-    titulo: 'Ayuda con la',
-    tituloEm: 'Mudanza',
-    desc: 'Coordinamos cada detalle de tu traslado con empresas certificadas. Desde el embalaje profesional hasta la instalación en tu nuevo hogar — sin estrés, sin imprevistos.',
-    features: ['Embalaje profesional', 'Transporte asegurado', 'Coordinación total del traslado', 'Seguro de bienes incluido', 'Instalación en destino'],
-    cta: 'Solicitar Servicio',
-    tabId: 'compra',
-  },
-  {
-    id: 2,
-    num: '02',
-    tag: 'Marketing Digital',
-    titulo: 'Exposición en',
-    tituloEm: 'Redes Sociales',
-    desc: 'Posicionamos tu propiedad frente a miles de compradores e inversionistas activos. Campañas segmentadas en Instagram, Facebook y TikTok con resultados medibles.',
-    features: ['Campañas pagadas segmentadas', 'Contenido editorial profesional', 'Audiencias de alto valor', 'Reportes semanales de rendimiento', 'Difusión en portales premium'],
-    cta: 'Solicitar Servicio',
-    tabId: 'venta',
-  },
-  {
-    id: 3,
-    num: '03',
-    tag: 'Visual Premium',
-    titulo: 'Fotografía',
-    tituloEm: 'Profesional',
-    desc: 'Capturamos la esencia y el valor de cada propiedad con equipo de alto rendimiento. Imágenes editoriales, video cinematic y tour virtual 360° que elevan tu listado.',
-    features: ['Fotografía editorial de interiores', 'Video cinematic 4K con drone', 'Tour virtual 360°', 'Edición y postproducción premium', 'Entrega en 48 horas'],
-    cta: 'Solicitar Servicio',
-    tabId: 'inversion',
-  },
-  {
-    id: 4,
-    num: '04',
-    tag: 'Consultoría',
-    titulo: 'Asesoramiento',
-    tituloEm: 'Agente INMOVIRAL',
-    desc: 'Un experto dedicado a tu operación de principio a fin. Negociación estratégica, análisis de mercado y acompañamiento legal para que tomes decisiones con certeza.',
-    features: ['Agente senior dedicado exclusivamente', 'Análisis comparativo de mercado', 'Negociación experta de precio y condiciones', 'Due diligence legal y notarial completo', 'Soporte 5 años post-cierre'],
-    cta: 'Agendar Consulta',
-    tabId: 'adicionales',
-  },
-];
-
-const PASOS = [
-  { num: '01', titulo: 'Consulta Inicial',     desc: 'Analizamos tu perfil, objetivos y presupuesto para diseñar la estrategia óptima.' },
-  { num: '02', titulo: 'Selección y Análisis', desc: 'Curación de propiedades o compradores que encajan exactamente con tus criterios.' },
-  { num: '03', titulo: 'Negociación Experta',  desc: 'Gestionamos cada detalle contractual para proteger tus intereses en todo momento.' },
-  { num: '04', titulo: 'Cierre y Soporte',     desc: 'Acompañamiento notarial, entrega formal y soporte continuo post-operación.' },
-];
-
-const GARANTIAS = [
-  { icon: '◈', titulo: '5 años de soporte post-venta',    desc: 'Una vez cerrada la operación, seguimos siendo tu punto de contacto para cualquier consulta legal, técnica o de mantenimiento.' },
-  { icon: '◉', titulo: 'Asesor dedicado exclusivo',        desc: 'Cada cliente cuenta con un asesor principal. Nunca serás redirigido a un desconocido.' },
-  { icon: '◆', titulo: 'Comisión alineada a resultados',  desc: 'Nuestros honorarios están estructurados para que nuestros intereses sean exactamente los mismos que los tuyos.' },
-  { icon: '◎', titulo: 'Respuesta en menos de 2 horas',   desc: 'Nos comprometemos a responder cualquier consulta en un plazo máximo de 2 horas durante días hábiles.' },
-];
-
-const PLANES = [
-  {
-    label: 'Esencial',
-    titulo: 'Consulta & Cierre',
-    precio: 'Comisión estándar de mercado',
-    features: ['Asesoría en búsqueda o venta', '1 asesor asignado', 'Gestión notarial básica', 'Soporte por 6 meses post-cierre', 'Acceso a portafolio activo'],
-    featured: false,
-    cta: 'Comenzar',
-  },
-  {
-    label: 'Premium',
-    titulo: 'Servicio Integral',
-    precio: 'Comisión preferencial + acceso exclusivo',
-    features: ['Todo lo del plan Esencial', 'Asesor senior dedicado', 'Acceso a propiedades off-market', 'Estrategia de negociación avanzada', 'Due diligence legal completo', 'Soporte 5 años post-cierre', 'Reportes de mercado mensuales'],
-    featured: true,
-    cta: 'Solicitar acceso',
-  },
-  {
-    label: 'Corporativo',
-    titulo: 'Portafolio & Inversión',
-    precio: 'Estructura a medida — cotizar',
-    features: ['Todo lo del plan Premium', 'Análisis de portafolio inmobiliario', 'Vehículos de inversión estructurados', 'Gestión de activos en renta', 'Reportes trimestrales de rendimiento', 'Acceso a red de inversionistas'],
-    featured: false,
-    cta: 'Contactar equipo',
-  },
-];
-
-const TESTIMONIOS = [
-  { texto: 'En tres meses encontramos la propiedad que llevábamos dos años buscando. La atención fue impecable de principio a fin.', nombre: 'Miguel & Laura Fernández', rol: 'Compradores — Residencia Diamante' },
-  { texto: 'Vendieron mi penthouse en 47 días al precio que yo pedía. La estrategia de marketing fue completamente diferente a lo que había visto antes.', nombre: 'Rodrigo Salinas', rol: 'Vendedor — Penthouse Sierra Alta' },
-  { texto: 'Mi portafolio creció un 34% en valor en 18 meses. Lo que más valoro es que siempre actúan con mis intereses primero.', nombre: 'Grupo Varela Capital', rol: 'Inversionista Institucional' },
-];
-
-// ─────────────────────────────────────────────
-// HELPER: número de columnas
-// ─────────────────────────────────────────────
-const getCols = (w) => {
-  if (w >= 1024) return 3;
-  if (w >= 640)  return 2;
-  return 1;
+// 📷 REPOSITORIO DE IMÁGENES PREMIUM RELES ASOCIADAS A TUS 4 SERVICIOS CORE
+const GALERIAS_SERVICIOS = {
+  mudanza: [
+    'https://images.unsplash.com/photo-1527453303844-40fae2828e4f?w=800&q=80', // Camión premium
+    'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80', // Cajas embalaje lujo
+    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&q=80'  // Logística/Instalación
+  ],
+  socials: [
+    'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&q=80', // Interfaz Instagram/TikTok
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80', // Métricas de marketing digital
+    'https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=800&q=80'  // Estrategia de pauta publicitaria
+  ],
+  studio: [
+    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80', // Cámara profesional lente macro
+    'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&q=80', // Sesión de fotos residencial
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80'  // Drone volando sobre propiedad
+  ],
+  advisory: [
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80', // Firma de contrato de propiedad de lujo
+    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80', // Trato corporativo de agente ejecutivo
+    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80'  // Consultoría legal notarial premium
+  ]
 };
 
-// ─────────────────────────────────────────────
-// SUBCOMPONENTE: HoverText (link con micro-hover dorado en web)
-// ─────────────────────────────────────────────
-function HoverLink({ text, onPress, style, textStyle }) {
+function FooterLink({ label, onPress, customStyle }) {
   const [hovered, setHovered] = useState(false);
-  const hoverProps = Platform.OS === 'web'
-    ? { onHoverIn: () => setHovered(true), onHoverOut: () => setHovered(false) }
-    : {};
   return (
     <Pressable
       onPress={onPress}
-      style={[style]}
-      {...hoverProps}
+      onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
+      onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
+      style={{ alignSelf: 'flex-start' }}
     >
-      <Text style={[textStyle, hovered && { color: C.gold }]}>{text}</Text>
+      <Text style={[styles.footerLinkText, customStyle, hovered && { color: C.gold, transform: [{ translateX: 4 }] }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-// ─────────────────────────────────────────────
-// SUBCOMPONENTE: Tarjeta de servicio
-// ─────────────────────────────────────────────
-function ServiceCard({ item, isOpen, onToggle, onCall, onWa, isWide, cardWidth }) {
+function SocialBadge({ net }) {
   const [hovered, setHovered] = useState(false);
-  const hoverProps = Platform.OS === 'web'
-    ? { onHoverIn: () => setHovered(true), onHoverOut: () => setHovered(false) }
-    : {};
+  return (
+    <Pressable
+      onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
+      onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
+      style={[styles.footerSocialBtn, hovered && { borderColor: C.gold, backgroundColor: 'rgba(160,120,64,0.05)', transform: [{ scale: 1.08 }] }]}
+    >
+      <Text style={[styles.footerSocialText, hovered && { color: C.gold }]}>{net}</Text>
+    </Pressable>
+  );
+}
+
+function ServiceCard({ item, isOpen, onToggle, onMail, onWa, cardWidth }) {
+  const { t } = useTranslation();
+  const [hovered, setHovered] = useState(false);
 
   return (
-    <View
-      style={[
-        styles.serviceCard,
-        isWide && styles.serviceCardWide,
-        hovered && styles.serviceCardHovered,
-        { width: cardWidth },
-      ]}
-      {...hoverProps}
-    >
-      {/* Barra superior activa en hover */}
-      {hovered && <View style={styles.serviceCardBar} />}
-
-      <Text style={[styles.serviceNum, hovered && styles.serviceNumHovered]}>{item.num}</Text>
-      <Text style={styles.serviceTag}>{item.tag}</Text>
-      <Text style={styles.serviceTitle}>
-        {item.titulo}{'\n'}
-        <Text style={styles.serviceTitleEm}>{item.tituloEm}</Text>
-      </Text>
-      <Text style={styles.serviceDesc}>{item.desc}</Text>
-
-      <View style={styles.featuresList}>
-        {item.features.map((f) => (
-          <View key={f} style={styles.featureRow}>
-            <View style={styles.featureLine} />
-            <Text style={styles.featureText}>{f}</Text>
-          </View>
-        ))}
-      </View>
-
+    <View style={[styles.serviceCardWrapper, { width: cardWidth }]}>
       <Pressable
         onPress={onToggle}
-        style={({ pressed }) => [styles.serviceLink, pressed && { opacity: 0.75 }]}
+        onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
+        onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
+        style={[styles.serviceCard, hovered && styles.serviceCardHovered]}
       >
-        <Text style={styles.serviceLinkText}>{item.cta}  →</Text>
-      </Pressable>
-
-      {isOpen && (
-        <View style={styles.contactPanel}>
-          <Text style={styles.contactLabel}>Un asesor se pondrá en contacto a la brevedad.</Text>
-          <View style={styles.contactRow}>
-            <Pressable
-              onPress={onCall}
-              style={({ pressed }) => [styles.contactBtn, pressed && { opacity: 0.75 }]}
-            >
-              <Text style={styles.contactBtnText}>📞  Llamar Ahora</Text>
-            </Pressable>
-            <Pressable
-              onPress={onWa}
-              style={({ pressed }) => [styles.contactBtn, styles.contactBtnWa, pressed && { opacity: 0.75 }]}
-            >
-              <Text style={[styles.contactBtnText, styles.contactBtnTextWa]}>💬  WhatsApp</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────
-// SUBCOMPONENTE: Tarjeta de plan
-// ─────────────────────────────────────────────
-function PlanCard({ plan, onPress, cardWidth }) {
-  const [hovered, setHovered] = useState(false);
-  const hoverProps = Platform.OS === 'web'
-    ? { onHoverIn: () => setHovered(true), onHoverOut: () => setHovered(false) }
-    : {};
-  return (
-    <View
-      style={[
-        styles.planCard,
-        plan.featured && styles.planCardFeatured,
-        hovered && !plan.featured && styles.planCardHovered,
-        { width: cardWidth },
-      ]}
-      {...hoverProps}
-    >
-      {plan.featured && (
-        <View style={styles.planBadge}>
-          <Text style={styles.planBadgeText}>Más Popular</Text>
-        </View>
-      )}
-      <Text style={styles.planLabel}>{plan.label}</Text>
-      <Text style={styles.planTitulo}>{plan.titulo}</Text>
-      <View style={styles.planDivider} />
-      <Text style={styles.planPrecio}>{plan.precio}</Text>
-
-      <View style={styles.planFeatures}>
-        {plan.features.map((f) => (
-          <View key={f} style={styles.planFeatureRow}>
-            <Text style={styles.planFeatureCheck}>✓</Text>
-            <Text style={styles.planFeatureText}>{f}</Text>
-          </View>
-        ))}
-      </View>
-
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.planBtn,
-          plan.featured && styles.planBtnFeatured,
-          pressed && { opacity: 0.85 },
-        ]}
-      >
-        <Text style={[styles.planBtnText, plan.featured && styles.planBtnTextFeatured]}>
-          {plan.cta}
+        <View style={[styles.serviceCardBar, hovered && { backgroundColor: C.goldDeep, height: 3 }]} />
+        <Text style={[styles.serviceNum, hovered && { color: 'rgba(160,120,64,0.35)' }]}>{item.num}</Text>
+        <Text style={styles.serviceTag}>{t(item.tagKey, { defaultValue: item.tag })}</Text>
+        <Text style={styles.serviceTitle}>
+          {t(item.titleKey, { defaultValue: item.titulo })}{'\n'}
+          <Text style={styles.serviceTitleEm}>{t(item.emKey, { defaultValue: item.tituloEm })}</Text>
         </Text>
+        <Text style={styles.serviceDesc}>{t(item.descKey, { defaultValue: item.desc })}</Text>
+
+        <View style={styles.featuresList}>
+          {item.features.map((f, i) => (
+            <View key={i} style={styles.featureRow}>
+              <View style={[styles.featureLine, hovered && { backgroundColor: C.goldDeep, width: 24 }]} />
+              <Text style={styles.featureText}>{f}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.serviceLink}>
+          <Text style={[styles.serviceLinkText, hovered && { color: C.goldDeep }]}>
+            {t(item.ctaKey, { defaultValue: item.cta })}  →
+          </Text>
+        </View>
+
+        {isOpen && (
+          <View style={styles.contactPanel}>
+            <Text style={styles.contactLabel}>{t('sv_panel_call', { defaultValue: 'Un asesor exclusivo se pondrá en contacto a la brevedad.' })}</Text>
+            <View style={styles.contactRow}>
+              <Pressable onPress={onMail} style={({ pressed }) => [styles.contactBtn, pressed && { opacity: 0.7 }]}>
+                <Text style={styles.contactBtnText}>✉️ {t('footer.contact_t', { defaultValue: 'Mandar Correo' })}</Text>
+              </Pressable>
+              <Pressable onPress={onWa} style={({ pressed }) => [styles.contactBtn, styles.contactBtnWa, pressed && { opacity: 0.7 }]}>
+                <Text style={[styles.contactBtnText, styles.contactBtnTextWa]}>💬 WhatsApp</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </Pressable>
     </View>
   );
 }
 
-// ─────────────────────────────────────────────
-// SUBCOMPONENTE: Footer oficial bilingüe
-// ─────────────────────────────────────────────
-function FooterInmoViral({ t, idiomaActual, onIrLogin }) {
-  const abrirUrl = (url) => Linking.openURL(url).catch(() => {});
-
-  const linksEmpresa = idiomaActual.startsWith('en')
-    ? ['About Us', 'Properties', 'Services', 'Contact']
-    : ['Sobre Nosotros', 'Propiedades', 'Servicios', 'Contacto'];
-
-  const linksCatalogo = idiomaActual.startsWith('en')
-    ? ['Luxury Homes', 'Apartments', 'Commercial', 'Off-Market']
-    : ['Residencias de Lujo', 'Departamentos', 'Comercial', 'Off-Market'];
+function PlanCard({ plan, onPress, cardWidth }) {
+  const { t } = useTranslation();
+  const [hovered, setHovered] = useState(false);
 
   return (
-    <View style={styles.footer}>
-      {/* Línea superior */}
-      <View style={styles.footerTopLine} />
-
-      <View style={styles.footerInner}>
-        {/* Col 1 — Marca */}
-        <View style={styles.footerCol}>
-          <Text style={styles.footerBrand}>INMO<Text style={styles.footerBrandAccent}>VIRAL</Text></Text>
-          <Text style={styles.footerDesc}>{t('footer.desc', { defaultValue: 'Especialistas en bienes raíces premium. Conectamos personas con propiedades que transforman su vida.' })}</Text>
-          <View style={styles.footerSocials}>
-            {['IG', 'FB', 'TK', 'YT'].map((s) => (
-              <HoverLink
-                key={s}
-                text={s}
-                onPress={() => {}}
-                style={styles.footerSocialBtn}
-                textStyle={styles.footerSocialText}
-              />
-            ))}
+    <View style={{ width: cardWidth, padding: 12 }}>
+      <Pressable
+        onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
+        onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
+        style={[styles.planCard, plan.featured && styles.planCardFeatured, hovered && styles.planCardHovered]}
+      >
+        {plan.featured && (
+          <View style={styles.planBadge}>
+            <Text style={styles.planBadgeText}>{t('sv_popular', { defaultValue: 'MÁS POPULAR' })}</Text>
           </View>
-        </View>
+        )}
+        <Text style={styles.planLabel}>{plan.label}</Text>
+        <Text style={styles.planTitulo}>{plan.titulo}</Text>
+        <View style={styles.planDivider} />
+        <Text style={styles.planPrecio}>{plan.precio}</Text>
 
-        {/* Col 2 — Empresa */}
-        <View style={styles.footerCol}>
-          <Text style={styles.footerColTitle}>{t('footer.company_t', { defaultValue: 'Empresa' })}</Text>
-          {linksEmpresa.map((l) => (
-            <HoverLink
-              key={l}
-              text={l}
-              onPress={l.includes('Login') ? onIrLogin : () => {}}
-              style={styles.footerLink}
-              textStyle={styles.footerLinkText}
-            />
+        <View style={styles.planFeatures}>
+          {plan.features.map((f, i) => (
+            <View key={i} style={styles.planFeatureRow}>
+              <Text style={styles.planFeatureCheck}>✓</Text>
+              <Text style={styles.planFeatureText}>{f}</Text>
+            </View>
           ))}
         </View>
 
-        {/* Col 3 — Catálogo */}
-        <View style={styles.footerCol}>
-          <Text style={styles.footerColTitle}>{t('footer.catalog_t', { defaultValue: 'Catálogo' })}</Text>
-          {linksCatalogo.map((l) => (
-            <HoverLink
-              key={l}
-              text={l}
-              onPress={() => {}}
-              style={styles.footerLink}
-              textStyle={styles.footerLinkText}
-            />
-          ))}
-        </View>
-
-        {/* Col 4 — Contacto */}
-        <View style={styles.footerCol}>
-          <Text style={styles.footerColTitle}>{t('footer.contact_t', { defaultValue: 'Contacto' })}</Text>
-          <HoverLink
-            text={'📞  ' + CONTACT_PHONE}
-            onPress={() => abrirUrl(`tel:${CONTACT_PHONE}`)}
-            style={styles.footerLink}
-            textStyle={styles.footerLinkText}
-          />
-          <HoverLink
-            text={'✉️  ' + CONTACT_EMAIL}
-            onPress={() => abrirUrl(`mailto:${CONTACT_EMAIL}`)}
-            style={styles.footerLink}
-            textStyle={styles.footerLinkText}
-          />
-          <Text style={styles.footerContactInfo}>
-            {'📍  '}{t('footer.address', { defaultValue: 'Chihuahua, Chih., México' })}
+        <Pressable
+          onPress={onPress}
+          style={[
+            styles.planBtn,
+            plan.featured && styles.planBtnFeatured,
+            hovered && !plan.featured && { backgroundColor: 'rgba(160,120,64,0.1)', borderColor: C.gold }
+          ]}
+        >
+          <Text style={[styles.planBtnText, plan.featured && styles.planBtnTextFeatured, hovered && !plan.featured && { color: C.gold }]}>
+            {plan.cta}
           </Text>
-          <Text style={styles.footerContactInfo}>
-            {'🕒  '}{t('footer.hours', { defaultValue: 'Lun–Vie 9:00–19:00' })}
-          </Text>
-        </View>
-      </View>
-
-      {/* Pie inferior */}
-      <View style={styles.footerBottom}>
-        <View style={styles.footerBottomLine} />
-        <View style={styles.footerBottomRow}>
-          <Text style={styles.footerCopy}>© {new Date().getFullYear()} InmoViral. {t('footer.rights', { defaultValue: 'Todos los derechos reservados.' })}</Text>
-          <View style={styles.footerLegal}>
-            {['Privacidad', 'Términos'].map((l) => (
-              <HoverLink
-                key={l}
-                text={l}
-                onPress={() => {}}
-                style={styles.footerLegalLink}
-                textStyle={styles.footerLegalText}
-              />
-            ))}
-          </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </View>
   );
 }
 
-// ─────────────────────────────────────────────
-// COMPONENTE PRINCIPAL
-// ─────────────────────────────────────────────
 export default function ServiciosVirales({ onIrLogin, onVolver }) {
   const { t, i18n }    = useTranslation();
   const idiomaActual   = i18n.language || 'es';
   const { width }      = useWindowDimensions();
-  const scrollRef      = useRef(null);
-  const sectionOffsets = useRef({});
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const carouselFade = useRef(new Animated.Value(1)).current; // Control del Fade del carrusel
 
-  const [tabActiva, setTabActiva]   = useState('compra');
   const [cardActiva, setCardActiva] = useState(null);
+  const [hoveredBack, setHoveredBack] = useState(false);
+  const [hoveredAboutImg, setHoveredAboutImg] = useState(false);
+  const [hoveredGarantiaIdx, setHoveredGarantiaIdx] = useState(null);
 
-  const cols       = getCols(width);
-  const H_PAD      = 20;
-  const GAP        = 14;
-  const cardWidth  = (width - H_PAD * 2 - GAP * (cols - 1)) / cols;
+  const [servicioActivoTab, setServicioActivoTab] = useState('mudanza');
+  const [imagenActivaIdx, setImagenActivaIdx] = useState(0);
 
-  const registrarSeccion = (id) => (e) => {
-    sectionOffsets.current[id] = e.nativeEvent.layout.y;
-  };
+  // 🛠️ ARREGLO DE LA GRILLA: En web grande renderiza 2 columnas simétricas para emparejar las 4 tarjetas (48% c/u)
+  const isLarge = width > 1024;
+  const gridWidth = isLarge ? '48%' : width > 640 ? '50%' : '100%';
+  const planWidth = isLarge ? '33.33%' : width > 640 ? '50%' : '100%';
+  const isWideFooter = width > 768;
 
-  const scrollASeccion = (id) => {
-    setTabActiva(id);
-    const y = sectionOffsets.current[id];
-    if (typeof y === 'number') {
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 10), animated: true });
-    }
+  // Carrusel Automático de 2 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const fotos = GALERIAS_SERVICIOS[servicioActivoTab];
+      const nextIdx = (imagenActivaIdx + 1) % fotos.length;
+      animarCambioCarrusel(null, nextIdx);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [servicioActivoTab, imagenActivaIdx]);
+
+  // Transición suave (Fade Smooth) para el cambio de diapositivas
+  const animarCambioCarrusel = (nuevaTab, nuevoIdx) => {
+    Animated.timing(carouselFade, { toValue: 0, duration: 150, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+      if (nuevaTab) setServicioActivoTab(nuevaTab);
+      if (typeof nuevoIdx === 'number') setImagenActivaIdx(nuevoIdx);
+      Animated.timing(carouselFade, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }).start();
+    });
   };
 
   const abrirUrl = (url) => Linking.openURL(url).catch(() => {});
+  const mandarCorreoOficial = () => abrirUrl(`mailto:${CONTACT_EMAIL}?subject=Consulta%20InmoViral%20Premium`);
 
-  // ── RENDER ────────────────────────────────
+  const serviciosData = [
+    { id: 1, num: '01', tag: 'Logística', tagKey: 'sv_s1_tag', titulo: 'Ayuda con la', titleKey: 'sv_s1_t', tituloEm: 'Mudanza', emKey: 'sv_s1_em', desc: 'Coordinamos cada detalle de tu traslado con empresas certificadas. Desde el embalaje profesional hasta la instalación en tu nuevo hogar.', descKey: 'sv_s1_desc', features: ['Embalaje profesional', 'Transporte asegurado', 'Coordinación total', 'Seguro de bienes incluido'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
+    { id: 2, num: '02', tag: 'Marketing Digital', tagKey: 'sv_s2_tag', titulo: 'Exposición en', titleKey: 'sv_s2_t', tituloEm: 'Redes Sociales', emKey: 'sv_s2_em', desc: 'Posicionamos tu propiedad frente a miles de compradores e inversionistas activos mediante campañas segmentadas de alto impacto.', descKey: 'sv_s2_desc', features: ['Campañas pagadas', 'Contenido editorial', 'Audiencias de alto valor', 'Reportes de rendimiento'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
+    { id: 3, num: '03', tag: 'Visual Premium', tagKey: 'sv_s3_tag', titulo: 'Fotografía', titleKey: 'sv_s3_t', tituloEm: 'Profesional', emKey: 'sv_s3_em', desc: 'Capturamos la esencia y el valor de cada propiedad con equipo de alto rendimiento, tours virtuales 360 y video en 4K.', descKey: 'sv_s3_desc', features: ['Fotografía de interiores', 'Video cinematic 4K', 'Tour virtual 360°', 'Entrega en 48 horas'], cta: 'Solicitar Servicio', ctaKey: 'sv_cta_req' },
+    { id: 4, num: '04', tag: 'Consultoría', tagKey: 'sv_s4_tag', titulo: 'Asesoramiento', titleKey: 'sv_s4_t', tituloEm: 'Agente INMOVIRAL', emKey: 'sv_s4_em', desc: 'Un experto dedicado a tu operación de principio a fin. Negociación estratégica y acompañamiento legal certificado.', descKey: 'sv_s4_desc', features: ['Agente senior dedicado', 'Análisis de mercado', 'Due diligence legal', 'Soporte de cierre'], cta: 'Agendar Consulta', ctaKey: 'sv_cta_schedule' },
+  ];
+
+  const planesData = [
+    { label: 'VIRAL HYBRID', titulo: 'Mudanza + Exposición Social', precio: 'Cobertura Integral', features: ['Todo el embalaje y traslado de bienes premium', 'Campañas segmentadas nativas (IG, FB, TikTok Ads)', 'Pauta digital optimizada para tu demografía ideal', 'Informe quincenal de leads y clicks generados', 'Soporte logístico de campo dedicado'], featured: false, cta: 'Adquirir Paquete' },
+    { label: 'CINEMATIC LAUNCH', titulo: 'Lanzamiento VIP Editorial', precio: 'Cotización por metraje', features: ['Filmación cinemática 4K con drones e interiores', 'Sesión fotográfica de portada estilo Architectural Digest', 'Diseño de landing page exclusivo para la propiedad', 'Campaña de prensa digital off-market dirigida', 'Distribución privada en redes de inversores VIP'], featured: true, cta: 'Agendar Lanzamiento' },
+    { label: 'END-TO-END ASSET', titulo: 'Gestión Patrimonial Absoluta', precio: 'Estructura fija mensual', features: ['Asesoría legal, fiscal y notarial completa', 'Mantenimiento preventivo técnico del inmueble', 'Coordinación total de contratos de arrendamiento de lujo', 'Auditorías anuales de plusvalía y retorno de inversión', 'Soporte corporativo 24/7 sin intermediarios'], featured: false, cta: 'Contactar Advisory' }
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
         {/* ════ HERO ════ */}
-        <View style={styles.hero}>
+        <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
           <Image source={{ uri: HERO_IMAGE }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
           <View style={styles.heroOverlay} />
           <View style={styles.heroContent}>
@@ -484,29 +276,10 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
               {t('sv_hero_sub', { defaultValue: 'Cada servicio ha sido concebido para acompañar a compradores, vendedores e inversionistas desde la primera consulta hasta mucho después del cierre.' })}
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
-        {/* ════ TABS ════ */}
-        <View style={styles.tabsBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
-            {TAB_SECTIONS.map((tab) => {
-              const active = tabActiva === tab.id;
-              return (
-                <Pressable
-                  key={tab.id}
-                  onPress={() => scrollASeccion(tab.id)}
-                  style={({ pressed }) => [styles.tabBtn, active && styles.tabBtnActive, pressed && { opacity: 0.75 }]}
-                >
-                  <Text style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>{tab.label}</Text>
-                  {active && <View style={styles.tabUnderline} />}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ════ SERVICIOS GRID ════ */}
-        <View style={styles.section} onLayout={registrarSeccion('compra')}>
+        {/* ════ GRID DE SERVICIOS (ARREGLADO SIMÉTRICAMENTE PARA BORRAR EL ESPACIO VACÍO) ════ */}
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('sv_services_label', { defaultValue: 'PORTAFOLIO DE SERVICIOS' })}</Text>
           <Text style={styles.sectionTitle}>
             {t('sv_services_t1', { defaultValue: 'Todo lo que necesitas en un' })}{'\n'}
@@ -514,1007 +287,302 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
             <Text style={styles.sectionEmphasis}>{t('sv_services_em', { defaultValue: 'lugar' })}</Text>
           </Text>
 
-          {/* Grilla responsiva con .map() — sin FlatList anidado */}
-          <View style={styles.servicesGrid}>
-            {SERVICIOS.map((item, idx) => {
-              const rowIdx    = Math.floor(idx / cols);
-              const colIdx    = idx % cols;
-              const isLastRow = rowIdx === Math.floor((SERVICIOS.length - 1) / cols);
-              const isLastCol = colIdx === cols - 1;
-
-              // Registrar secciones de tab
-              const extraLayout =
-                item.tabId === 'venta'       ? registrarSeccion('venta')
-                : item.tabId === 'inversion' ? registrarSeccion('inversion')
-                : item.tabId === 'adicionales' ? registrarSeccion('adicionales')
-                : undefined;
-
-              return (
-                <View
-                  key={item.id}
-                  onLayout={extraLayout}
-                  style={[
-                    styles.serviceCardWrapper,
-                    !isLastCol  && { marginRight: GAP },
-                    !isLastRow  && { marginBottom: GAP },
-                  ]}
-                >
-                  <ServiceCard
-                    item={item}
-                    isOpen={cardActiva === item.id}
-                    onToggle={() => setCardActiva((c) => (c === item.id ? null : item.id))}
-                    onCall={() => abrirUrl(`tel:${CONTACT_PHONE}`)}
-                    onWa={() => abrirUrl(CONTACT_WA)}
-                    isWide={false}
-                    cardWidth={cardWidth}
-                  />
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ════ PROCESO ════ */}
-        <View style={[styles.section, styles.sectionDark]}>
-          <Text style={styles.sectionLabel}>{t('sv_proceso_label', { defaultValue: 'CÓMO TRABAJAMOS' })}</Text>
-          <Text style={styles.sectionTitle}>
-            {t('sv_proceso_t1', { defaultValue: 'Un proceso ' })}
-            <Text style={styles.sectionEmphasis}>{t('sv_proceso_em', { defaultValue: 'claro' })}</Text>
-            {t('sv_proceso_t2', { defaultValue: '\ny sin sorpresas' })}
-          </Text>
-
-          <View style={styles.pasosGrid}>
-            {PASOS.map((paso, i) => (
-              <View
-                key={paso.num}
-                style={[
-                  styles.pasoCard,
-                  i < PASOS.length - 1 && { marginBottom: GAP },
-                  cols > 1 && {
-                    width: (width - H_PAD * 2 - GAP) / 2,
-                    marginRight: i % 2 === 0 ? GAP : 0,
-                  },
-                ]}
-              >
-                <View style={styles.pasoNumWrap}>
-                  <Text style={styles.pasoNum}>{paso.num}</Text>
-                </View>
-                <Text style={styles.pasoTitle}>{paso.titulo}</Text>
-                <Text style={styles.pasoDesc}>{paso.desc}</Text>
-              </View>
+          <View style={styles.flexGridWrapper}>
+            {serviciosData.map((item) => (
+              <ServiceCard
+                key={item.id}
+                item={item}
+                isOpen={cardActiva === item.id}
+                onToggle={() => setCardActiva(cardActiva === item.id ? null : item.id)}
+                onMail={mandarCorreoOficial}
+                onWa={() => abrirUrl(CONTACT_WA)}
+                cardWidth={gridWidth}
+              />
             ))}
           </View>
         </View>
 
-        {/* ════ GARANTÍAS ════ */}
-        <View style={styles.section}>
+        {/* ════ COMPROMISO / GARANTÍAS CORREGIDAS CON SENTIDO EMOCIONAL CORPORATIVO ════ */}
+        <View style={[styles.section, styles.sectionDark]}>
           <Text style={styles.sectionLabel}>{t('sv_garantias_label', { defaultValue: 'NUESTRO COMPROMISO' })}</Text>
-          <Text style={styles.sectionTitle}>
-            {t('sv_garantias_t1', { defaultValue: 'Garantías que nos ' })}
-            <Text style={styles.sectionEmphasis}>{t('sv_garantias_em', { defaultValue: 'distinguen' })}</Text>
-          </Text>
-
-          {/* Imagen + lista */}
-          <View style={styles.garantiasWrap}>
-            <View style={styles.garantiaImageWrap}>
+          <View style={[styles.garantiasWrap, { flexDirection: width > 900 ? 'row' : 'column' }]}>
+            <View style={[styles.garantiaImageWrap, { flex: width > 900 ? 1 : 'none' }]}>
               <Image source={{ uri: GUARANTEE_IMAGE }} style={styles.garantiaImage} resizeMode="cover" />
-              <View style={styles.garantiaImageOverlay} />
-              <Text style={styles.garantiaImageLabel}>
-                {'La confianza se construye\nresultado por resultado.'}
-              </Text>
+              <Text style={styles.garantiaImageLabel}>"Exclusividad que define tu estilo de vida."</Text>
             </View>
 
-            <View style={styles.garantiasList}>
-              {GARANTIAS.map((g, i) => (
-                <View
-                  key={g.titulo}
-                  style={[styles.garantiaItem, i < GARANTIAS.length - 1 && styles.garantiaItemBorder]}
-                >
-                  <View style={styles.garantiaIconWrap}>
-                    <Text style={styles.garantiaIcon}>{g.icon}</Text>
-                  </View>
-                  <View style={styles.garantiaTextWrap}>
-                    <Text style={styles.garantiaTitle}>{g.titulo}</Text>
-                    <Text style={styles.garantiaDesc}>{g.desc}</Text>
-                  </View>
+            <View style={[styles.garantiasList, { flex: width > 900 ? 1.2 : 'none' }]}>
+              {[
+                { title: 'SOPORTE POST-VENTA', desc: 'Acompañamiento legal y técnico permanente.' },
+                { title: 'CONSULTORÍA PRIVADA', desc: 'Asesoría VIP, sin intermediarios impersonales.' },
+                { title: 'TRANSPARENCIA CORPORATIVA', desc: 'Honorarios alineados exclusivamente a tu beneficio.' }
+              ].map((g, i) => (
+                <View key={i} style={styles.garantiaMinimalItem}>
+                  <Text style={styles.garantiaMinimalTitle}>{g.title}</Text>
+                  <Text style={styles.garantiaMinimalDesc}>{g.desc}</Text>
                 </View>
               ))}
             </View>
           </View>
         </View>
 
-        {/* ════ PLANES ════ */}
+        {/* ════ VIRAL MEDIA NOMENCLATURA CORRECTA + SMOOTH FADE TRANSITION ════ */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>VIRAL MEDIA</Text>
+          <Text style={styles.sectionTitle}>Galería Multimedia Studio</Text>
+          
+          <View style={styles.mudanzaCarouselContainer}>
+            <View style={styles.mudanzaHeaderRow}>
+              {[
+                { id: 'mudanza', label: '🚚 Ayuda con la Mudanza' },
+                { id: 'socials', label: '📱 Exposición en Redes Sociales' },
+                { id: 'studio', label: '📷 Fotografía Profesional' },
+                { id: 'advisory', label: '💼 Asesoramiento Agente INMOVIRAL' }
+              ].map(tab => (
+                <Pressable 
+                  key={tab.id} 
+                  onPress={() => animarCambioCarrusel(tab.id, 0)} 
+                  style={[styles.tabSelectorBtn, servicioActivoTab === tab.id && styles.tabSelectorBtnActive]}
+                >
+                  <Text style={[styles.mudanzaBtnText, servicioActivoTab === tab.id && { color: C.bg }]}>{tab.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Caja de renderizado con Opacidad Animada (Smooth Fade Effect) */}
+            <Animated.View style={[styles.carouselViewerBox, { opacity: carouselFade }]}>
+              <Image source={{ uri: GALERIAS_SERVICIOS[servicioActivoTab][imagenActivaIdx] }} style={styles.carouselImageEngine} resizeMode="cover" />
+              <View style={styles.carouselArrowContainer}>
+                <Pressable 
+                  style={styles.carouselArrowBtn} 
+                  onPress={() => animarCambioCarrusel(null, imagenActivaIdx === 0 ? GALERIAS_SERVICIOS[servicioActivoTab].length - 1 : imagenActivaIdx - 1)}
+                >
+                  <Text style={styles.carouselArrowText}>◀</Text>
+                </Pressable>
+                
+                <View style={styles.carouselIndicatorsRow}>
+                  {GALERIAS_SERVICIOS[servicioActivoTab].map((_, idx) => (
+                    <View key={idx} style={[styles.indicatorDot, imagenActivaIdx === idx && styles.indicatorDotActive]} />
+                  ))}
+                </View>
+
+                <Pressable 
+                  style={styles.carouselArrowBtn} 
+                  onPress={() => animarCambioCarrusel(null, imagenActivaIdx === GALERIAS_SERVICIOS[servicioActivoTab].length - 1 ? 0 : imagenActivaIdx + 1)}
+                >
+                  <Text style={styles.carouselArrowText}>▶</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </View>
+
+        {/* ════ COBERTURAS DE INVERSIÓN HÍBRIDAS COMERCIALES ════ */}
         <View style={[styles.section, styles.sectionDark]}>
           <Text style={styles.sectionLabel}>{t('sv_planes_label', { defaultValue: 'PLANES DE SERVICIO' })}</Text>
           <Text style={styles.sectionTitle}>
-            {t('sv_planes_t1', { defaultValue: 'El nivel de servicio ' })}
-            <Text style={styles.sectionEmphasis}>{t('sv_planes_em', { defaultValue: 'que mereces' })}</Text>
+            {t('sv_planes_t1', { defaultValue: 'Paquetes de Cobertura ' })}
+            <Text style={styles.sectionEmphasis}>{t('sv_planes_em', { defaultValue: 'Estratégica' })}</Text>
           </Text>
 
-          <View style={styles.planesGrid}>
-            {PLANES.map((plan, idx) => {
-              const colIdx   = idx % cols;
-              const isLast   = colIdx === cols - 1 || idx === PLANES.length - 1;
-              return (
-                <View
-                  key={plan.label}
-                  style={[
-                    styles.planWrapper,
-                    !isLast && cols > 1 && { marginRight: GAP },
-                    cols === 1 && { marginBottom: GAP },
-                  ]}
-                >
-                  <PlanCard
-                    plan={plan}
-                    onPress={() => typeof onIrLogin === 'function' && onIrLogin()}
-                    cardWidth={cardWidth}
-                  />
-                </View>
-              );
-            })}
+          <View style={styles.flexGridWrapper}>
+            {planesData.map((plan, idx) => (
+              <PlanCard key={idx} plan={plan} cardWidth={planWidth} onPress={onIrLogin} />
+            ))}
           </View>
         </View>
 
-        {/* ════ TESTIMONIOS ════ */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t('sv_testimonios_label', { defaultValue: 'CASOS DE ÉXITO' })}</Text>
-          <Text style={styles.sectionTitle}>
-            {t('sv_testimonios_t1', { defaultValue: 'Lo que dicen ' })}
-            <Text style={styles.sectionEmphasis}>{t('sv_testimonios_em', { defaultValue: 'nuestros clientes' })}</Text>
-          </Text>
+        {/* VOLVER */}
+        {onVolver && (
+          <Pressable 
+            onPress={onVolver}
+            onHoverIn={() => Platform.OS === 'web' && setHoveredBack(true)}
+            onHoverOut={() => Platform.OS === 'web' && setHoveredBack(false)}
+            style={[styles.luxeBackButton, hoveredBack && { borderColor: C.gold }]}
+          >
+            <Text style={[styles.luxeBackButtonText, hoveredBack && { color: C.gold }]}>← {t('vd_back')}</Text>
+          </Pressable>
+        )}
 
-          <View style={styles.testimoniosGrid}>
-            {TESTIMONIOS.map((test, idx) => {
-              const colIdx = idx % cols;
-              const isLast = colIdx === cols - 1 || idx === TESTIMONIOS.length - 1;
-              return (
-                <View
-                  key={test.nombre}
-                  style={[
-                    styles.testimonioWrapper,
-                    !isLast && cols > 1 && { marginRight: GAP },
-                    cols === 1 && { marginBottom: GAP },
-                  ]}
-                >
-                  <View style={[styles.testimonioCard, { width: cardWidth }]}>
-                    <Text style={styles.testimonioText}>"{test.texto}"</Text>
-                    <View style={styles.testDivider} />
-                    <Text style={styles.testimonioName}>{test.nombre}</Text>
-                    <Text style={styles.testimonioRole}>{test.rol}</Text>
-                  </View>
-                </View>
-              );
-            })}
+        {/* FOOTER */}
+        <View style={styles.footerContainer}>
+          <View style={[styles.footerMainRow, !isWideFooter && { flexDirection: 'column', gap: 32 }]}>
+            <View style={styles.footerBrandCol}>
+              <Text style={styles.footerLogoText}>INMOVIRAL</Text>
+              <Text style={styles.footerBrandDesc}>{t('footer.desc')}</Text>
+              <View style={styles.socialFlexRow}>
+                {['WH', 'IG', 'FB', 'GM'].map(net => (
+                  <SocialBadge key={net} net={net} />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.footerLinksCol}>
+              <Text style={styles.footerColHeading}>{t('footer.company_t')}</Text>
+              {[
+                { es: 'Sobre Nosotros', en: 'About Us' },
+                { es: 'Propiedades', en: 'Properties' },
+                { es: 'Nuestro Equipo', en: 'Our Team' },
+                { es: 'Testimonios', en: 'Testimonials' },
+                { es: 'Bolsa de Trabajo', en: 'Careers' }
+              ].map(link => (
+                <FooterLink key={link.es} label={idiomaActual.startsWith('es') ? link.es : link.en} />
+              ))}
+            </View>
+
+            <View style={styles.footerLinksCol}>
+              <Text style={styles.footerDeltaHeading}>{t('footer.catalog_t')}</Text>
+              {[
+                { es: 'Residencias de Lujo', en: 'Luxury Homes' },
+                { es: 'Departamentos', en: 'Apartments' },
+                { es: 'Colección Penthouses', en: 'Penthouses' },
+                { es: 'Terrenos', en: 'Land' },
+                { es: 'Comercial', en: 'Commercial' }
+              ].map(link => (
+                <FooterLink key={link.es} label={idiomaActual.startsWith('es') ? link.es : link.en} />
+              ))}
+            </View>
+
+            <View style={styles.footerBrandCol}>
+              <Text style={styles.footerColHeading}>{t('footer.contact_t')}</Text>
+              <FooterLink label="📞 +52 6181630471" onPress={() => abrirUrl(`tel:${CONTACT_PHONE}`)} />
+              <FooterLink label="✉ info@inmoviral.com" onPress={mandarCorreoOficial} />
+              <FooterLink label={`📍 ${t('footer.address')}`} />
+              <FooterLink label={`🕒 ${t('footer.hours')}`} />
+            </View>
+          </View>
+
+          <View style={styles.footerBottomBar}>
+            <Text style={styles.copyText}>© 2026 INMOVIRAL. All rights reserved.</Text>
+            <View style={styles.legalLinksRow}>
+              <FooterLink label={idiomaActual.startsWith('es') ? 'Política de Privacidad' : 'Privacy Policy'} customStyle={styles.copyText} />
+              <FooterLink label={idiomaActual.startsWith('es') ? 'Términos de Uso' : 'Terms of Use'} customStyle={styles.copyText} />
+            </View>
           </View>
         </View>
-
-        {/* ════ CTA FINAL ════ */}
-        <View style={styles.ctaSection}>
-          <View style={styles.ctaGlow} />
-          <View style={styles.ctaEyebrowRow}>
-            <View style={styles.ctaEyebrowLine} />
-            <Text style={styles.ctaEyebrow}>{t('sv_cta_eyebrow', { defaultValue: 'COMENZAR HOY' })}</Text>
-            <View style={styles.ctaEyebrowLine} />
-          </View>
-          <Text style={styles.ctaTitle}>
-            {t('sv_cta_t1', { defaultValue: 'Tu próxima operación,\ncon expertos a tu ' })}
-            <Text style={styles.ctaTitleEm}>{t('sv_cta_em', { defaultValue: 'lado' })}</Text>
-          </Text>
-          <Text style={styles.ctaSub}>
-            {t('sv_cta_sub', { defaultValue: 'Agenda una consulta sin costo y descubre cómo InmoViral puede transformar tu experiencia inmobiliaria.' })}
-          </Text>
-          <View style={styles.ctaBtns}>
-            <Pressable
-              onPress={() => typeof onIrLogin === 'function' && onIrLogin()}
-              style={({ pressed }) => [styles.ctaBtnGold, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={styles.ctaBtnGoldText}>{t('sv_cta_btn1', { defaultValue: 'AGENDAR CONSULTA' })}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => abrirUrl(CONTACT_WA)}
-              style={({ pressed }) => [styles.ctaBtnOutline, pressed && { opacity: 0.75 }]}
-            >
-              <Text style={styles.ctaBtnOutlineText}>{t('sv_cta_btn2', { defaultValue: 'ESCRIBIR POR WHATSAPP' })}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* ════ FOOTER OFICIAL ════ */}
-        <FooterInmoViral t={t} idiomaActual={idiomaActual} onIrLogin={onIrLogin} />
 
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ─────────────────────────────────────────────
-// ESTILOS — StyleSheet.create (camelCase, sin abreviaciones)
-// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 0,
-  },
+  // Garantías Minimalistas
+  garantiaMinimalItem: { paddingVertical: 24, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  garantiaMinimalTitle: { color: C.text, fontSize: 13, fontFamily: C.sans, letterSpacing: 2, fontWeight: '600', marginBottom: 8 },
+  garantiaMinimalDesc: { color: C.textSub, fontSize: 12, lineHeight: 20, fontFamily: C.sans, fontWeight: '300' },
+  
+  safeArea: { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 0 },
 
-  // ── HERO ────────────────────────────────────
-  hero: {
-    minHeight: 420,
-    justifyContent: 'flex-end',
-    backgroundColor: C.bg,
-    overflow: 'hidden',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(10,10,8,0.76)',
-  },
-  heroContent: {
-    position: 'relative',
-    zIndex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 44,
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  eyebrowLine: {
-    width: 32,
-    height: 1,
-    backgroundColor: C.gold,
-    marginRight: 12,
-  },
-  eyebrow: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    color: C.text,
-    fontSize: 36,
-    lineHeight: 40,
-    fontWeight: '300',
-    letterSpacing: -0.5,
-    marginBottom: 16,
-  },
-  heroEmphasis: {
-    color: C.goldDeep,
-    fontStyle: 'italic',
-  },
-  heroSub: {
-    color: C.textSub,
-    fontSize: 13,
-    lineHeight: 21,
-    fontWeight: '300',
-    letterSpacing: 0.2,
-    maxWidth: 520,
-  },
+  hero: { minHeight: 440, justifyContent: 'flex-end', backgroundColor: C.bg, overflow: 'hidden', position: 'relative' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,8,0.78)' },
+  heroContent: { paddingHorizontal: 32, paddingTop: 60, paddingBottom: 48, maxWidth: 800 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  eyebrowLine: { width: 32, height: 1, backgroundColor: C.gold, marginRight: 12 },
+  eyebrow: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 3, textTransform: 'uppercase', fontWeight: '500' },
+  heroTitle: { color: C.text, fontSize: 44, lineHeight: 52, fontFamily: C.serif, fontWeight: '300', marginBottom: 16 },
+  heroEmphasis: { color: C.goldDeep, fontStyle: 'italic' },
+  heroSub: { color: C.textSub, fontSize: 13, lineHeight: 22, fontFamily: C.sans, fontWeight: '300', maxWidth: 540 },
 
-  // ── TABS ────────────────────────────────────
-  tabsBar: {
-    backgroundColor: '#111110',
-    borderBottomWidth: 1,
-    borderBottomColor: C.borderSoft,
-  },
-  tabsContent: {
-    paddingHorizontal: 16,
-  },
-  tabBtn: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
-    position: 'relative',
-  },
-  tabBtnActive: {},
-  tabBtnText: {
-    color: C.textSub,
-    fontSize: 11,
-    fontWeight: '400',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  tabBtnTextActive: {
-    color: C.gold,
-  },
-  tabUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 18,
-    right: 18,
-    height: 2,
-    backgroundColor: C.gold,
-  },
+  section: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40, backgroundColor: C.bg, alignSelf: 'center', width: '100%', maxWidth: 1400 },
+  sectionDark: { backgroundColor: '#0A0806', borderTopWidth: 1, borderTopColor: C.borderSoft, borderBottomWidth: 1, borderBottomColor: C.borderSoft, paddingHorizontal: 32, paddingVertical: 56, width: '100%' },
+  sectionLabel: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: '500' },
+  sectionTitle: { color: C.text, fontSize: 32, lineHeight: 38, fontFamily: C.serif, fontWeight: '300', marginBottom: 24 },
+  sectionEmphasis: { color: C.goldDeep, fontStyle: 'italic' },
+  
+  // 🛠️ ARREGLO DE MÁRGENES DE LA GRILLA: flex-start y padding balanceado para eliminar el hueco negro
+  flexGridWrapper: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-start', alignItems: 'stretch' },
+  serviceCardWrapper: { padding: 6 },
 
-  // ── SECTIONS ────────────────────────────────
-  section: {
-    paddingHorizontal: 20,
-    paddingTop: 48,
-    paddingBottom: 48,
-    backgroundColor: C.bg,
-  },
-  sectionDark: {
-    backgroundColor: '#0E0C09',
-    borderTopWidth: 1,
-    borderTopColor: C.borderSoft,
-    borderBottomWidth: 1,
-    borderBottomColor: C.borderSoft,
-  },
-  sectionLabel: {
-    color: C.gold,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    color: C.text,
-    fontSize: 28,
-    lineHeight: 33,
-    fontWeight: '300',
-    letterSpacing: -0.3,
-    marginBottom: 32,
-  },
-  sectionEmphasis: {
-    color: C.goldDeep,
-    fontStyle: 'italic',
-  },
+  serviceCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 24, position: 'relative', overflow: 'hidden', height: '100%' },
+  serviceCardHovered: { backgroundColor: '#171512', borderColor: 'rgba(160,120,64,0.35)' },
+  serviceCardBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: 'transparent' },
+  serviceNum: { color: 'rgba(160,120,64,0.12)', fontSize: 52, fontFamily: C.serif, fontWeight: '300', lineHeight: 52, marginBottom: 4 },
+  serviceTag: { color: C.gold, fontSize: 9, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, fontWeight: '500' },
+  serviceTitle: { color: C.text, fontSize: 20, lineHeight: 24, fontFamily: C.serif, fontWeight: '400', marginBottom: 10 },
+  serviceTitleEm: { color: C.goldDeep, fontStyle: 'italic' },
+  serviceDesc: { color: C.textSub, fontSize: 12, lineHeight: 19, fontFamily: C.sans, fontWeight: '300', marginBottom: 16 },
+  featuresList: { marginBottom: 16, gap: 6 },
+  featureRow: { flexDirection: 'row', alignItems: 'center' },
+  featureLine: { width: 14, height: 1, backgroundColor: C.gold, marginRight: 10 },
+  featureText: { color: C.textSub, fontSize: 12, fontFamily: C.sans, fontWeight: '300' },
+  serviceLink: { marginTop: 'auto', paddingTop: 4 },
+  serviceLinkText: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '500' },
 
-  // ── SERVICES GRID ───────────────────────────
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  serviceCardWrapper: {},
-  serviceCard: {
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 22,
-    paddingTop: 28,
-    paddingBottom: 24,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  serviceCardWide: {},
-  serviceCardHovered: {
-    backgroundColor: '#1C1916',
-    borderColor: 'rgba(160,120,64,0.28)',
-  },
-  serviceCardBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: C.gold,
-  },
-  serviceNum: {
-    color: 'rgba(160,120,64,0.14)',
-    fontSize: 52,
-    fontWeight: '300',
-    lineHeight: 54,
-    marginBottom: 10,
-    letterSpacing: -1,
-  },
-  serviceNumHovered: {
-    color: 'rgba(160,120,64,0.28)',
-  },
-  serviceTag: {
-    color: C.gold,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  serviceTitle: {
-    color: C.text,
-    fontSize: 22,
-    lineHeight: 27,
-    fontWeight: '400',
-    marginBottom: 12,
-  },
-  serviceTitleEm: {
-    color: C.goldDeep,
-    fontStyle: 'italic',
-  },
-  serviceDesc: {
-    color: C.textSub,
-    fontSize: 13,
-    lineHeight: 21,
-    fontWeight: '300',
-    marginBottom: 20,
-  },
-  featuresList: {
-    marginBottom: 20,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  featureLine: {
-    width: 18,
-    height: 1,
-    backgroundColor: C.gold,
-    marginRight: 10,
-    flexShrink: 0,
-  },
-  featureText: {
-    color: C.textSub,
-    fontSize: 12,
-    fontWeight: '300',
-    letterSpacing: 0.2,
-    flex: 1,
-  },
-  serviceLink: {
-    alignSelf: 'flex-start',
-    paddingTop: 2,
-    paddingBottom: 2,
-  },
-  serviceLinkText: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
+  contactPanel: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.border },
+  contactLabel: { color: C.textSub, fontSize: 12, fontFamily: C.sans, marginBottom: 10, lineHeight: 16 },
+  contactRow: { flexDirection: 'row', gap: 10 },
+  contactBtn: { flex: 1, height: 38, borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  contactBtnWa: { borderColor: C.greenBdr },
+  contactBtnText: { color: C.gold, fontSize: 11, fontFamily: C.sans, letterSpacing: 1 },
+  contactBtnTextWa: { color: C.green },
 
-  // ── CONTACT PANEL ───────────────────────────
-  contactPanel: {
-    marginTop: 20,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  contactLabel: {
-    color: C.textSub,
-    fontSize: 12,
-    fontWeight: '300',
-    marginBottom: 14,
-    lineHeight: 18,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  contactBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: 'rgba(160,120,64,0.30)',
-  },
-  contactBtnWa: {
-    borderColor: C.greenBdr,
-  },
-  contactBtnText: {
-    color: C.gold,
-    fontSize: 11,
-    fontWeight: '400',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  contactBtnTextWa: {
-    color: C.green,
-  },
+  garantiasWrap: { gap: 32, marginTop: 12 },
+  garantiaImageWrap: { minHeight: 320, position: 'relative', overflow: 'hidden', backgroundColor: '#1A1714', borderWidth: 1, borderColor: C.border },
+  garantiaImage: { width: '100%', height: '100%', transition: 'transform 0.4s ease' },
+  garantiaImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,13,10,0.45)' },
+  garantiaImageLabel: { position: 'absolute', bottom: 24, left: 24, right: 24, color: C.text, fontFamily: C.serif, fontSize: 18, fontStyle: 'italic', fontWeight: '300', lineHeight: 24 },
+  garantiasList: { gap: 4, justifyContent: 'center' },
+  garantiaItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12 },
+  garantiaItemHovered: { backgroundColor: 'rgba(160,120,64,0.04)', borderColor: C.border },
+  garantiaIconWrap: { width: 40, height: 44, borderWidth: 1, borderColor: 'rgba(160,120,64,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 16, backgroundColor: C.card },
+  garantiaIcon: { color: C.gold, fontSize: 14 },
+  garantiaTextWrap: { flex: 1 },
+  garantiaTitle: { color: C.text, fontSize: 15, fontFamily: C.serif, fontWeight: '600', marginBottom: 2 },
+  garantiaSubtitle: { color: C.goldDeep, fontSize: 10, fontFamily: C.sans, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 },
+  garantiaDesc: { color: C.textSub, fontSize: 12, lineHeight: 18, fontFamily: C.sans, fontWeight: '300' },
 
-  // ── PASOS ───────────────────────────────────
-  pasosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-  },
-  pasoCard: {
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.borderSoft,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
-    flex: 1,
-    minWidth: 140,
-  },
-  pasoNumWrap: {
-    width: 44,
-    height: 44,
-    borderWidth: 1,
-    borderColor: C.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-    backgroundColor: '#0E0C09',
-  },
-  pasoNum: {
-    color: C.gold,
-    fontSize: 16,
-    fontWeight: '300',
-  },
-  pasoTitle: {
-    color: C.text,
-    fontSize: 18,
-    fontWeight: '400',
-    lineHeight: 22,
-    marginBottom: 10,
-  },
-  pasoDesc: {
-    color: C.textSub,
-    fontSize: 12,
-    lineHeight: 20,
-    fontWeight: '300',
-  },
+  // Módulo Media Con Transiciones Smooth
+  mudanzaCarouselContainer: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 24, marginTop: 12 },
+  mudanzaHeaderRow: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 },
+  tabSelectorBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(160,120,64,0.25)', paddingVertical: 8, paddingHorizontal: 16 },
+  tabSelectorBtnActive: { backgroundColor: C.gold, borderColor: C.gold },
+  mudanzaBtnText: { color: C.gold, fontFamily: C.sans, fontSize: 11, fontWeight: '500', letterSpacing: 0.5 },
+  carouselViewerBox: { width: '100%', aspectRatio: 16/9, minHeight: 300, overflow: 'hidden', position: 'relative' },
+  carouselImageEngine: { width: '100%', height: '100%' },
+  carouselArrowContainer: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 },
+  carouselArrowBtn: { width: 42, height: 42, backgroundColor: 'rgba(15,13,10,0.85)', borderWidth: 1, borderColor: 'rgba(160,120,64,0.4)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  carouselArrowText: { color: C.text, fontSize: 14 },
+  carouselIndicatorsRow: { flexDirection: 'row', gap: 6, alignSelf: 'flex-end', marginBottom: 16, zIndex: 5 },
+  indicatorDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
+  indicatorDotActive: { backgroundColor: C.gold, width: 16 },
 
-  // ── GARANTÍAS ───────────────────────────────
-  garantiasWrap: {
-    gap: 24,
-  },
-  garantiaImageWrap: {
-    position: 'relative',
-    overflow: 'hidden',
-    backgroundColor: C.card,
-  },
-  garantiaImage: {
-    width: '100%',
-    height: 240,
-  },
-  garantiaImageOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: 0,
-    backgroundColor: 'rgba(10,10,8,0.55)',
-  },
-  garantiaImageLabel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 18,
-    backgroundColor: 'rgba(10,10,8,0.82)',
-    color: C.text,
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: '300',
-    fontStyle: 'italic',
-  },
-  garantiasList: {
-    gap: 0,
-  },
-  garantiaItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 18,
-    paddingBottom: 18,
-  },
-  garantiaItemBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: C.borderSoft,
-  },
-  garantiaIconWrap: {
-    width: 44,
-    height: 44,
-    borderWidth: 1,
-    borderColor: 'rgba(160,120,64,0.30)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-    flexShrink: 0,
-    backgroundColor: C.card,
-  },
-  garantiaIcon: {
-    color: C.gold,
-    fontSize: 16,
-  },
-  garantiaTextWrap: {
-    flex: 1,
-  },
-  garantiaTitle: {
-    color: C.text,
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 19,
-    marginBottom: 5,
-    letterSpacing: 0.2,
-  },
-  garantiaDesc: {
-    color: C.textSub,
-    fontSize: 12,
-    lineHeight: 19,
-    fontWeight: '300',
-  },
+  planCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.borderSoft, padding: 28, position: 'relative', overflow: 'hidden', height: '100%' },
+  planCardFeatured: { borderColor: 'rgba(160,120,64,0.4)', backgroundColor: 'rgba(160,120,64,0.04)' },
+  planCardHovered: { borderColor: 'rgba(160,120,64,0.3)', transform: [{ translateY: -4 }] },
+  planBadge: { position: 'absolute', top: 16, right: 16, backgroundColor: C.gold, paddingHorizontal: 10, paddingVertical: 4 },
+  planBadgeText: { color: C.bg, fontSize: 9, fontFamily: C.sans, fontWeight: '600', letterSpacing: 1 },
+  planLabel: { color: C.gold, fontSize: 9, fontFamily: C.sans, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12 },
+  planTitulo: { color: C.text, fontSize: 20, fontFamily: C.serif, fontWeight: '400', marginBottom: 16 },
+  planDivider: { height: 1, backgroundColor: C.borderSoft, marginBottom: 14 },
+  planPrecio: { color: C.goldDeep, fontSize: 14, fontFamily: C.sans, fontWeight: '500', marginBottom: 24 },
+  planFeatures: { marginBottom: 28, gap: 10 },
+  planFeatureRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  planFeatureCheck: { color: C.gold, fontSize: 12, marginRight: 12, marginTop: 1 },
+  planFeatureText: { color: C.textSub, fontSize: 12, fontFamily: C.sans, lineHeight: 18, fontWeight: '300', flex: 1 },
+  planBtn: { height: 42, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  planBtnFeatured: { backgroundColor: C.gold, borderColor: C.gold },
+  planBtnText: { color: C.text, fontSize: 11, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase' },
+  planBtnTextFeatured: { color: C.bg, fontWeight: '600' },
 
-  // ── PLANES ──────────────────────────────────
-  planesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-  },
-  planWrapper: {},
-  planCard: {
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.borderSoft,
-    paddingHorizontal: 22,
-    paddingTop: 28,
-    paddingBottom: 24,
-    position: 'relative',
-    overflow: 'hidden',
-    marginBottom: 14,
-  },
-  planCardFeatured: {
-    borderColor: 'rgba(160,120,64,0.40)',
-    backgroundColor: 'rgba(160,120,64,0.05)',
-  },
-  planCardHovered: {
-    borderColor: 'rgba(160,120,64,0.30)',
-  },
-  planBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: C.gold,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  planBadgeText: {
-    color: C.bg,
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  planLabel: {
-    color: C.gold,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  planTitulo: {
-    color: C.text,
-    fontSize: 22,
-    fontWeight: '300',
-    lineHeight: 26,
-    marginBottom: 16,
-  },
-  planDivider: {
-    height: 1,
-    backgroundColor: C.borderSoft,
-    marginBottom: 12,
-  },
-  planPrecio: {
-    color: C.textSub,
-    fontSize: 12,
-    fontWeight: '300',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  planFeatures: {
-    marginBottom: 24,
-  },
-  planFeatureRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 9,
-  },
-  planFeatureCheck: {
-    color: C.gold,
-    fontSize: 12,
-    fontWeight: '500',
-    marginRight: 10,
-    marginTop: 1,
-    flexShrink: 0,
-  },
-  planFeatureText: {
-    color: C.textSub,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '300',
-    flex: 1,
-  },
-  planBtn: {
-    height: 42,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  planBtnFeatured: {
-    backgroundColor: C.gold,
-    borderColor: C.gold,
-  },
-  planBtnText: {
-    color: C.text,
-    fontSize: 10,
-    fontWeight: '400',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  planBtnTextFeatured: {
-    color: C.bg,
-    fontWeight: '600',
-  },
+  luxeBackButton: { alignSelf: 'center', marginTop: 32, marginBottom: 48, paddingVertical: 12, paddingHorizontal: 24, borderWidth: 1, borderColor: C.borderSoft },
+  luxeBackButtonText: { color: C.textSub, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: C.sans, fontWeight: '500' },
 
-  // ── TESTIMONIOS ─────────────────────────────
-  testimoniosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-  },
-  testimonioWrapper: {
-    marginBottom: 14,
-  },
-  testimonioCard: {
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.borderSoft,
-    paddingHorizontal: 22,
-    paddingTop: 26,
-    paddingBottom: 24,
-  },
-  testimonioText: {
-    color: C.text,
-    fontSize: 16,
-    lineHeight: 24,
-    fontStyle: 'italic',
-    fontWeight: '300',
-    marginBottom: 20,
-  },
-  testDivider: {
-    width: 32,
-    height: 1,
-    backgroundColor: C.gold,
-    marginBottom: 16,
-  },
-  testimonioName: {
-    color: C.text,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-    marginBottom: 4,
-    letterSpacing: 0.2,
-  },
-  testimonioRole: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '400',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-
-  // ── CTA FINAL ───────────────────────────────
-  ctaSection: {
-    backgroundColor: C.bg,
-    borderTopWidth: 1,
-    borderTopColor: C.borderSoft,
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 64,
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  ctaGlow: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 600,
-    height: 600,
-    borderRadius: 300,
-    backgroundColor: 'rgba(160,120,64,0.06)',
-    transform: [{ translateX: -300 }, { translateY: -300 }],
-  },
-  ctaEyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 12,
-  },
-  ctaEyebrowLine: {
-    width: 30,
-    height: 1,
-    backgroundColor: C.gold,
-  },
-  ctaEyebrow: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-  },
-  ctaTitle: {
-    color: C.text,
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '300',
-    textAlign: 'center',
-    letterSpacing: -0.4,
-    marginBottom: 16,
-  },
-  ctaTitleEm: {
-    color: C.goldDeep,
-    fontStyle: 'italic',
-  },
-  ctaSub: {
-    color: C.textSub,
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
-    fontWeight: '300',
-    maxWidth: 480,
-    marginBottom: 32,
-  },
-  ctaBtns: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  ctaBtnGold: {
-    height: 48,
-    paddingHorizontal: 28,
-    backgroundColor: C.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaBtnGoldText: {
-    color: C.bg,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
-  ctaBtnOutline: {
-    height: 48,
-    paddingHorizontal: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(160,120,64,0.30)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  ctaBtnOutlineText: {
-    color: C.gold,
-    fontSize: 10,
-    fontWeight: '400',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-
-  // ── FOOTER ──────────────────────────────────
-  footer: {
-    backgroundColor: '#0A0806',
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  footerTopLine: {
-    height: 1,
-    backgroundColor: 'rgba(160,120,64,0.20)',
-  },
-  footerInner: {
-    paddingHorizontal: 20,
-    paddingTop: 44,
-    paddingBottom: 32,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 32,
-  },
-  footerCol: {
-    minWidth: 140,
-    flex: 1,
-  },
-  footerBrand: {
-    color: C.text,
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  footerBrandAccent: {
-    color: C.gold,
-  },
-  footerDesc: {
-    color: C.textSub,
-    fontSize: 12,
-    lineHeight: 19,
-    fontWeight: '300',
-    marginBottom: 18,
-    maxWidth: 240,
-  },
-  footerSocials: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  footerSocialBtn: {
-    width: 34,
-    height: 34,
-    borderWidth: 1,
-    borderColor: 'rgba(160,120,64,0.20)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerSocialText: {
-    color: C.textSub,
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  footerColTitle: {
-    color: C.text,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-    marginBottom: 16,
-  },
-  footerLink: {
-    paddingVertical: 5,
-  },
-  footerLinkText: {
-    color: C.textSub,
-    fontSize: 12,
-    fontWeight: '300',
-    lineHeight: 18,
-  },
-  footerContactInfo: {
-    color: C.textSub,
-    fontSize: 12,
-    fontWeight: '300',
-    lineHeight: 18,
-    paddingVertical: 5,
-  },
-  footerBottom: {
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-  },
-  footerBottomLine: {
-    height: 1,
-    backgroundColor: C.borderSoft,
-    marginBottom: 18,
-  },
-  footerBottomRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  footerCopy: {
-    color: 'rgba(122,110,98,0.60)',
-    fontSize: 11,
-    fontWeight: '300',
-    letterSpacing: 0.3,
-  },
-  footerLegal: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  footerLegalLink: {
-    paddingVertical: 2,
-  },
-  footerLegalText: {
-    color: 'rgba(122,110,98,0.60)',
-    fontSize: 11,
-    fontWeight: '300',
-    letterSpacing: 0.3,
-  },
+  footerContainer: { backgroundColor: '#0A0A0A', borderTopWidth: 1, borderTopColor: 'rgba(160,120,64,0.12)', paddingHorizontal: 48, paddingTop: 60, paddingBottom: 30, width: '100%' },
+  footerMainRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', maxWidth: 1200, alignSelf: 'center', marginBottom: 48 },
+  footerBrandCol: { flex: 1.5, minWidth: 220, paddingRight: 20 },
+  footerLogoText: { fontFamily: C.sans, fontWeight: '300', letterSpacing: 5, fontSize: 20, color: C.text, marginBottom: 20 },
+  footerBrandDesc: { fontFamily: C.sans, fontSize: 12, color: C.textSub, lineHeight: 20, fontWeight: '300', marginBottom: 24 },
+  socialFlexRow: { flexDirection: 'row', gap: 10 },
+  footerSocialBtn: { width: 34, height: 34, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.01)' },
+  footerSocialText: { color: C.textSub, fontSize: 10, fontFamily: C.sans, fontWeight: '500' },
+  footerLinksCol: { flex: 1, minWidth: 140 },
+  footerColHeading: { fontFamily: C.sans, fontSize: 11, letterSpacing: 2, color: C.gold, fontWeight: '600', marginBottom: 20, textTransform: 'uppercase' },
+  footerDeltaHeading: { fontFamily: C.sans, fontSize: 11, letterSpacing: 2, color: C.gold, fontWeight: '600', marginBottom: 20, textTransform: 'uppercase' },
+  footerLinkText: { fontFamily: C.sans, fontSize: 12, color: C.textSub, marginBottom: 12, fontWeight: '300' },
+  footerBottomBar: { width: '100%', maxWidth: 1200, alignSelf: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)', paddingTop: 24, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 },
+  copyText: { fontFamily: C.sans, fontSize: 11, color: 'rgba(252,237,225,0.3)', fontWeight: '300' },
+  legalLinksRow: { flexDirection: 'row', gap: 24 }
 });
