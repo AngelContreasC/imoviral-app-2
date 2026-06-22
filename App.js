@@ -132,7 +132,7 @@ function MainApp() {
       if (startYears >= 12) { setCountYears(12); setCountProps(150); clearInterval(timer); }
       else { setCountYears(Math.floor(startYears)); setCountProps(Math.floor(startProps)); }
     }, 40);
-    return () => setInterval(timer);
+    return () => clearInterval(timer);
   }, [vista]);
 
   useEffect(() => {
@@ -493,6 +493,7 @@ function MainApp() {
   );
 }
 
+// ══ 💎 ÚNICA DECLARACIÓN GENERAL DE LA RAÍZ CON CONTEXTO SANEADO ══
 export default function App() { return <AuthProvider><MainApp /></AuthProvider>; }
 
 /* ─────────────────────────────────────────────

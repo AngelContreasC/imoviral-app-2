@@ -150,8 +150,9 @@ function PropCard({ item: p, onVerPropiedad, cardWidth }) {
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────
 export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation(); // ◄ Agrega ", i18n" aquí
   const { width } = useWindowDimensions();
+  const idiomaActual = i18n.language || 'es'; // ◄ Inyecta esta línea mágica
 
   const [propiedades, setPropiedades] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -280,7 +281,9 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
             {/* Branding & Redes */}
             <View style={s.footerBrandCol}>
               <Text style={s.footerLogoText}>INMOVIRAL</Text>
-              <Text style={s.footerBrandDesc}>Bienes raíces premium para estilos de vida modernos. Servicios de venta, renta y asesoría en mercados nacionales e internacionales.</Text>
+              <Text style={s.footerBrandDesc}>
+                {t('footer.desc')}
+              </Text>
               <View style={s.socialFlexRow}>
                 {['WH', 'IG', 'FB', 'GM'].map(net => (
                   <SocialBadge key={net} net={net} />
@@ -290,27 +293,39 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
 
             {/* Links Empresa */}
             <View style={s.footerLinksCol}>
-              <Text style={s.footerColHeading}>EMPRESA</Text>
-              {['Sobre Nosotros', 'Propiedades', 'Nuestro Equipo', 'Testimonios', 'Bolsa de Trabajo'].map(link => (
-                <FooterLink key={link} label={link} />
+              <Text style={s.footerColHeading}>{t('footer.company_t')}</Text>
+              {[
+                { es: 'Sobre Nosotros', en: 'About Us' },
+                { es: 'Propiedades', en: 'Properties' },
+                { es: 'Nuestro Equipo', en: 'Our Team' },
+                { es: 'Testimonios', en: 'Testimonials' },
+                { es: 'Bolsa de Trabajo', en: 'Careers' }
+              ].map(link => (
+                <FooterLink key={link.es} label={idiomaActual.startsWith('es') ? link.es : link.en} />
               ))}
             </View>
 
             {/* Links Catálogo */}
             <View style={s.footerLinksCol}>
-              <Text style={s.footerColHeading}>CATÁLOGO</Text>
-              {['Residencias de Lujo', 'Departamentos', 'Colección Penthouses', 'Terrenos', 'Comercial'].map(link => (
-                <FooterLink key={link} label={link} />
+              <Text style={s.footerColHeading}>{t('footer.catalog_t')}</Text>
+              {[
+                { es: 'Residencias de Lujo', en: 'Luxury Homes' },
+                { es: 'Departamentos', en: 'Apartments' },
+                { es: 'Colección Penthouses', en: 'Penthouses' },
+                { es: 'Terrenos', en: 'Land' },
+                { es: 'Comercial', en: 'Commercial' }
+              ].map(link => (
+                <FooterLink key={link.es} label={idiomaActual.startsWith('es') ? link.es : link.en} />
               ))}
             </View>
 
             {/* Contacto */}
             <View style={s.footerBrandCol}>
-              <Text style={s.footerColHeading}>CONTACTO</Text>
+              <Text style={s.footerColHeading}>{t('footer.contact_t')}</Text>
               <FooterLink label="📞 +52 6181630471" />
               <FooterLink label="✉ info@inmoviral.com" />
-              <FooterLink label="📍 Chihuahua, Chih., México" />
-              <FooterLink label="🕒 Lun-Vie: 9:00 AM - 7:00 PM" />
+              <FooterLink label={`📍 ${t('footer.address')}`} />
+              <FooterLink label={`🕒 ${t('footer.hours')}`} />
             </View>
 
           </View>
@@ -319,8 +334,8 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
           <View style={s.footerBottomBar}>
             <Text style={s.copyText}>© 2026 INMOVIRAL. All rights reserved.</Text>
             <View style={s.legalLinksRow}>
-              <FooterLink label="Política de Privacidad" customStyle={s.copyText} />
-              <FooterLink label="Términos de Uso" customStyle={s.copyText} />
+              <FooterLink label={idiomaActual.startsWith('es') ? 'Política de Privacidad' : 'Privacy Policy'} customStyle={s.copyText} />
+              <FooterLink label={idiomaActual.startsWith('es') ? 'Términos de Uso' : 'Terms of Use'} customStyle={s.copyText} />
             </View>
           </View>
         </View>

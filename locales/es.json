@@ -130,5 +130,30 @@
   "login_caption": "\"Una colección curada de propiedades excepcionales para quienes valoran la exclusividad.\"",
   "register_caption": "\"Cada propiedad es una solución a medida, diseñada en torno a la visión del cliente.\"",
   "login_success_msg": "¡Sesión iniciada correctamente!",
-  "register_success_msg": "¡Cuenta creada exitosamente! Revisa tu lista de usuarios."
+  "register_success_msg": "¡Cuenta creada exitosamente! Revisa tu lista de usuarios.",
+  
+  "vd_back": "VOLVER AL INICIO",
+  "props_renta_eyebrow": "COLECCIÓN EXCLUSIVA",
+  "props_renta_title_1": "Propiedades",
+  "props_renta_title_em": "en Renta",
+  "props_renta_sub": "Residencias de lujo seleccionadas para quienes exigen lo mejor.",
+  "props_venta_eyebrow": "COLECCIÓN EXCLUSIVA",
+  "props_venta_title_1": "Propiedades",
+  "props_venta_title_em": "en Venta",
+  "props_venta_sub": "Residencias de lujo seleccionadas para quienes exigen lo mejor.",
+  "props_search_ph": "Buscar por nombre o ubicación...",
+  "props_sort_reciente": "Más Recientes",
+  "props_sort_precio_asc": "Precio ↑",
+  "props_sort_precio_desc": "Precio ↓",
+  "props_count_label": "PROPIEDADES",
+  "props_empty_title": "Sin Resultados",
+  "props_badge_renta": "RENTA",
+  "props_badge_venta": "VENTA",
+  "props_ver_propiedad": "VER PROPIEDAD",
+  "Casa": "Casa",
+  "Departamento": "Departamento",
+  "Terreno": "Terreno",
+  "Local Comercial": "Local Comercial"
 }
+
+

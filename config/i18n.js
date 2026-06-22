@@ -1,22 +1,18 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-// Rutas ajustadas perfectamente para tu estructura de raíz
-import es from '../locales/es.json';
 import en from '../locales/en.json';
-
-const resources = {
-  es: { translation: es },
-  en: { translation: en }
-};
+import es from '../locales/es.json';
 
 i18n
   .use(initReactI18next)
   .init({
-    resources,
+    resources: {
+      en: { translation: en },
+      es: { translation: es }
+    },
     lng: 'es', 
-    fallbackLng: 'es', 
-    compatibilityJSON: 'v3', 
+    fallbackLng: 'es',
     interpolation: {
       escapeValue: false 
     }
