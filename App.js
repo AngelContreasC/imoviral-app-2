@@ -197,15 +197,24 @@ function MainApp() {
         {user ? (
           <View style={styles.navAuthenticatedRow}>
             
-            {/* 🚀 NUEVO BOTÓN "PUBLICAR" AL LADO DEL AVATAR CON HOVER PREMIUM SANEADO */}
+            {/* 🚀 BOTÓN AL LADO DEL AVATAR CON CAMBIO A GRIS AUTOMÁTICO */}
             <TouchableOpacity 
-              style={[styles.navPublishBtn, hoveredPublishNav && styles.navPublishBtnHover]}
+              style={[
+                styles.navPublishBtn, 
+                hoveredPublishNav && styles.navPublishBtnHover,
+                vista === 'vendedor' && styles.navPublishBtnActive
+              ]}
+              disabled={vista === 'vendedor'}
               onPress={() => setVista('vendedor')}
-              onMouseEnter={() => Platform.OS === 'web' && setHoveredPublishNav(true)}
+              onMouseEnter={() => Platform.OS === 'web' && vista !== 'vendedor' && setHoveredPublishNav(true)}
               onMouseLeave={() => Platform.OS === 'web' && setHoveredPublishNav(false)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.navPublishBtnText, hoveredPublishNav && styles.navPublishBtnTextHover]}>
+              <Text style={[
+                styles.navPublishBtnText, 
+                hoveredPublishNav && styles.navPublishBtnTextHover,
+                vista === 'vendedor' && styles.navPublishBtnTextActive
+              ]}>
                 ➕ {idiomaActual.startsWith('es') ? 'PUBLICAR' : 'PUBLISH'}
               </Text>
             </TouchableOpacity>
@@ -553,7 +562,7 @@ const styles = StyleSheet.create({
   
   navAuthenticatedRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   
-  // Estilo Saneado para el Botón de Publicación en Navbar
+  // ── ESTILOS DEL BOTÓN PUBLICAR (BASE, HOVER Y ACTIVO) ──
   navPublishBtn: {
     borderWidth: 1,
     borderColor: 'rgba(160,120,64,0.4)',
@@ -566,6 +575,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#A07840',
     borderColor: '#A07840',
   },
+  navPublishBtnActive: {
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
   navPublishBtnText: {
     color: '#A07840',
     fontSize: 10,
@@ -575,6 +588,9 @@ const styles = StyleSheet.create({
   },
   navPublishBtnTextHover: {
     color: '#000000',
+  },
+  navPublishBtnTextActive: {
+    color: '#525252', // Gris apagado premium para indicar sección actual
   },
 
   navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },

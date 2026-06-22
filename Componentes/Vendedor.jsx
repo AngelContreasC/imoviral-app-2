@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -19,9 +20,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext.js';
 
-// ─────────────────────────────────────────────
-// TOKENS DE DISEÑO ULTRA-COMPATIBLES
-// ─────────────────────────────────────────────
 const T = {
   gold:      '#A07840',
   goldHover: '#C39B5F',
@@ -31,43 +29,66 @@ const T = {
   muted:     '#8A8A84',
   border:    'rgba(255,255,255,0.08)',
   borderMid: 'rgba(255,255,255,0.25)',
-  serif:     Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
-  sans:      Platform.select({ ios: 'System',  android: 'sans-serif', default: 'System' }),
+  serif:     Platform.select({ ios: 'Georgia', android: 'serif', default: 'Cormorant Garamond, Georgia, serif' }),
+  sans:      Platform.select({ ios: 'System',  android: 'sans-serif', default: 'Montserrat, sans-serif' }),
 };
 
-const AMENIDADES_KEYS = Array.from({ length: 20 }, (_, i) => `vw_am_${i + 1}`);
+const LISTA_AMENIDADES = [
+  "Alberca Infinita", "Gimnasio VIP", "Seguridad 24/7", "Cochera Eléctrica",
+  "Terraza con Vista", "Acabados de Mármol", "Bodega Privada", "Calefacción Central",
+  "Área de Asadores", "Jacuzzi Premium", "Cocina de Chef", "Paneles Solares",
+  "Elevador Privado", "Sala de Cine", "Salón de Eventos", "Jardín Amplio",
+  "Cava de Vinos", "Domótica Inteligente", "Cuarto de Servicio", "Piso Radiante"
+];
 
 const SERVICIOS_VIRALES = [
-  { key: 'mudanza',     titleKey: 'vw_srv1_title', descKey: 'vw_srv1_desc' },
-  { key: 'redes',       titleKey: 'vw_srv2_title', descKey: 'vw_srv2_desc' },
-  { key: 'fotografia',  titleKey: 'vw_srv3_title', descKey: 'vw_srv3_desc' },
-  { key: 'asesor',      titleKey: 'vw_srv4_title', descKey: 'vw_srv4_desc' },
+  { key: 'asesor',      titulo: 'Asesoramiento Agente INMOVIRAL', icon: '💼', desc: 'Acompañamiento legal completo, análisis comparativo de mercado, due diligence notarial y soporte estratégico patrimonial de principio a fin.' },
+  { key: 'mudanza',     titulo: 'Ayuda con la Mudanza', icon: '🚚', desc: 'Logística de traslado patrimonial, embalaje técnico y seguro de bienes premium incluido de puerta a puerta.' },
+  { key: 'redes',       titulo: 'Exposición en Redes Sociales', icon: '📱', desc: 'Campañas de marketing digital segmentadas en Instagram, Facebook y TikTok Ads para captar leads calificados.' },
+  { key: 'fotografia',  titulo: 'Fotografía Profesional', icon: '📷', desc: 'Sesión fotográfica de alta gama, levantamiento cinemático con drones 4K y diseño de tour virtual 360°.' },
+  { key: 'limpieza',    titulo: 'Limpieza Profunda Antes de la Visita', icon: '✨', desc: 'Detallado estético de interiores y sanitización profunda pre-visita con estándares de hotel de 5 estrellas.' },
+];
+
+// 📷 GALERÍA PREMIUM DE TRANSMISIÓN PARA EL FADE CONTINUO DEL HERO IZQUIERDO
+const HERO_GALLERY = [
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200'
 ];
 
 const TIPO_OPTIONS    = ['Casa', 'Departamento', 'Terreno', 'Local Comercial'];
 const OP_OPTIONS      = ['Venta', 'Renta', 'Ambas'];
 const ANTIGUEDAD_OPTIONS = [
-  { value: 'nueva',  labelKey: 'vw_antiguedad_opt0' },
-  { value: 'lt5',    labelKey: 'vw_antiguedad_opt1' },
-  { value: '5-10',   labelKey: 'vw_antiguedad_opt2' },
-  { value: '10-20',  labelKey: 'vw_antiguedad_opt3' },
-  { value: 'gt20',   labelKey: 'vw_antiguedad_opt4' },
+  { value: 'nueva',  label: 'Nueva / A Estrenar' },
+  { value: 'lt5',    label: 'Menos de 5 años' },
+  { value: '5-10',   label: '5 a 10 años' },
+  { value: '10-20',  label: '10 a 20 años' },
+  { value: 'gt20',   label: 'Más de 20 años' },
 ];
 
-// ─────────────────────────────────────────────
-// SUBCOMPONENTES UNIVERSALES
-// ─────────────────────────────────────────────
-
 function Counter({ label, value, onChange, min = 0, max = 10 }) {
+  const [hoverMinus, setHoverMinus] = useState(false);
+  const [hoverPlus, setHoverPlus] = useState(false);
+
   return (
     <View style={s.counterField}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.counterRow}>
-        <Pressable onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
+        <Pressable 
+          onPress={() => onChange(Math.max(min, value - 1))} 
+          onMouseEnter={() => Platform.OS === 'web' && setHoverMinus(true)}
+          onMouseLeave={() => Platform.OS === 'web' && setHoverMinus(false)}
+          style={[s.counterBtn, hoverMinus && s.btnInteractiveHover]}
+        >
           <Text style={s.counterBtnText}>−</Text>
         </Pressable>
         <Text style={s.counterValue}>{value}</Text>
-        <Pressable onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
+        <Pressable 
+          onPress={() => onChange(Math.min(max, value + 1))} 
+          onMouseEnter={() => Platform.OS === 'web' && setHoverPlus(true)}
+          onMouseLeave={() => Platform.OS === 'web' && setHoverPlus(false)}
+          style={[s.counterBtn, hoverPlus && s.btnInteractiveHover]}
+        >
           <Text style={s.counterBtnText}>+</Text>
         </Pressable>
       </View>
@@ -76,12 +97,24 @@ function Counter({ label, value, onChange, min = 0, max = 10 }) {
 }
 
 function OptionSelector({ label, options, value, onChange }) {
+  const [hoveredOpt, setHoveredOpt] = useState(null);
+
   return (
     <View style={s.fieldGroup}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.optionGrid}>
         {options.map(opt => (
-          <Pressable key={opt} onPress={() => onChange(opt)} style={[s.optionBtn, value === opt && s.optionBtnActive]}>
+          <Pressable 
+            key={opt} 
+            onPress={() => onChange(opt)} 
+            onMouseEnter={() => Platform.OS === 'web' && setHoveredOpt(opt)}
+            onMouseLeave={() => Platform.OS === 'web' && setHoveredOpt(null)}
+            style={[
+              s.optionBtn, 
+              value === opt && s.optionBtnActive,
+              hoveredOpt === opt && s.btnInteractiveHover
+            ]}
+          >
             <Text style={[s.optionText, value === opt && s.optionTextActive]}>{opt}</Text>
           </Pressable>
         ))}
@@ -91,18 +124,24 @@ function OptionSelector({ label, options, value, onChange }) {
 }
 
 function Chip({ label, active, onPress }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <Pressable onPress={onPress} style={[s.chip, active && s.chipActive]}>
-      <Text style={[s.chipText, active && s.chipTextActive]}>
-        {active ? '✓ ' : ''}{label}
-      </Text>
+    <Pressable 
+      onPress={onPress} 
+      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
+      onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
+      style={[
+        s.chip, 
+        active && s.chipActive,
+        hovered && s.btnInteractiveHover
+      ]}
+    >
+      <Text style={[s.chipText, active && s.chipTextActive]}>{active ? '✓ ' : ''}{label}</Text>
     </Pressable>
   );
 }
 
-// ─────────────────────────────────────────────
-// COMPONENTE: MapaPicker (Seguro para Compilador)
-// ─────────────────────────────────────────────
 function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
   const containerId = useRef(`map-${Math.random().toString(36).slice(2)}`);
   const mapInstanceRef = useRef(null);
@@ -110,217 +149,180 @@ function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-
     const loadLeaflet = async () => {
       if (!window.L) {
         if (!document.getElementById('leaflet-css')) {
-          const link = document.createElement('link');
-          link.id = 'leaflet-css';
-          link.rel = 'stylesheet';
-          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          document.head.appendChild(link);
+          const link = document.createElement('link'); link.id = 'leaflet-css'; link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
         }
         await new Promise((resolve) => {
-          const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.onload = resolve;
-          document.head.appendChild(script);
+          const script = document.createElement('script'); script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = resolve; document.head.appendChild(script);
         });
       }
-
       const L = window.L;
       if (mapInstanceRef.current) mapInstanceRef.current.remove();
-
-      const initLat = lat || 28.6353;
-      const initLng = lng || -106.0889;
-
-      const map = L.map(containerId.current).setView([initLat, initLng], lat ? 16 : 12);
+      
+      const map = L.map(containerId.current).setView([lat || 28.6353, lng || -106.0889], lat ? 16 : 12);
       mapInstanceRef.current = map;
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-      const marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
+      const marker = L.marker([lat || 28.6353, lng || -106.0889], { draggable: true }).addTo(map);
       markerRef.current = marker;
 
       const syncPos = async (nlat, nlng) => {
         onChange(nlat, nlng);
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nlat}&lon=${nlng}`, {
-            headers: { 'Accept-Language': 'es', 'User-Agent': 'InmoViral/1.0' }
-          });
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nlat}&lon=${nlng}`, { headers: { 'Accept-Language': 'es', 'User-Agent': 'InmoViral/1.0' } });
           const data = await res.json();
           if (data?.address) {
             const a = data.address;
             onConfirm(nlat, nlng, {
               calle: [a.road, a.house_number].filter(Boolean).join(' ') || '',
               colonia: a.suburb || a.neighbourhood || a.quarter || '',
-              ciudad: a.city || a.town || a.village || '',
-              estado: a.state || '',
-              cp: a.postcode || '',
-              busqueda: data.display_name || ''
+              ciudad: a.city || a.town || a.village || '', estado: a.state || '', cp: a.postcode || '', busqueda: data.display_name || ''
             });
           }
         } catch (e) { console.log(e); }
       };
-
-      marker.on('dragend', () => {
-        const p = marker.getLatLng();
-        syncPos(p.lat, p.lng);
-      });
-      map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        syncPos(e.latlng.lat, e.latlng.lng);
-      });
+      marker.on('dragend', () => { const p = marker.getLatLng(); syncPos(p.lat, p.lng); });
+      map.on('click', (e) => { marker.setLatLng(e.latlng); syncPos(e.latlng.lat, e.latlng.lng); });
     };
-
-    loadLeaflet();
+    
+    setTimeout(loadLeaflet, 60);
     return () => { if (mapInstanceRef.current) mapInstanceRef.current.remove(); };
   }, []);
 
   return (
     <View style={{ position: 'relative', marginTop: 12 }}>
-      {/* Spread dinámico para evitar errores estáticos de atributos en la View nativa */}
-      <View 
-        {...(Platform.OS === 'web' ? { id: containerId.current } : {})} 
-        style={[s.webMapFrame, { borderColor: confirmed ? T.gold : 'rgba(220,80,80,0.4)' }]} 
-      />
+      <View nativeID={containerId.current} style={[s.webMapFrame, { borderColor: confirmed ? T.gold : 'rgba(220,80,80,0.5)' }]} />
       <View style={s.mapOverlayBadge}>
-        <Text style={{ color: confirmed ? T.gold : '#e08a8a', fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>
-          {confirmed ? '✓ UBICACIÓN CONFIRMADA' : '📍 SELECCIONA EN EL MAPA'}
-        </Text>
+        <Text style={{ color: confirmed ? T.gold : '#e08a8a', fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>{confirmed ? '✓ UBICACIÓN CONFIRMADA' : '📍 SELECCIONA EN EL MAPA / ARRASTRA EL PIN'}</Text>
       </View>
     </View>
   );
 }
 
-// ─────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────
 export default function Vendedor({ onVolver }) {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const { width } = useWindowDimensions();
-  const isWide = width > 1024;
+  const { t } = useTranslation(); const { user } = useAuth(); const { width } = useWindowDimensions(); const isWide = width > 1024;
+  const WIZARD_STEPS = [{ n: 1, label: 'Ubicación' }, { n: 2, label: 'Detalles' }, { n: 3, label: 'Amenidades' }, { n: 4, label: 'Servicios' }];
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     tipo: '', operacion: '', busqueda: '', calle: '', colonia: '', ciudad: '', estado: '', cp: '', pais: 'México',
     lat: '', lng: '', recamaras: 1, banos: 1, estacionamientos: 0, antiguedad: '',
     titulo: '', precio: '', superficie: '', descripcion: '', amenidades: [], servicios: [], nombre: '', telefono: '',
+    divisa: 'MXN', lada: '+52'
   });
 
-  const [fotos, setFotos] = useState([]);
-  const [enviado, setEnviado] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const [errorEnvio, setErrorEnvio] = useState('');
-  const [progresoSubida, setProgresoSubida] = useState('');
-  const [mapaPinConfirmado, setMapaPinConfirmado] = useState(false);
+  const [fotos, setFotos] = useState([]); const [enviado, setEnviado] = useState(false); const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState(''); const [progresoSubida, setProgresoSubida] = useState('');
+  const [mapaPinConfirmado, setMapaPinConfirmado] = useState(false); const [expandedServices, setExpandedServices] = useState([]);
+
+  // Hovers para control del Wizard y Navegación principal
+  const [hoverNext, setHoverNext] = useState(false);
+  const [hoverPrev, setHoverCE, setHoverPrevState] = useState(false);
+  const [hoverBack, setHoverBack] = useState(false);
+  const [hoveredMiniInc, setHoveredMiniInc] = useState(null);
+
+  // 🎬 INSTANCIAS DE ANIMACIÓN PARA EL SMOOTH CROSS-FADE DE IMÁGENES
+  const heroFade = useRef(new Animated.Value(1)).current;
+  const [heroImgIdx, setHeroImgIdx] = useState(0);
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   useEffect(() => {
     if (user) {
-      setForm(prev => ({
-        ...prev,
-        nombre: prev.nombre || user.user_metadata?.full_name || '',
-        telefono: prev.telefono || user.user_metadata?.phone || '',
-      }));
+      setForm(prev => ({ ...prev, nombre: prev.nombre || user.user_metadata?.full_name || '', telefono: prev.telefono || user.user_metadata?.phone || '' }));
     }
   }, [user]);
+
+  // 🔄 LOOP AUTOMÁTICO DE DESVANECIMIENTO CRUZADO (CADA 2.5 SEGUNDOS)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Animated.timing(heroFade, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+        setHeroImgIdx((prev) => (prev + 1) % HERO_GALLERY.length);
+        Animated.timing(heroFade, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }).start();
+      });
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [heroFade]);
+
+  const tituloLetras = form.titulo ? form.titulo.length : 0;
+  const descLetras = form.descripcion ? form.descripcion.length : 0;
+  const tituloCumple = tituloLetras >= 10; const descCumple = descLetras >= 20;
 
   const canNext = () => {
     if (step === 1) {
       const baseOk = form.tipo && form.operacion && form.antiguedad;
-      if (Platform.OS === 'web') return baseOk && mapaPinConfirmado;
-      return baseOk && form.ciudad.trim();
+      return Platform.OS === 'web' ? baseOk && mapaPinConfirmado : baseOk && form.ciudad.trim();
     }
-    if (step === 2) {
-      return form.titulo.trim() && form.precio.trim() && form.descripcion.trim() && fotos.length >= 3;
-    }
+    if (step === 2) return tituloCumple && form.precio.trim() && descCumple && fotos.length >= 3;
     return true;
   };
 
+  const formatearPrecio = (texto) => {
+    const conComas = texto.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ','); set('precio', conComas);
+  };
+
+  const procesarSuperficie = (texto) => {
+    let limpio = texto.replace(/[^\d]/g, ''); if (limpio && parseInt(limpio, 10) > 9999) limpio = '9999'; set('superficie', limpio);
+  };
+
+  const moverFoto = (index, direccion) => {
+    const target = direccion === 'left' ? index - 1 : index + 1; if (target < 0 || target >= fotos.length) return;
+    const arr = [...fotos]; const temp = arr[index]; arr[index] = arr[target]; arr[target] = temp; setFotos(arr);
+  };
+
+  const toggleAccordionView = (key) => {
+    setExpandedServices(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
   const procesarSeleccionImagenes = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8 });
     if (!result.canceled) {
       const espacio = 15 - fotos.length;
-      const nuevas = result.assets.slice(0, espacio).map((asset, i) => ({
-        id: `${asset.uri}-${i}-${Math.random().toString(36).slice(2)}`,
-        uri: asset.uri,
-        filename: asset.fileName || `photo_${Date.now()}_${i}.jpg`,
-      }));
+      const nuevas = result.assets.slice(0, espacio).map((asset, i) => ({ id: `${asset.uri}-${i}-${Math.random().toString(36).slice(2)}`, uri: asset.uri, filename: asset.fileName || `photo_${Date.now()}_${i}.jpg` }));
       setFotos(prev => [...prev, ...nuevas]);
     }
   };
 
   const removeFoto = (id) => setFotos(prev => prev.filter(f => f.id !== id));
+  const toggleServicioSeleccion = (key) => setForm(prev => ({ ...prev, servicios: prev.servicios.includes(key) ? prev.servicios.filter(s => s !== key) : [...prev.servicios, key] }));
 
   const handleSubmit = async () => {
-    if (step < 4) {
-      if (canNext()) setStep(s => s + 1);
-      return;
-    }
-
-    setErrorEnvio('');
-    setEnviando(true);
-
+    if (step < 4) { if (canNext()) setStep(sVal => sVal + 1); return; }
+    setErrorEnvio(''); setEnviando(true);
     try {
       const ubicacion = [form.colonia, form.ciudad, form.estado].filter(Boolean).join(', ') || form.busqueda || form.calle;
-      const precioNumerico = parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0;
       const urlsImagenes = [];
-
       for (let i = 0; i < fotos.length; i++) {
         setProgresoSubida(t('vw_subiendo_foto', { current: i + 1, total: fotos.length }));
-        const foto = fotos[i];
-        const resp = await fetch(foto.uri);
-        const blob = await resp.blob();
-        
-        const ext = foto.filename?.split('.').pop() || 'jpg';
-        const path = `${user?.id || 'anonimo'}/${Date.now()}_${i}.${ext}`;
-
+        const foto = fotos[i]; const resp = await fetch(foto.uri); const blob = await resp.blob();
+        const path = `${user?.id || 'anonimo'}/${Date.now()}_${i}.${foto.filename?.split('.').pop() || 'jpg'}`;
         const { error: uploadError } = await supabase.storage.from('propiedades').upload(path, blob, { cacheControl: '3600', upsert: false });
         if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path);
-        urlsImagenes.push(publicUrlData.publicUrl);
+        const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path); urlsImagenes.push(publicUrlData.publicUrl);
       }
-
-      const nuevaPropiedad = {
-        user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo,
-        tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
-        tipo_inmueble: form.tipo, precio: precioNumerico, ubicacion, calle: form.calle, colonia: form.colonia,
-        ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
-        lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null,
-        habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos,
-        antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(String(form.superficie).replace(/[^\d.]/g, '')) : null,
-        descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios,
-        imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: form.telefono, estatus: 'pendiente',
-      };
-
-      const { error: insertError } = await supabase.from('propiedades').insert([nuevaPropiedad]);
-      if (insertError) throw insertError;
-
-      setEnviado(true);
-    } catch (err) {
-      console.error(err);
-      setErrorEnvio(err.message || t('vw_error_publicar'));
-    } finally {
-      setEnviando(false);
-      setProgresoSubida('');
-    }
+      const { error: insertError } = await supabase.from('propiedades').insert([{
+        user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
+        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, divisa: form.divisa, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
+        lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
+      }]);
+      if (insertError) throw insertError; setEnviado(true);
+    } catch (err) { console.error(err); setErrorEnvio(err.message || 'Error al guardar la propiedad.'); } finally { setEnviando(false); setProgresoSubida(''); }
   };
 
   if (enviado) {
     return (
       <View style={s.successWrap}>
-        <Text style={s.successCheckMark}>✓</Text>
-        <Text style={s.successTitle}>{t('vw_publicado_msg', { defaultValue: '¡Propiedad publicada!' })}</Text>
-        <Text style={s.successSub}>{t('vw_publicado_anonimo')}</Text>
-        <Pressable onPress={onVolver} style={s.btnPrimary}><Text style={s.btnPrimaryText}>{t('vw_volver')}</Text></Pressable>
+        <Text style={s.successCheckMark}>✓</Text><Text style={s.successTitle}>¡Propiedad publicada con éxito!</Text>
+        <Text style={s.successSub}>Tu registro ha sido enviado correctamente para validación patrimonial.</Text>
+        {form.servicios.length > 0 && (
+          <View style={s.successServiceBadgeBox}>
+            <Text style={s.successServiceBadgeText}>✨ **Atención Logística:** Hemos registrado los servicios opcionales solicitados. Un asesor patrimonial de INMOVIRAL te contactará de forma directa a la brevedad utilizando tu teléfono y LADA para coordinar la agenda de campo.</Text>
+          </View>
+        )}
+        <Pressable onPress={onVolver} style={s.btnSuccessBack}><Text style={s.btnPrimaryText}>VOLVER AL INICIO</Text></Pressable>
       </View>
     );
   }
@@ -330,188 +332,211 @@ export default function Vendedor({ onVolver }) {
       <StatusBar barStyle="light-content" backgroundColor={T.bg} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={[s.layoutContainer, isWide && s.layoutContainerWide]}>
-          
-          {/* COLUMNA IZQUIERDA: HERO EDITORIAL */}
           {isWide && (
             <View style={s.leftHeroColumn}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-              <View style={s.heroDarkOverlay} />
-              <View style={s.heroContentSticky}>
-                <View style={s.heroAccentLineRow}>
-                  <View style={s.heroAccentLine} />
-                  <Text style={s.heroEyebrow}>{t('vd_eyebrow')}</Text>
-                </View>
-                <Text style={s.heroTitleText}>
-                  {t('vd_h1_1')} {'\n'}{t('vd_h1_2')} <Text style={s.heroTitleItalic}>{t('vd_h1_em')}</Text>{'\n'}{t('vd_h1_3')}
-                </Text>
-                <Text style={s.heroDescText}>{t('vd_hero_sub')}</Text>
-              </View>
+              {/* 🎬 NODO ASOCIADO AL CAROUSEL DINÁMICO CON CROSS-FADE DE SERVICIOS VIRALES */}
+              <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: heroFade }]}>
+                <Image source={{ uri: HERO_GALLERY[heroImgIdx] }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              </Animated.View>
+              <View style={s.heroDarkOverlay} /><View style={s.heroContentSticky}><View style={s.heroAccentLineRow}><View style={s.heroAccentLine} /><Text style={s.heroEyebrow}>PUBLICAR PROPIEDAD</Text></View><Text style={s.heroTitleText}>Publica tu{'\n'}propiedad <Text style={s.heroTitleItalic}>premium</Text></Text><Text style={s.heroDescText}>Llega de forma directa y exclusiva a miles de compradores e inversionistas calificados de alto valor.</Text></View>
             </View>
           )}
 
-          {/* COLUMNA DERECHA: FORMULARIO */}
           <ScrollView contentContainerStyle={[s.rightFormColumn, isWide && s.rightFormColumnWide]} showsVerticalScrollIndicator={false}>
             <View style={s.wizardFormCard}>
-              <Text style={s.formMainHeading}>{t('vd_form_titulo')}</Text>
-              <Text style={s.formStepSubTitle}>{t(`vw_step${step}_sub`, { defaultValue: `Paso ${step} de 4` })}</Text>
+              <Text style={s.formMainHeading}>Alta de Inmueble</Text><Text style={s.formStepSubTitle}>{`Paso ${step} de 4`}</Text>
+              
+              <View style={s.progressRow}>
+                {WIZARD_STEPS.map((sItem, idx) => (
+                  <React.Fragment key={sItem.n}>
+                    <View style={s.progressStepUnit}>
+                      <View style={[s.progressCircle, step === sItem.n && s.progressCircleActive, step > sItem.n && s.progressCircleDone]}><Text style={[s.progressCircleText, step === sItem.n && s.progressCircleTextActive, step > sItem.n && s.progressCircleTextDone]}>{step > sItem.n ? '✓' : sItem.n}</Text></View>
+                      <Text style={[s.progressStepLabel, step >= sItem.n && s.progressStepLabelActive]}>{sItem.label}</Text>
+                    </View>
+                    {idx < WIZARD_STEPS.length - 1 && <View style={[s.progressLine, step > sItem.n && s.progressLineActive]} />}
+                  </React.Fragment>
+                ))}
+              </View>
 
-              {/* ═══ PASO 1 ═══ */}
               {step === 1 && (
                 <View style={s.animatedStepContainer}>
-                  <OptionSelector label={t('vd_f_tipo')} options={TIPO_OPTIONS} value={form.tipo} onChange={v => set('tipo', v)} />
-                  <OptionSelector label={t('vd_f_operacion')} options={OP_OPTIONS} value={form.operacion} onChange={v => set('operacion', v)} />
-
-                  <Text style={s.fieldLabel}>{t('vd_f_direccion')}</Text>
-                  {[
-                    { k: 'calle',   ph: 'Calle y Número' },
-                    { k: 'colonia', ph: 'Colonia o Fraccionamiento' },
-                    { k: 'ciudad',  ph: 'Ciudad' },
-                    { k: 'estado',  ph: 'Estado' },
-                    { k: 'cp',      ph: 'Código Postal' },
-                  ].map(f => (
+                  <OptionSelector label="TIPO DE INMUEBLE" options={TIPO_OPTIONS} value={form.tipo} onChange={v => set('tipo', v)} />
+                  <OptionSelector label="OPERACIÓN COMERCIAL" options={OP_OPTIONS} value={form.operacion} onChange={v => set('operacion', v)} />
+                  <Text style={s.fieldLabel}>DIRECCIÓN DEL INMUEBLE</Text>
+                  {[{ k: 'calle', ph: 'Calle y Número Exterior' }, { k: 'colonia', ph: 'Colonia / Fraccionamiento' }, { k: 'ciudad', ph: 'Ciudad' }, { k: 'estado', ph: 'Estado' }, { k: 'cp', ph: 'Código Postal (CP)' }].map(f => (
                     <TextInput key={f.k} style={s.luxuryInput} placeholder={f.ph} placeholderTextColor={T.muted} value={form[f.k]} onChangeText={v => set(f.k, v)} />
                   ))}
-
                   {Platform.OS === 'web' && (
-                    <WebMapContainer 
-                      lat={form.lat ? parseFloat(form.lat) : null} 
-                      lng={form.lng ? parseFloat(form.lng) : null} 
-                      confirmed={mapaPinConfirmado}
-                      onChange={(la, ln) => setForm(prev => ({ ...prev, lat: String(la), lng: String(ln) }))}
-                      onConfirm={(la, ln, addr) => {
-                        setMapaPinConfirmado(true);
-                        setForm(prev => ({ ...prev, lat: String(la), lng: String(ln), ...addr }));
-                      }}
-                    />
+                    <WebMapContainer lat={form.lat ? parseFloat(form.lat) : null} lng={form.lng ? parseFloat(form.lng) : null} confirmed={mapaPinConfirmado} onChange={(la, ln) => setForm(prev => ({ ...prev, lat: String(la), lng: String(ln) }))} onConfirm={(la, ln, addr) => { setForm(prev => ({ ...prev, lat: String(la), lng: String(ln), ...addr })); setMapaPinConfirmado(true); }} />
                   )}
-
                   <View style={{ marginTop: 14 }}>
-                    <Counter label={t('vw_recamaras')} value={form.recamaras} onChange={v => set('recamaras', v)} min={1} />
-                    <Counter label={t('vw_banos')} value={form.banos} onChange={v => set('banos', v)} min={1} />
-                    <Counter label={t('vw_estacionamientos')} value={form.estacionamientos} onChange={v => set('estacionamientos', v)} min={0} />
+                    <Counter label="RECÁMARAS" value={form.recamaras} onChange={v => set('recamaras', v)} min={1} />
+                    <Counter label="BAÑOS COMPLETOS" value={form.banos} onChange={v => set('banos', v)} min={1} />
+                    <Counter label="CAJONES DE ESTACIONAMIENTO" value={form.estacionamientos} onChange={v => set('estacionamientos', v)} min={0} />
                   </View>
-
                   <View style={s.fieldGroup}>
-                    <Text style={s.fieldLabel}>{t('vw_antiguedad')}</Text>
+                    <Text style={s.fieldLabel}>ANTIGÜEDAD</Text>
                     <View style={{ gap: 6 }}>
                       {ANTIGUEDAD_OPTIONS.map(o => (
-                        <Pressable key={o.value} onPress={() => set('antiguedad', o.value)} style={[s.optionBtn, { width: '100%' }, form.antiguedad === o.value && s.optionBtnActive]}>
-                          <Text style={[s.optionText, form.antiguedad === o.value && s.optionTextActive]}>{t(o.labelKey)}</Text>
-                        </Pressable>
+                        <Pressable key={o.value} onPress={() => set('antiguedad', o.value)} style={[s.optionBtn, { width: '100%' }, form.antiguedad === o.value && s.optionBtnActive]}><Text style={[s.optionText, form.antiguedad === o.value && s.optionTextActive]}>{o.label}</Text></Pressable>
                       ))}
                     </View>
                   </View>
                 </View>
               )}
 
-              {/* ═══ PASO 2 ═══ */}
               {step === 2 && (
                 <View style={s.animatedStepContainer}>
-                  <Text style={s.fieldLabel}>{t('vw_titulo')}</Text>
-                  <TextInput style={s.luxuryInput} placeholder="Título de la publicación" placeholderTextColor={T.muted} value={form.titulo} onChangeText={v => set('titulo', v)} />
-
-                  <Text style={s.fieldLabel}>{t('vd_f_precio')}</Text>
-                  <TextInput style={s.luxuryInput} placeholder="$0.00" placeholderTextColor={T.muted} value={form.precio} onChangeText={v => set('precio', v)} />
-
-                  <Text style={s.fieldLabel}>{t('vd_f_superficie')}</Text>
-                  <TextInput style={s.luxuryInput} placeholder="Superficie m²" placeholderTextColor={T.muted} value={form.superficie} onChangeText={v => set('superficie', v)} />
-
-                  <Text style={s.fieldLabel}>{t('vd_f_descripcion')}</Text>
-                  <TextInput style={[s.luxuryInput, s.luxuryTextArea]} placeholder={t('vd_f_descripcion_ph')} placeholderTextColor={T.muted} value={form.descripcion} onChangeText={v => set('descripcion', v)} multiline numberOfLines={4} />
-
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>TÍTULO EXCLUSIVO</Text><Text style={[s.liveCounterText, tituloCumple && s.liveCounterTextValid]}>{tituloLetras}/10</Text></View>
+                  <TextInput style={s.luxuryInput} placeholder="Ej. Bonita casa en el Reliz con bonita vista" placeholderTextColor={T.muted} value={form.titulo} onChangeText={v => set('titulo', v)} />
+                  <Text style={s.fieldLabel}>PRECIO EVALUADO ($)</Text>
+                  <View style={s.hybridInputSelectorBox}>
+                    <TextInput style={[s.luxuryInput, { flex: 1, marginBottom: 0 }]} placeholder="0,000,000" placeholderTextColor={T.muted} value={form.precio} onChangeText={formatearPrecio} keyboardType="numeric" />
+                    <View style={s.currencyToggleWrapper}>
+                      {['MXN', 'USD'].map(moneda => (
+                        <Pressable key={moneda} onPress={() => set('divisa', moneda)} style={[s.currencyMiniBtn, form.divisa === moneda && s.currencyMiniBtnActive]}><Text style={[s.currencyMiniText, form.divisa === moneda && s.currencyMiniTextActive]}>{moneda}</Text></Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>SUPERFICIE TOTAL M²</Text><Text style={s.liveCounterText}>Max. 9,999 m²</Text></View>
+                  <TextInput style={s.luxuryInput} placeholder="Ej. 150" placeholderTextColor={T.muted} value={form.superficie} onChangeText={procesarSuperficie} keyboardType="numeric" maxLength={4} />
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>DESCRIPCIÓN EDITORIAL COMPLETA</Text><Text style={[s.liveCounterText, descCumple && s.liveCounterTextValid]}>{descLetras}/20</Text></View>
+                  <TextInput style={[s.luxuryInput, s.luxuryTextArea]} placeholder="Ej. Bonita casa en el Reliz con bonita vista, amplios espacios modernos, seguridad las 24 horas y acabados de lujo." placeholderTextColor={T.muted} value={form.descripcion} onChangeText={v => set('descripcion', v)} multiline numberOfLines={4} />
                   <View style={s.fieldGroup}>
-                    <Text style={s.fieldLabel}>{t('vw_fotos_label')}</Text>
+                    <Text style={s.fieldLabel}>GALERÍA DE IMÁGENES PRESTIGE</Text>
                     <View style={s.fotosFlexGrid}>
                       {fotos.map((f, i) => (
                         <View key={f.id} style={s.fotoPreviewBox}>
-                          <Image source={{ uri: f.uri }} style={s.fotoImg} />
-                          {i === 0 && <Text style={s.coverBadge}>{t('vw_fotos_portada')}</Text>}
+                          <Image source={{ uri: f.uri }} style={s.fotoImg} />{i === 0 && <Text style={s.coverBadge}>PORTADA</Text>}
+                          
+                          <View style={s.photoSorterOverlayRow}>
+                            <Pressable disabled={i === 0} onPress={() => moverFoto(i, 'left')} style={[s.arrowMoveBtn, i === 0 && { opacity: 0.2 }]}><Text style={s.arrowMoveText}>◀</Text></Pressable>
+                            <Pressable disabled={i === fotos.length - 1} onPress={() => moverFoto(i, 'right')} style={[s.arrowMoveBtn, i === fotos.length - 1 && { opacity: 0.2 }]}><Text style={s.arrowMoveText}>▶</Text></Pressable>
+                          </View>
                           <Pressable onPress={() => removeFoto(f.id)} style={s.removeFotoBtn}><Text style={{ color: '#fff', fontSize: 10 }}>✕</Text></Pressable>
                         </View>
                       ))}
-                      {fotos.length < 15 && (
-                        <Pressable onPress={procesarSeleccionImagenes} style={s.addFotoPlaceholder}>
-                          <Text style={s.addFotoPlusText}>+</Text>
-                        </Pressable>
-                      )}
+                      {fotos.length < 15 && <Pressable onPress={procesarSeleccionImagenes} style={s.addFotoPlaceholder}><Text style={s.addFotoPlusText}>+</Text></Pressable>}
                     </View>
                   </View>
                 </View>
               )}
 
-              {/* ═══ PASO 3 ═══ */}
               {step === 3 && (
                 <View style={s.animatedStepContainer}>
-                  <Text style={s.fieldLabel}>{t('vw_amenidades_label')}</Text>
+                  <Text style={s.fieldLabel}>AMENIDADES RESIDENCIALES</Text>
                   <View style={s.chipsFlexRow}>
-                    {AMENIDADES_KEYS.map(k => (
-                      <Chip key={k} label={t(k)} active={form.amenidades.includes(k)} onPress={() => setForm(prev => ({
-                        ...prev, amenidades: prev.amenidades.includes(k) ? prev.amenidades.filter(a => a !== k) : [...prev.amenidades, k]
-                      }))} />
-                    ))}
+                    {LISTA_AMENIDADES.map(item => {
+                      const active = form.amenidades.includes(item);
+                      return <Chip key={item} label={item} active={active} onPress={() => setForm(prev => ({ ...prev, amenidades: active ? prev.amenidades.filter(a => a !== item) : [...prev.amenidades, item] }))} />;
+                    })}
                   </View>
                 </View>
               )}
 
-              {/* ═══ PASO 4 ═══ */}
               {step === 4 && (
                 <View style={s.animatedStepContainer}>
-                  <Text style={s.fieldLabel}>{t('vw_servicios_label')}</Text>
-                  <View style={{ gap: 12, marginBottom: 20 }}>
+                  <Text style={s.fieldLabel}>CAMPOS DIGITALES VIRALES SOLICITADOS</Text>
+                  <View style={{ gap: 10, marginBottom: 20 }}>
                     {SERVICIOS_VIRALES.map(sv => {
-                      const active = form.servicios.includes(sv.key);
+                      const isSelected = form.servicios.includes(sv.key); const isExpanded = expandedServices.includes(sv.key);
                       return (
-                        <Pressable key={sv.key} onPress={() => setForm(prev => ({ ...prev, servicios: prev.servicios.includes(sv.key) ? prev.servicios.filter(s => s !== sv.key) : [...prev.servicios, sv.key] }))} style={[s.serviceLuxeCard, active && s.serviceLuxeCardActive]}>
-                          <Text style={s.srvTitle}>{t(sv.titleKey)}</Text>
-                          <Text style={s.srvDesc}>{t(sv.descKey)}</Text>
-                          <Text style={s.srvActionTag}>{active ? '✓ INCLUIDO' : '+ AGREGAR'}</Text>
-                        </Pressable>
+                        <View key={sv.key} style={[s.accordionCardContainer, isSelected && s.accordionCardContainerActive]}>
+                          <Pressable onPress={() => toggleAccordionView(sv.key)} style={s.accordionHeaderRow}>
+                            <View style={s.accordionLeftInfo}><Text style={s.accordionIconText}>{sv.icon}</Text><Text style={s.accordionTitleText}>{sv.titulo}</Text></View>
+                            <View style={s.accordionRightControls}>
+                              
+                              {/* BADGE DE ACCIÓN INTERACTIVO "+ INCLUIR" CON ESCALADO EN HOVER */}
+                              <Pressable 
+                                onPress={() => toggleServicioSeleccion(sv.key)} 
+                                onMouseEnter={() => Platform.OS === 'web' && setHoveredMiniInc(sv.key)}
+                                onMouseLeave={() => Platform.OS === 'web' && setHoveredMiniInc(null)}
+                                style={[
+                                  s.miniActionBadge, 
+                                  isSelected && s.miniActionBadgeActive,
+                                  hoveredMiniInc === sv.key && s.btnInteractiveHover
+                                ]}
+                              >
+                                <Text style={[s.miniActionBadgeText, isSelected && s.miniActionBadgeTextActive]}>
+                                  {isSelected ? '✓ INCLUIDO' : '+ INCLUIR'}
+                                </Text>
+                              </Pressable>
+                              
+                              <Text style={s.accordionArrowLabel}>{isExpanded ? '▲' : '▼'}</Text>
+                            </View>
+                          </Pressable>
+                          {isExpanded && (
+                            <View style={s.accordionBodyContent}>
+                              <View style={s.accordionDividerLine} /><Text style={s.accordionDescText}>{sv.desc}</Text>
+                              <View style={s.accordionPriceRow}>
+                                <Text style={s.accordionPriceLabel}>INVERSIÓN ESTIMADA:</Text>
+                                {/* 🛠️ FILTRADO DEL ASESOR: PINTA SOLAMENTE GRATIS TOTALMENTE PURIFICADO */}
+                                <Text style={[s.accordionPriceValue, sv.key !== 'asesor' && s.accordionPriceValueFlexible]}>
+                                  {sv.key === 'asesor' ? 'GRATIS' : 'Nos comunicaremos contigo dependiendo de los requerimientos y el tamaño de la propiedad.'}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                        </View>
                       );
                     })}
                   </View>
-
-                  <Text style={s.fieldLabel}>{t('vd_f_nombre')}</Text>
-                  <TextInput style={s.luxuryInput} placeholder="Tu nombre" placeholderTextColor={T.muted} value={form.nombre} onChangeText={v => set('nombre', v)} />
-
-                  <Text style={s.fieldLabel}>{t('vd_f_telefono')}</Text>
-                  <TextInput style={s.luxuryInput} placeholder="+52" placeholderTextColor={T.muted} value={form.telefono} onChangeText={v => set('telefono', v)} keyboardType="phone-pad" />
-
+                  <Text style={s.fieldLabel}>NOMBRE COMPLETO DEL CONTACTO</Text>
+                  <TextInput style={s.luxuryInput} placeholder="Ej. Elias Javier Quiñonez Reynoso" placeholderTextColor={T.muted} value={form.nombre} onChangeText={v => set('nombre', v)} />
+                  <Text style={s.fieldLabel}>TELÉFONO DE CONTACTO DIRECTO</Text>
+                  <View style={s.ladaPhoneFlexRow}>
+                    <View style={s.ladaInputWrapper}><TextInput style={[s.luxuryInput, { marginBottom: 0, textAlign: 'center' }]} placeholder="+52" placeholderTextColor={T.muted} value={form.lada} onChangeText={v => set('lada', v)} maxLength={4} keyboardType="phone-pad" /></View>
+                    <TextInput style={[s.luxuryInput, s.phoneInputBox]} placeholder="614 123 4567" placeholderTextColor={T.muted} value={form.telefono} onChangeText={v => set('telefono', v)} keyboardType="phone-pad" />
+                  </View>
                   {errorEnvio ? <View style={s.errorBadgeBox}><Text style={s.errorBadgeText}>{errorEnvio}</Text></View> : null}
                 </View>
               )}
 
-              {/* NAV ROW */}
               <View style={s.wizardNavRow}>
                 {step > 1 && !enviando && (
-                  <Pressable onPress={() => setStep(s => s - 1)} style={s.btnSecondary}>
-                    <Text style={s.btnSecondaryText}>{t('vw_anterior')}</Text>
+                  <Pressable 
+                    onPress={() => setStep(sVal => sVal - 1)} 
+                    onMouseEnter={() => Platform.OS === 'web' && setHoverPrevState(true)}
+                    onMouseLeave={() => Platform.OS === 'web' && setHoverPrevState(false)}
+                    style={[s.btnSecondary, hoverPrev && s.btnInteractiveHover]}
+                  >
+                    <Text style={s.btnSecondaryText}>Atrás</Text>
                   </Pressable>
                 )}
-                <Pressable onPress={handleSubmit} disabled={!canNext() || enviando} style={[s.btnPrimary, (!canNext() || enviando) && s.btnPrimaryDisabled]}>
-                  {enviando ? (
-                    <ActivityIndicator color="#000" size="small" />
-                  ) : (
-                    <Text style={s.btnPrimaryText}>{progresoSubida || (step < 4 ? t('vw_siguiente') : t('vw_publicar_btn'))}</Text>
-                  )}
+                
+                <Pressable 
+                  onPress={handleSubmit} 
+                  disabled={!canNext() || enviando} 
+                  onMouseEnter={() => Platform.OS === 'web' && canNext() && setHoverNext(true)}
+                  onMouseLeave={() => Platform.OS === 'web' && setHoverNext(false)}
+                  style={[
+                    s.btnPrimary, 
+                    (!canNext() || enviando) && s.btnPrimaryDisabled,
+                    hoverNext && s.btnInteractiveHover
+                  ]}
+                >
+                  {enviando ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.btnPrimaryText}>{progresoSubida || (step < 4 ? 'Siguiente' : 'Publicar Inmueble')}</Text>}
                 </Pressable>
               </View>
 
-              <Pressable onPress={onVolver} style={s.cancelBackBtn}>
-                <Text style={s.cancelBackBtnText}>← {t('vd_back')}</Text>
+              {/* BOTÓN VOLVER TOTALMENTE SANEADO CON EFECTO DE ESCALADO CORPORATIVO */}
+              <Pressable 
+                onPress={onVolver} 
+                onMouseEnter={() => Platform.OS === 'web' && setHoverBack(true)}
+                onMouseLeave={() => Platform.OS === 'web' && setHoverBack(false)}
+                style={[s.cancelBackLuxeBtn, hoverBack && s.btnInteractiveHover]}
+              >
+                <Text style={s.cancelBackLuxeBtnText}>← VOLVER AL MENÚ DE INICIO</Text>
               </Pressable>
 
             </View>
           </ScrollView>
-
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// ─────────────────────────────────────────────
-// COMPILER-SAFE STYLE SHEET
-// ─────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   layoutContainer: { flex: 1, flexDirection: 'column' },
@@ -525,7 +550,7 @@ const s = StyleSheet.create({
   heroTitleText: { fontFamily: T.serif, fontSize: 48, color: T.text, lineHeight: 56, fontWeight: '300', marginBottom: 20 },
   heroTitleItalic: { fontStyle: 'italic', color: T.gold },
   heroDescText: { fontSize: 13, lineHeight: 24, color: T.text, opacity: 0.75, fontFamily: T.sans, fontWeight: '300' },
-  rightFormColumn: { flex: 1, backgroundColor: '#0A100A' },
+  rightFormColumn: { flex: 1, backgroundColor: '#0A100A', paddingTop: Platform.OS === 'web' ? 100 : 20 },
   rightFormColumnWide: { borderLeftWidth: 1, borderColor: T.border },
   wizardFormCard: { padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center', marginVertical: 20 },
   formMainHeading: { fontFamily: T.serif, fontSize: 26, color: T.text, marginBottom: 6 },
@@ -535,59 +560,101 @@ const s = StyleSheet.create({
   fieldLabel: { fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: T.gold, fontFamily: T.sans, fontWeight: '500', marginBottom: 8, marginTop: 12 },
   luxuryInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: T.border, paddingHorizontal: 16, paddingVertical: 14, color: T.text, fontSize: 13, fontFamily: T.sans, marginBottom: 10 },
   luxuryTextArea: { minHeight: 90, textAlignVertical: 'top' },
+  hybridInputSelectorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: T.border, marginBottom: 10, paddingRight: 6 },
+  currencyToggleWrapper: { flexDirection: 'row', gap: 4, paddingLeft: 8 },
+  currencyMiniBtn: { paddingVertical: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)' },
+  currencyMiniBtnActive: { borderColor: T.gold, backgroundColor: 'rgba(160,120,64,0.15)' },
+  currencyMiniText: { color: T.muted, fontSize: 9, fontFamily: T.sans, fontWeight: '700' },
+  currencyMiniTextActive: { color: T.gold },
+  labelRowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  liveCounterText: { fontSize: 10, fontFamily: T.sans, color: T.muted, letterSpacing: 0.5 },
+  liveCounterTextValid: { color: T.gold, fontWeight: '600' },
   counterField: { marginBottom: 14 },
   counterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: T.border, padding: 10 },
+  counterValue: { color: T.text, fontSize: 15, fontFamily: T.serif, fontWeight: '600' },
   counterBtn: { width: 32, height: 32, backgroundColor: 'rgba(160,120,64,0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(160,120,64,0.2)' },
   counterBtnText: { color: T.gold, fontSize: 16, fontWeight: '600' },
-  counterValue: { color: T.text, fontSize: 15, fontFamily: T.serif, fontWeight: '600' },
   optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   optionBtn: { flex: 1, minWidth: '45%', paddingVertical: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: T.border, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center' },
   optionBtnActive: { borderColor: T.gold, backgroundColor: 'rgba(160,120,64,0.15)' },
   optionText: { color: T.muted, fontSize: 11, fontFamily: T.sans, fontWeight: '600' },
   optionTextActive: { color: T.gold },
-  fotosFlexGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  fotoPreviewBox: { width: 95, height: 95, position: 'relative', borderWidth: 1, borderColor: T.border },
+  fotosFlexGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  fotoPreviewBox: { width: 105, height: 105, position: 'relative', borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
   fotoImg: { width: '100%', height: '100%' },
-  coverBadge: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: T.gold, color: '#000', fontSize: 8, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', paddingVertical: 2 },
-  removeFotoBtn: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  addFotoPlaceholder: { width: 95, height: 95, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(160,120,64,0.4)', backgroundColor: 'rgba(160,120,64,0.03)', justifyContent: 'center', alignItems: 'center' },
+  coverBadge: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: T.gold, color: '#000', fontSize: 7, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', paddingVertical: 2, zIndex: 10 },
+  photoSorterOverlayRow: { position: 'absolute', bottom: 4, left: 4, right: 4, flexDirection: 'row', justifyContent: 'space-between', zIndex: 12 },
+  arrowMoveBtn: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.8)', borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)', justifyContent: 'center', alignItems: 'center' },
+  arrowMoveText: { color: T.gold, fontSize: 9, fontWeight: '700' },
+  removeFotoBtn: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 15 },
+  addFotoPlaceholder: { width: 105, height: 105, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(160,120,64,0.4)', backgroundColor: 'rgba(160,120,64,0.03)', justifyContent: 'center', alignItems: 'center' },
   addFotoPlusText: { color: T.gold, fontSize: 24, fontWeight: '300' },
   chipsFlexRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: T.border, backgroundColor: 'rgba(255,255,255,0.02)' },
   chipActive: { borderColor: T.gold, backgroundColor: T.gold },
   chipText: { color: T.muted, fontSize: 11, fontFamily: T.sans },
   chipTextActive: { color: '#000', fontWeight: '600' },
-  serviceLuxeCard: { padding: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: T.border, gap: 4 },
-  serviceLuxeCardActive: { borderColor: T.gold, backgroundColor: 'rgba(160,120,64,0.05)' },
-  srvTitle: { fontFamily: T.serif, fontSize: 15, color: T.text },
-  srvDesc: { fontSize: 11, color: T.muted, lineHeight: 16, fontWeight: '300', fontFamily: T.sans },
-  srvActionTag: { fontSize: 9, letterSpacing: 1, fontWeight: '600', color: T.gold, marginTop: 4 },
-  errorBadgeBox: { padding: 14, backgroundColor: 'rgba(220,80,80,0.1)', borderWidth: 1, borderColor: 'rgba(220,80,80,0.3)', marginTop: 12 },
-  errorBadgeText: { color: '#e08a8a', fontSize: 12, fontFamily: T.sans },
-  webMapFrame: { width: '100%', height: 280, borderWidth: 1, overflow: 'hidden' },
-  
-  // Centrado limpio y nativo sin transform destructivos
-  mapOverlayBadge: { 
-    position: 'absolute', 
-    bottom: 10, 
-    alignSelf: 'center', 
-    backgroundColor: 'rgba(10,10,10,0.9)', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.05)' 
-  },
-  
+  accordionCardContainer: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: T.border, padding: 16, marginBottom: 4 },
+  accordionCardContainerActive: { borderColor: T.gold, backgroundColor: 'rgba(160,120,64,0.04)' },
+  accordionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  accordionLeftInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  accordionIconText: { fontSize: 16 },
+  accordionTitleText: { fontFamily: T.serif, fontSize: 14, color: T.text, fontWeight: '400' },
+  accordionRightControls: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  miniActionBadge: { paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  miniActionBadgeActive: { backgroundColor: T.gold, borderColor: T.gold },
+  miniActionBadgeText: { color: T.gold, fontSize: 9, fontWeight: '700', fontFamily: T.sans },
+  miniActionBadgeTextActive: { color: '#000' },
+  accordionArrowLabel: { color: T.gold, fontSize: 11, width: 14, textAlign: 'center' },
+  accordionBodyContent: { marginTop: 12, gap: 8 },
+  accordionDividerLine: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
+  accordionDescText: { fontSize: 12, color: T.muted, lineHeight: 18, fontFamily: T.sans, fontWeight: '300' },
+  accordionPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderWidth: 0.5, borderColor: T.border },
+  accordionPriceLabel: { fontSize: 9, color: T.gold, letterSpacing: 1, fontWeight: '600', fontFamily: T.sans },
+  accordionPriceValue: { fontSize: 12, color: T.gold, fontWeight: '700', fontFamily: T.sans, letterSpacing: 0.5 },
+  accordionPriceValueFlexible: { fontSize: 11, textAlign: 'right', flex: 1, paddingLeft: 16, fontWeight: '400', color: T.muted },
+  ladaPhoneFlexRow: { flexDirection: 'row', gap: 8, alignItems: 'center', width: '100%' },
+  ladaInputWrapper: { width: 75 },
+  phoneInputBox: { flex: 1, marginBottom: 0, fontWeight: '600', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: T.border, paddingHorizontal: 16, paddingVertical: 14, color: T.text, fontSize: 13, fontFamily: T.sans },
+  progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 20, width: '100%', paddingHorizontal: 4 },
+  progressStepUnit: { alignItems: 'center', width: 64 },
+  progressCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(184,150,106,0.25)', backgroundColor: 'rgba(255,255,255,0.03)', justifyContent: 'center', alignItems: 'center' },
+  progressCircleActive: { backgroundColor: T.gold, borderColor: T.gold },
+  progressCircleDone: { backgroundColor: 'rgba(184,150,106,0.12)', borderColor: T.gold },
+  progressCircleText: { color: T.muted, fontFamily: T.serif, fontSize: 13, fontWeight: '500' },
+  progressCircleTextActive: { color: T.bg, fontWeight: '700' },
+  progressCircleTextDone: { color: T.gold },
+  progressStepLabel: { fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: T.muted, textAlign: 'center', marginTop: 6, fontFamily: T.sans, lineHeight: 12 },
+  progressStepLabelActive: { color: T.text },
+  progressLine: { flex: 1, height: 1, backgroundColor: 'rgba(184,150,106,0.15)', marginBottom: 18, minWidth: 10 },
+  progressLineActive: { backgroundColor: T.gold },
   wizardNavRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  btnSecondary: { paddingVertical: 14, paddingHorizontal: 24, borderWidth: 1, borderColor: T.borderMid, justifyContent: 'center' },
-  btnSecondaryText: { color: T.muted, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: T.sans },
+  
+  // ── REPARADO: BOTÓN SECUNDARIO CON FILTRADO CLARO DE TEXTO Y CONTRASTE SÓLIDO POR BORDE
+  btnSecondary: { paddingVertical: 14, paddingHorizontal: 24, borderWidth: 1, borderColor: T.gold, backgroundColor: '#141412', justifyContent: 'center' },
+  btnSecondaryText: { color: T.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: T.sans, fontWeight: '600' },
+  
   btnPrimary: { flex: 1, paddingVertical: 14, backgroundColor: T.gold, justifyContent: 'center', alignItems: 'center', minHeight: 48 },
   btnPrimaryDisabled: { opacity: 0.35 },
   btnPrimaryText: { color: '#000', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600', fontFamily: T.sans },
-  cancelBackBtn: { alignItems: 'center', marginTop: 24, paddingVertical: 8 },
-  cancelBackBtnText: { color: T.muted, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontFamily: T.sans },
+  
+  // ── REPARADO: BOTÓN VOLVER PREMIUM CON DISEÑO TOTALMENTE RESALTANTE
+  cancelBackLuxeBtn: { alignItems: 'center', marginTop: 32, paddingVertical: 14, borderWidth: 1, borderColor: T.gold, backgroundColor: '#141412' },
+  cancelBackLuxeBtnText: { color: T.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: T.sans, fontWeight: '700' },
+  
+  // Token de Animación de Hover para Botones del Sistema (Cala en 1.03 con Sombra Profunda)
+  btnInteractiveHover: {
+    transform: [{ scale: 1.03 }],
+    borderColor: T.gold,
+    boxShadow: Platform.OS === 'web' ? '0px 10px 24px rgba(160, 120, 64, 0.28)' : undefined,
+  },
+
   successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: T.bg },
   successCheckMark: { fontSize: 54, color: T.gold, marginBottom: 16 },
   successTitle: { fontFamily: T.serif, fontSize: 24, color: T.text, marginBottom: 8, textAlign: 'center' },
-  successSub: { fontSize: 13, color: T.muted, textAlign: 'center', marginBottom: 24, lineHeight: 20, maxWidth: 320, fontFamily: T.sans }
+  successSub: { fontSize: 13, color: T.muted, textAlign: 'center', marginBottom: 24, lineHeight: 20, maxWidth: 320, fontFamily: T.sans },
+  btnSuccessBack: { width: '100%', maxWidth: 260, paddingVertical: 14, backgroundColor: T.gold, justifyContent: 'center', alignItems: 'center', minHeight: 48, borderRadius: 0 },
+  successServiceBadgeBox: { padding: 18, backgroundColor: 'rgba(160,120,64,0.06)', borderWidth: 1, borderColor: T.gold, maxWidth: 460, marginBottom: 28 },
+  successServiceBadgeText: { color: T.text, fontSize: 12, lineHeight: 20, fontFamily: T.sans, textAlign: 'center', fontWeight: '300' },
+  webMapFrame: { width: '100%', height: 280, borderWidth: 1, backgroundColor: '#141412', overflow: 'hidden' }
 });
