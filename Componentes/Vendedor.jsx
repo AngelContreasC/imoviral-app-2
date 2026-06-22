@@ -49,7 +49,6 @@ const SERVICIOS_VIRALES = [
   { key: 'limpieza',    titulo: 'Limpieza Profunda Antes de la Visita', icon: '✨', desc: 'Detallado estético de interiores y sanitización profunda pre-visita con estándares de hotel de 5 estrellas.' },
 ];
 
-// 📷 GALERÍA PREMIUM DE TRANSMISIÓN PARA EL FADE CONTINUO DEL HERO IZQUIERDO
 const HERO_GALLERY = [
   'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200',
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200',
@@ -196,7 +195,7 @@ function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
     <View style={{ position: 'relative', marginTop: 12 }}>
       <View nativeID={containerId.current} style={[s.webMapFrame, { borderColor: confirmed ? T.gold : 'rgba(220,80,80,0.5)' }]} />
       <View style={s.mapOverlayBadge}>
-        <Text style={{ color: confirmed ? T.gold : '#e08a8a', fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>{confirmed ? '✓ UBICACIÓN CONFIRMADA' : '📍 SELECCIONA EN EL MAPA / ARRASTRA EL PIN'}</Text>
+        <Text style={{ color: confirmed ? T.gold : '#e08a8a', fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>{confirmed ? '✓ UBICACIÓN CONFIRMADA' : '📍 SELECCIONE EN EL MAPA / ARRASTRA EL PIN'}</Text>
       </View>
     </View>
   );
@@ -218,13 +217,11 @@ export default function Vendedor({ onVolver }) {
   const [errorEnvio, setErrorEnvio] = useState(''); const [progresoSubida, setProgresoSubida] = useState('');
   const [mapaPinConfirmado, setMapaPinConfirmado] = useState(false); const [expandedServices, setExpandedServices] = useState([]);
 
-  // Hovers para control del Wizard y Navegación principal
   const [hoverNext, setHoverNext] = useState(false);
-  const [hoverPrev, setHoverCE, setHoverPrevState] = useState(false);
+  const [hoverPrev, setHoverPrevState] = useState(false);
   const [hoverBack, setHoverBack] = useState(false);
   const [hoveredMiniInc, setHoveredMiniInc] = useState(null);
 
-  // 🎬 INSTANCIAS DE ANIMACIÓN PARA EL SMOOTH CROSS-FADE DE IMÁGENES
   const heroFade = useRef(new Animated.Value(1)).current;
   const [heroImgIdx, setHeroImgIdx] = useState(0);
 
@@ -236,7 +233,6 @@ export default function Vendedor({ onVolver }) {
     }
   }, [user]);
 
-  // 🔄 LOOP AUTOMÁTICO DE DESVANECIMIENTO CRUZADO (CADA 2.5 SEGUNDOS)
   useEffect(() => {
     const interval = setInterval(() => {
       Animated.timing(heroFade, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start(() => {
@@ -295,37 +291,39 @@ export default function Vendedor({ onVolver }) {
     try {
       const ubicacion = [form.colonia, form.ciudad, form.estado].filter(Boolean).join(', ') || form.busqueda || form.calle;
       const urlsImagenes = [];
+      
       for (let i = 0; i < fotos.length; i++) {
-        setProgresoSubida(t('vw_subiendo_foto', { current: i + 1, total: fotos.length }));
-        const foto = fotos[i]; const resp = await fetch(foto.uri); const blob = await resp.blob();
+        // 🚀 ESTO ACTUALIZA EL ESTADO DE CARGA TEXTUAL EN TIEMPO REAL
+        setProgresoSubida(`Subiendo foto ${i + 1} de ${fotos.length}...`);
+        const foto = fotos[i]; 
+        const resp = await fetch(foto.uri); 
+        const blob = await resp.blob();
+        
         const path = `${user?.id || 'anonimo'}/${Date.now()}_${i}.${foto.filename?.split('.').pop() || 'jpg'}`;
         const { error: uploadError } = await supabase.storage.from('propiedades').upload(path, blob, { cacheControl: '3600', upsert: false });
         if (uploadError) throw uploadError;
-        const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path); urlsImagenes.push(publicUrlData.publicUrl);
+        
+        const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path); 
+        urlsImagenes.push(publicUrlData.publicUrl);
       }
+      
+      setProgresoSubida('Registrando propiedad patrimonial...');
+
       const { error: insertError } = await supabase.from('propiedades').insert([{
         user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
-        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, divisa: form.divisa, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
+        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
         lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
       }]);
       if (insertError) throw insertError; setEnviado(true);
-    } catch (err) { console.error(err); setErrorEnvio(err.message || 'Error al guardar la propiedad.'); } finally { setEnviando(false); setProgresoSubida(''); }
+    } catch (err) { 
+      console.error(err); 
+      if (err.message && err.message.includes('claim timestamp check failed')) {
+        setErrorEnvio('Tu token de seguridad ha caducado. Por favor, cierra sesión arriba a la derecha e inicia sesión de nuevo.');
+      } else {
+        setErrorEnvio(err.message || 'Error de comunicación con Supabase.');
+      }
+    } finally { setEnviando(false); setProgresoSubida(''); }
   };
-
-  if (enviado) {
-    return (
-      <View style={s.successWrap}>
-        <Text style={s.successCheckMark}>✓</Text><Text style={s.successTitle}>¡Propiedad publicada con éxito!</Text>
-        <Text style={s.successSub}>Tu registro ha sido enviado correctamente para validación patrimonial.</Text>
-        {form.servicios.length > 0 && (
-          <View style={s.successServiceBadgeBox}>
-            <Text style={s.successServiceBadgeText}>✨ **Atención Logística:** Hemos registrado los servicios opcionales solicitados. Un asesor patrimonial de INMOVIRAL te contactará de forma directa a la brevedad utilizando tu teléfono y LADA para coordinar la agenda de campo.</Text>
-          </View>
-        )}
-        <Pressable onPress={onVolver} style={s.btnSuccessBack}><Text style={s.btnPrimaryText}>VOLVER AL INICIO</Text></Pressable>
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={s.root}>
@@ -334,7 +332,6 @@ export default function Vendedor({ onVolver }) {
         <View style={[s.layoutContainer, isWide && s.layoutContainerWide]}>
           {isWide && (
             <View style={s.leftHeroColumn}>
-              {/* 🎬 NODO ASOCIADO AL CAROUSEL DINÁMICO CON CROSS-FADE DE SERVICIOS VIRALES */}
               <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: heroFade }]}>
                 <Image source={{ uri: HERO_GALLERY[heroImgIdx] }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
               </Animated.View>
@@ -445,23 +442,14 @@ export default function Vendedor({ onVolver }) {
                           <Pressable onPress={() => toggleAccordionView(sv.key)} style={s.accordionHeaderRow}>
                             <View style={s.accordionLeftInfo}><Text style={s.accordionIconText}>{sv.icon}</Text><Text style={s.accordionTitleText}>{sv.titulo}</Text></View>
                             <View style={s.accordionRightControls}>
-                              
-                              {/* BADGE DE ACCIÓN INTERACTIVO "+ INCLUIR" CON ESCALADO EN HOVER */}
                               <Pressable 
                                 onPress={() => toggleServicioSeleccion(sv.key)} 
                                 onMouseEnter={() => Platform.OS === 'web' && setHoveredMiniInc(sv.key)}
                                 onMouseLeave={() => Platform.OS === 'web' && setHoveredMiniInc(null)}
-                                style={[
-                                  s.miniActionBadge, 
-                                  isSelected && s.miniActionBadgeActive,
-                                  hoveredMiniInc === sv.key && s.btnInteractiveHover
-                                ]}
+                                style={[s.miniActionBadge, isSelected && s.miniActionBadgeActive, hoveredMiniInc === sv.key && s.btnInteractiveHover]}
                               >
-                                <Text style={[s.miniActionBadgeText, isSelected && s.miniActionBadgeTextActive]}>
-                                  {isSelected ? '✓ INCLUIDO' : '+ INCLUIR'}
-                                </Text>
+                                <Text style={[s.miniActionBadgeText, isSelected && s.miniActionBadgeTextActive]}>{isSelected ? '✓ INCLUIDO' : '+ INCLUIR'}</Text>
                               </Pressable>
-                              
                               <Text style={s.accordionArrowLabel}>{isExpanded ? '▲' : '▼'}</Text>
                             </View>
                           </Pressable>
@@ -470,7 +458,6 @@ export default function Vendedor({ onVolver }) {
                               <View style={s.accordionDividerLine} /><Text style={s.accordionDescText}>{sv.desc}</Text>
                               <View style={s.accordionPriceRow}>
                                 <Text style={s.accordionPriceLabel}>INVERSIÓN ESTIMADA:</Text>
-                                {/* 🛠️ FILTRADO DEL ASESOR: PINTA SOLAMENTE GRATIS TOTALMENTE PURIFICADO */}
                                 <Text style={[s.accordionPriceValue, sv.key !== 'asesor' && s.accordionPriceValueFlexible]}>
                                   {sv.key === 'asesor' ? 'GRATIS' : 'Nos comunicaremos contigo dependiendo de los requerimientos y el tamaño de la propiedad.'}
                                 </Text>
@@ -488,22 +475,21 @@ export default function Vendedor({ onVolver }) {
                     <View style={s.ladaInputWrapper}><TextInput style={[s.luxuryInput, { marginBottom: 0, textAlign: 'center' }]} placeholder="+52" placeholderTextColor={T.muted} value={form.lada} onChangeText={v => set('lada', v)} maxLength={4} keyboardType="phone-pad" /></View>
                     <TextInput style={[s.luxuryInput, s.phoneInputBox]} placeholder="614 123 4567" placeholderTextColor={T.muted} value={form.telefono} onChangeText={v => set('telefono', v)} keyboardType="phone-pad" />
                   </View>
-                  {errorEnvio ? <View style={s.errorBadgeBox}><Text style={s.errorBadgeText}>{errorEnvio}</Text></View> : null}
+                  
+                  {errorEnvio ? (
+                    <View style={s.errorBadgeBox}>
+                      <Text style={s.errorBadgeText}>{errorEnvio}</Text>
+                    </View>
+                  ) : null}
                 </View>
               )}
 
               <View style={s.wizardNavRow}>
                 {step > 1 && !enviando && (
-                  <Pressable 
-                    onPress={() => setStep(sVal => sVal - 1)} 
-                    onMouseEnter={() => Platform.OS === 'web' && setHoverPrevState(true)}
-                    onMouseLeave={() => Platform.OS === 'web' && setHoverPrevState(false)}
-                    style={[s.btnSecondary, hoverPrev && s.btnInteractiveHover]}
-                  >
-                    <Text style={s.btnSecondaryText}>Atrás</Text>
-                  </Pressable>
+                  <Pressable onPress={() => setStep(sVal => sVal - 1)} onMouseEnter={() => Platform.OS === 'web' && setHoverPrevState(true)} onMouseLeave={() => Platform.OS === 'web' && setHoverPrevState(false)} style={[s.btnSecondary, hoverPrev && s.btnInteractiveHover]}><Text style={s.btnSecondaryText}>Atrás</Text></Pressable>
                 )}
                 
+                {/* 🛠️ REDISEÑO COMPLETO: AHORA EL BOTÓN MUESTRA EL PROGRESO DEL LOGÍSTICO JUNTO AL SPINNER */}
                 <Pressable 
                   onPress={handleSubmit} 
                   disabled={!canNext() || enviando} 
@@ -515,19 +501,20 @@ export default function Vendedor({ onVolver }) {
                     hoverNext && s.btnInteractiveHover
                   ]}
                 >
-                  {enviando ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.btnPrimaryText}>{progresoSubida || (step < 4 ? 'Siguiente' : 'Publicar Inmueble')}</Text>}
+                  {enviando ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <ActivityIndicator color="#000" size="small" />
+                      <Text style={[s.btnPrimaryText, { color: '#000' }]}>
+                        {progresoSubida || 'Procesando...'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={s.btnPrimaryText}>{step < 4 ? 'Siguiente' : 'Publicar Inmueble'}</Text>
+                  )}
                 </Pressable>
               </View>
 
-              {/* BOTÓN VOLVER TOTALMENTE SANEADO CON EFECTO DE ESCALADO CORPORATIVO */}
-              <Pressable 
-                onPress={onVolver} 
-                onMouseEnter={() => Platform.OS === 'web' && setHoverBack(true)}
-                onMouseLeave={() => Platform.OS === 'web' && setHoverBack(false)}
-                style={[s.cancelBackLuxeBtn, hoverBack && s.btnInteractiveHover]}
-              >
-                <Text style={s.cancelBackLuxeBtnText}>← VOLVER AL MENÚ DE INICIO</Text>
-              </Pressable>
+              <Pressable onPress={onVolver} onMouseEnter={() => Platform.OS === 'web' && setHoverBack(true)} onMouseLeave={() => Platform.OS === 'web' && setHoverBack(false)} style={[s.cancelBackLuxeBtn, hoverBack && s.btnInteractiveHover]}><Text style={s.cancelBackLuxeBtnText}>← VOLVER AL MENÚ DE INICIO</Text></Pressable>
 
             </View>
           </ScrollView>
@@ -629,26 +616,23 @@ const s = StyleSheet.create({
   progressLine: { flex: 1, height: 1, backgroundColor: 'rgba(184,150,106,0.15)', marginBottom: 18, minWidth: 10 },
   progressLineActive: { backgroundColor: T.gold },
   wizardNavRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  
-  // ── REPARADO: BOTÓN SECUNDARIO CON FILTRADO CLARO DE TEXTO Y CONTRASTE SÓLIDO POR BORDE
   btnSecondary: { paddingVertical: 14, paddingHorizontal: 24, borderWidth: 1, borderColor: T.gold, backgroundColor: '#141412', justifyContent: 'center' },
   btnSecondaryText: { color: T.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: T.sans, fontWeight: '600' },
-  
   btnPrimary: { flex: 1, paddingVertical: 14, backgroundColor: T.gold, justifyContent: 'center', alignItems: 'center', minHeight: 48 },
   btnPrimaryDisabled: { opacity: 0.35 },
   btnPrimaryText: { color: '#000', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600', fontFamily: T.sans },
-  
-  // ── REPARADO: BOTÓN VOLVER PREMIUM CON DISEÑO TOTALMENTE RESALTANTE
   cancelBackLuxeBtn: { alignItems: 'center', marginTop: 32, paddingVertical: 14, borderWidth: 1, borderColor: T.gold, backgroundColor: '#141412' },
   cancelBackLuxeBtnText: { color: T.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: T.sans, fontWeight: '700' },
   
-  // Token de Animación de Hover para Botones del Sistema (Cala en 1.03 con Sombra Profunda)
+  // 🎨 CONTENEDOR DE ERROR PREMIUM SANEADO DE ALTA VISIBILIDAD EN ROJO CORPORATIVO
+  errorBadgeBox: { padding: 14, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: '#EF4444', marginTop: 16, borderRadius: 0 },
+  errorBadgeText: { color: '#FCA5A5', fontSize: 11, fontFamily: T.sans, fontWeight: '600', textAlign: 'center', letterSpacing: 0.5 },
+
   btnInteractiveHover: {
     transform: [{ scale: 1.03 }],
     borderColor: T.gold,
     boxShadow: Platform.OS === 'web' ? '0px 10px 24px rgba(160, 120, 64, 0.28)' : undefined,
   },
-
   successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: T.bg },
   successCheckMark: { fontSize: 54, color: T.gold, marginBottom: 16 },
   successTitle: { fontFamily: T.serif, fontSize: 24, color: T.text, marginBottom: 8, textAlign: 'center' },
