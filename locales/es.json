@@ -1,0 +1,134 @@
+{
+  "navbar": {
+    "buy": "PROPIEDADES EN VENTA",
+    "rent": "PROPIEDADES EN RENTA",
+    "services": "SERVICIOS VIRALES",
+    "about": "SOBRE NOSOTROS",
+    "login": "INICIAR SESIÓN"
+  },
+  "whatsapp": {
+    "message": "Hola Alejandro, me interesa obtener información sobre el catálogo de propiedades exclusivas de Inmoviral."
+  },
+  "hero": {
+    "tag": "SERVICIO PREMIUM · CONFIANZA COMPROBADA",
+    "title_part1": "EXCEPCIONALES",
+    "title_italic": "PROPIEDADES",
+    "title_part2": "PARA CLIENTES EXIGENTES",
+    "description": "Una selección curada de propiedades residenciales y de inversión para quienes valoran la exclusividad, la privacidad y una atención personalizada inigualable.",
+    "cta_portfolio": "EXPLORAR NUESTRO PORTAFOLIO  →",
+    "cta_clients": "EXPERIENCIAS REALES DE CLIENTES  →",
+    "counter_years": "AÑOS DE EXCELENCIA",
+    "counter_sold": "PROPIEDADES VENDIDAS",
+    "counter_satisfied": "CLIENTES SATISFECHOS"
+  },
+  "ticker": {
+    "text": "•   ACCESO EXCLUSIVO AL MERCADO   •   NEGOCIACIONES CONFIDENCIALES   •   REPRESENTACIÓN A MEDIDA   •   RESIDENCIAS DE LUJO   •   EXCLUSIVIDAD   •   ACCESO EXCLUSIVO AL MERCADO"
+  },
+  "features": {
+    "residential": {
+      "t1": "Propiedades",
+      "t2": "Residenciales",
+      "d": "Residencias exclusivas seleccionadas por su comodidad, privacidad y valor a largo plazo."
+    },
+    "premium": {
+      "t1": "Apartamentos",
+      "t2": "Premium",
+      "d": "Espacios de vida modernos en ubicaciones privilegiadas con líneas limpias y amenidades excepcionales."
+    },
+    "investment": {
+      "t1": "Terrenos de",
+      "t2": "Inversión",
+      "d": "Oportunidades estratégicas para el desarrollo y el crecimiento futuro."
+    },
+    "advisory": {
+      "t1": "Asesoría",
+      "t2": "Privada",
+      "d": "Orientación personalizada para compradores, vendedores e inversionistas."
+    }
+  },
+  "solutions": {
+    "label": "COLECCIONES",
+    "title": "NUESTRAS SOLUCIONES",
+    "visit_cta": "AGENDAR UNA VISITA  →",
+    "profile_label": "FICHA DE PRESTIGIO",
+    "lux_houses": {
+      "tag": "UNIFAMILIAR · PRESTIGIO",
+      "title": "CASAS DE\nLUJO",
+      "desc": "Residencias unifamiliares exclusivas que combinan belleza arquitectónica con máxima privacidad y valor a largo plazo.",
+      "profile": "• 480 m² de Construcción\n• 4 Recámaras Premium\n• Alberca & Solárium Privado"
+    },
+    "premium_apts": {
+      "tag": "ELEGANCIA · DISEÑO",
+      "title": "APARTAMENTOS\nPREMIUM",
+      "desc": "Espacios de vida modernos en ubicaciones privilegiadas con líneas limpias y amenidades excepcionales.",
+      "profile": "• 210 m² Habitables\n• Penthouse de Doble Altura\n• Terraza con Vista Skyview"
+    }
+  },
+  "about": {
+    "label": "SOBRE NOSOTROS",
+    "title": "INMOVIRAL —",
+    "title_italic": "ENGINEERING DE EXCELENCIA",
+    "desc": "INMOVIRAL combina experiencia en el mercado, estrategia moderna y un servicio impecable. Conectamos a nuestros clientes con propiedades que elevan su estilo de vida y reflejan su visión.",
+    "cta": "CONOCE MÁS SOBRE NOSOTROS  →"
+  },
+  "process": {
+    "label": "CÓMO TRABAJAMOS",
+    "title": "NUESTRO PROCESO",
+    "consulta": { "t": "Consulta", "d": "Analizamos tus objetivos, evaluamos tu presupuesto y comprendemos tu visión." },
+    "busqueda": { "t": "Búsqueda de Propiedad", "d": "Curamos una selección personalizada de propiedades que coinciden con tus criterios." },
+    "diligence": { "t": "Due Diligence", "d": "Realizamos un análisis exacto y verificación de cada propiedad." },
+    "negociacion": { "t": "Negociación", "d": "Negociación profesional y cierre sin contratiempos por parte de nuestro equipo experto." },
+    "soporte": { "t": "Soporte Post-Venta", "d": "5 años de soporte continuo y orientación después de cada transacción." }
+  },
+  "testimonials": {
+    "label": "RESEÑAS DE CLIENTES",
+    "title": "LA CONFIANZA DE NUESTROS CLIENTES",
+    "testi1": { "q": "Compramos la casa de nuestros sueños a través de INMOVIRAL. El resultado superó todas las expectativas — una experiencia verdaderamente excepcional y personalizada de principio a fin.", "r": "Cliente Privado, Chihuahua" },
+    "testi2": { "q": "El equipo de INMOVIRAL gestionó cada paso con profesionalismo — desde la búsqueda inicial hasta el cierre. Los tiempos fueron respetados y la calidad del servicio fue sobresaliente.", "r": "Diseñadora de Interiores" },
+    "testi3": { "q": "Nuestro penthouse se convirtió en la pieza central de nuestro portafolio de inversión. Cada visita queda cautivada. ¡Gracias por el servicio impecable y la atención al detalle!", "r": "Cliente Privado, Miami" }
+  },
+  "cta": {
+    "label": "COMIENZA TU CAMINO",
+    "title": "ENCUENTRA LA PROPIEDAD\nDE TUS SUEÑOS",
+    "cta_btn": "SOLICITAR UNA CONSULTA  →"
+  },
+  "footer": {
+    "desc": "Bienes raíces premium para estilos de vida modernos. Servicios de venta, renta y asesoría en mercados nacionales e internacionales.",
+    "company_t": "EMPRESA",
+    "catalog_t": "CATÁLOGO",
+    "contact_t": "CONTACTO",
+    "address": "Chihuahua, Chih, México",
+    "hours": "Lun-Vie: 9:00 AM – 7:00 PM"
+  },
+  "login_welcome": "Bienvenido de nuevo",
+  "register_overline": "Acceso Privado",
+  "login_title": "Inicia sesión",
+  "login_title_reg": "Crear cuenta",
+  "login_subtitle": "Propiedades excepcionales para clientes exigentes.",
+  "register_subtitle": "Accede a las propiedades más exclusivas del mercado.",
+  "register_name_lbl": "Nombre Completo",
+  "register_phone_lbl": "Teléfono",
+  "login_email_lbl": "Correo Electrónico",
+  "login_pwd_lbl": "Contraseña",
+  "login_forgot": "¿Olvidaste?",
+  "register_type_lbl": "Tipo de Cliente",
+  "register_terms_1": "Acepto los ",
+  "register_terms_em": "términos y condiciones",
+  "register_terms_2": " y la política de privacidad de INMOVIRAL.",
+  "login_btn": "Iniciar Sesión",
+  "login_btn_reg": "Registrarse",
+  "login_google": "Continuar con Google",
+  "register_google": "Registrarse con Google",
+  "login_no_account": "¿No tienes una cuenta?",
+  "login_has_account": "¿Ya tienes una cuenta?",
+  "login_register_link": "Regístrate",
+  "login_signin_link": "Inicia sesión",
+  "login_guest_lbl": "¿Prefieres continuar sin registrarte?",
+  "login_guest_link": "Continuar como invitado",
+  "login_caption_lbl": "Premium Real Estate",
+  "register_caption_lbl": "Únete a la colección",
+  "login_caption": "\"Una colección curada de propiedades excepcionales para quienes valoran la exclusividad.\"",
+  "register_caption": "\"Cada propiedad es una solución a medida, diseñada en torno a la visión del cliente.\"",
+  "login_success_msg": "¡Sesión iniciada correctamente!",
+  "register_success_msg": "¡Cuenta creada exitosamente! Revisa tu lista de usuarios."
+}

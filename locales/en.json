@@ -1,0 +1,134 @@
+{
+  "navbar": {
+    "buy": "PROPERTIES FOR SALE",
+    "rent": "PROPERTIES FOR RENT",
+    "services": "VIRAL SERVICES",
+    "about": "ABOUT US",
+    "login": "SIGN IN"
+  },
+  "whatsapp": {
+    "message": "Hello Alejandro, I am interested in receiving information about the exclusive property catalog of Inmoviral."
+  },
+  "hero": {
+    "tag": "PREMIUM SERVICE · PROVEN TRUST",
+    "title_part1": "EXCEPTIONAL",
+    "title_italic": "PROPERTIES",
+    "title_part2": "FOR DISCERNING CLIENTS",
+    "description": "A curated selection of residential and investment properties for those who value exclusivity, privacy, and unparalleled personalized attention.",
+    "cta_portfolio": "EXPLORE OUR PORTFOLIO  →",
+    "cta_clients": "REAL CLIENT EXPERIENCES  →",
+    "counter_years": "YEARS OF EXCELLENCE",
+    "counter_sold": "PROPERTIES SOLD",
+    "counter_satisfied": "SATISFIED CLIENTS"
+  },
+  "ticker": {
+    "text": "•   EXCLUSIVE MARKET ACCESS   •   CONFIDENTIAL NEGOTIATIONS   •   TAILORED REPRESENTATION   •   LUXURY RESIDENCES   •   EXCLUSIVIDAD   •   EXCLUSIVE MARKET ACCESS"
+  },
+  "features": {
+    "residential": {
+      "t1": "Residential",
+      "t2": "Properties",
+      "d": "Exclusive residences selected for their comfort, privacy, and long-term value."
+    },
+    "premium": {
+      "t1": "Premium",
+      "t2": "Apartments",
+      "d": "Modern living spaces in prime locations with clean lines and exceptional amenities."
+    },
+    "investment": {
+      "t1": "Investment",
+      "t2": "Lands",
+      "d": "Strategic opportunities for development and future growth."
+    },
+    "advisory": {
+      "t1": "Private",
+      "t2": "Advisory",
+      "d": "Personalized guidance for buyers, sellers, and investors."
+    }
+  },
+  "solutions": {
+    "label": "COLLECTIONS",
+    "title": "OUR SOLUTIONS",
+    "visit_cta": "SCHEDULE A VISIT  →",
+    "profile_label": "PRESTIGE PROFILE",
+    "lux_houses": {
+      "tag": "SINGLE FAMILY · PRESTIGE",
+      "title": "LUXURY\nHOUSES",
+      "desc": "Exclusive single-family residences combining architectural beauty with maximum privacy and long-term value.",
+      "profile": "• 480 m² Construction\n• 4 Premium Bedrooms\n• Pool & Private Solarium"
+    },
+    "premium_apts": {
+      "tag": "ELEGANCIA · DISEÑO",
+      "title": "PREMIUM\nAPARTMENTS",
+      "desc": "Modern living spaces in privileged locations with clean lines and exceptional amenities.",
+      "profile": "• 210 m² Living Space\n• Double Height Penthouse\n• Terrace with Skyview"
+    }
+  },
+  "about": {
+    "label": "ABOUT US",
+    "title": "INMOVIRAL —",
+    "title_italic": "ENGINEERING OF EXCELLENCE",
+    "desc": "INMOVIRAL combines market experience, modern strategy, and impeccable service. We connect our clients with properties that elevate their lifestyle and reflect their vision.",
+    "cta": "LEARN MORE ABOUT US  →"
+  },
+  "process": {
+    "label": "HOW WE WORK",
+    "title": "OUR PROCESS",
+    "consulta": { "t": "Consultation", "d": "We analyze your objectives, evaluate your budget, and understand your vision." },
+    "busqueda": { "t": "Property Search", "d": "We curate a personalized selection of properties that match your criteria." },
+    "diligence": { "t": "Due Diligence", "d": "We perform a thorough analysis and verification of each property." },
+    "negociacion": { "t": "Negotiation", "d": "Professional negotiation and seamless closing by our expert team." },
+    "soporte": { "t": "Post-Sale Support", "d": "5 years of continuous support and guidance after each transaction." }
+  },
+  "testimonials": {
+    "label": "CLIENT REVIEWS",
+    "title": "OUR CLIENTS' TRUST",
+    "testi1": { "q": "We bought the house of our dreams through INMOVIRAL. The result exceeded all expectations — a truly exceptional and personalized experience from start to finish.", "r": "Private Client, Chihuahua" },
+    "testi2": { "q": "The INMOVIRAL team managed every step with professionalism — from the initial search to the closing. Timelines were respected and service quality was outstanding.", "r": "Interior Designer" },
+    "testi3": { "q": "Our penthouse became the centerpiece of our investment portfolio. Every visitor is captivated. Thank you for the impeccable service and attention to detail!", "r": "Private Client, Miami" }
+  },
+  "cta": {
+    "label": "START YOUR JOURNEY",
+    "title": "FIND THE PROPERTY\nOF YOUR DREAMS",
+    "cta_btn": "REQUEST A CONSULTATION  →"
+  },
+  "footer": {
+    "desc": "Premium real estate for modern lifestyles. Sale, rental, and advisory services in national and international markets.",
+    "company_t": "COMPANY",
+    "catalog_t": "CATALOG",
+    "contact_t": "CONTACT",
+    "address": "Chihuahua, Chih, Mexico",
+    "hours": "Mon-Fri: 9:00 AM – 7:00 PM"
+  },
+  "login_welcome": "Welcome back",
+  "register_overline": "Private Access",
+  "login_title": "Sign in",
+  "login_title_reg": "Create account",
+  "login_subtitle": "Exceptional properties for discerning clients.",
+  "register_subtitle": "Access the most exclusive properties on the market.",
+  "register_name_lbl": "Full Name",
+  "register_phone_lbl": "Phone",
+  "login_email_lbl": "Email Address",
+  "login_pwd_lbl": "Password",
+  "login_forgot": "Forgot?",
+  "register_type_lbl": "Client Type",
+  "register_terms_1": "I accept the ",
+  "register_terms_em": "terms and conditions",
+  "register_terms_2": " and the privacy policy of INMOVIRAL.",
+  "login_btn": "Sign In",
+  "login_btn_reg": "Register",
+  "login_google": "Continue with Google",
+  "register_google": "Register with Google",
+  "login_no_account": "Don't have an account?",
+  "login_has_account": "Already have an account?",
+  "login_register_link": "Sign up",
+  "login_signin_link": "Sign in",
+  "login_guest_lbl": "Prefer to continue without registering?",
+  "login_guest_link": "Continue as guest",
+  "login_caption_lbl": "Premium Real Estate",
+  "register_caption_lbl": "Join the collection",
+  "login_caption": "\"A curated selection of exceptional properties for those who value exclusivity.\"",
+  "register_caption": "\"Each property is a tailored solution, designed around the client's vision.\"",
+  "login_success_msg": "Logged in successfully!",
+  "register_success_msg": "Account successfully created! Check your user list."
+}
