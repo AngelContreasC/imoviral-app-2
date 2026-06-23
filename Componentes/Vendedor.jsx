@@ -278,7 +278,7 @@ export default function Vendedor({ onVolver }) {
   };
 
   const procesarSeleccionImagenes = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaType.Images, allowsMultipleSelection: true, quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, quality: 0.8 });
     if (!result.canceled) {
       const espacio = 15 - fotos.length;
       const nuevas = result.assets.slice(0, espacio).map((asset, i) => ({ id: `${asset.uri}-${i}-${Math.random().toString(36).slice(2)}`, uri: asset.uri, filename: asset.fileName || `photo_${Date.now()}_${i}.jpg` }));
