@@ -278,7 +278,7 @@ export default function Vendedor({ onVolver }) {
   };
 
   const procesarSeleccionImagenes = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaType.Images, allowsMultipleSelection: true, quality: 0.8 });
     if (!result.canceled) {
       const espacio = 15 - fotos.length;
       const nuevas = result.assets.slice(0, espacio).map((asset, i) => ({ id: `${asset.uri}-${i}-${Math.random().toString(36).slice(2)}`, uri: asset.uri, filename: asset.fileName || `photo_${Date.now()}_${i}.jpg` }));
@@ -305,7 +305,7 @@ export default function Vendedor({ onVolver }) {
       }
       const { error: insertError } = await supabase.from('propiedades').insert([{
         user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
-        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, divisa: form.divisa, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
+        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
         lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
       }]);
       if (insertError) throw insertError; setEnviado(true);
