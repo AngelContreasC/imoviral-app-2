@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../AuthContext.js';
 
 /* ─────────────────────────────────────────────
    TOKENS  (Espejo exacto del diseño premium)
@@ -59,6 +60,7 @@ function useHover() {
 export default function LoginPage({ onVolver }) {
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
+  const { signIn } = useAuth();
   const isWide = width > 1024;
 
   // ── Estados comunes
@@ -97,7 +99,7 @@ export default function LoginPage({ onVolver }) {
     setLoading(true);
     try {
       if (modo === 'login') {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: err } = await signIn(email, password);
         if (err) throw err;
         setSuccess(t('login_success_msg', { defaultValue: '¡Sesión iniciada correctamente!' }));
         setTimeout(() => onVolver(), 1200);

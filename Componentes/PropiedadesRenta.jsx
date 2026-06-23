@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../AuthContext.js';
 
 // ─────────────────────────────────────────────
 // TOKENS DE DISEÑO OFICIALES (INMOVIRAL MATCHED)
@@ -93,8 +94,9 @@ function SocialBadge({ net }) {
   );
 }
 
-function PropCard({ item: p, onVerPropiedad, cardWidth }) {
+function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -142,6 +144,15 @@ function PropCard({ item: p, onVerPropiedad, cardWidth }) {
           </View>
         </View>
       </Pressable>
+
+      {user?.isAdmin && (
+        <Pressable
+          onPress={() => onEliminar && onEliminar(p.id)}
+          style={s.deleteButtonAbsolute}
+        >
+          <Text style={s.deleteButtonText}>🗑️ ELIMINAR</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -159,6 +170,23 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
   const [filtro, setFiltro] = useState('');
   const [orden, setOrden] = useState('reciente');
   const [inputFocused, setInputFocused] = useState(false);
+
+  const handleEliminar = async (id) => {
+    const confirmed = Platform.OS === 'web' 
+      ? window.confirm('¿Seguro que deseas eliminar esta publicación?') 
+      : true;
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase.from('propiedades').delete().eq('id', id);
+      if (error) throw error;
+      setPropiedades(prev => prev.filter(p => p.id !== id));
+      if (Platform.OS === 'web') alert('Propiedad eliminada con éxito.');
+    } catch (e) {
+      console.error(e);
+      if (Platform.OS === 'web') alert('Error al eliminar: ' + e.message);
+    }
+  };
 
   const numColumns = width > 1024 ? 3 : width > 640 ? 2 : 1;
   const isWideFooter = width > 768;
@@ -261,7 +289,7 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
           ) : (
             <View style={s.flexGridWrapper}>
               {listaFiltrada.map((item) => (
-                <PropCard key={item.id} item={item} onVerPropiedad={onVerPropiedad} cardWidth={`${100 / numColumns}%`} />
+                <PropCard key={item.id} item={item} onVerPropiedad={onVerPropiedad} cardWidth={`${100 / numColumns}%`} onEliminar={handleEliminar} />
               ))}
             </View>
           )}
@@ -430,5 +458,25 @@ const s = StyleSheet.create({
   
   footerBottomBar: { width: '100%', maxWidth: 1200, alignSelf: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)', paddingTop: 24, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 },
   copyText: { fontFamily: T.sans, fontSize: 11, color: 'rgba(252,237,225,0.3)', fontWeight: '300' },
-  legalLinksRow: { flexDirection: 'row', gap: 24 }
+  legalLinksRow: { flexDirection: 'row', gap: 24 },
+
+  deleteButtonAbsolute: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    backgroundColor: 'rgba(220, 38, 38, 0.95)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    zIndex: 1000,
+    elevation: 10,
+  },
+  deleteButtonText: {
+    color: '#FFF',
+    fontSize: 9,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    fontFamily: T.sans,
+  }
 });
