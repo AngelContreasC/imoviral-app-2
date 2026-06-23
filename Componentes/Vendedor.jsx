@@ -312,7 +312,7 @@ export default function Vendedor({ onVolver }) {
 
       // ✉️ Enviar correo de notificación por EmailJS en el frontend
       try {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        const emailResp = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -321,6 +321,8 @@ export default function Vendedor({ onVolver }) {
             service_id: 'service_tr9ith7',
             template_id: 'template_48abx8o',
             user_id: 'Ytr-HW5hBxuiLfPTy',
+            public_key: 'Ytr-HW5hBxuiLfPTy',
+            accessToken: 'NjB6rslBZLWZQiql1nsEZ',
             template_params: {
               from_name: form.nombre,
               reply_to: user?.email || '',
@@ -350,6 +352,13 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
             }
           })
         });
+        if (!emailResp.ok) {
+          const errTxt = await emailResp.text();
+          console.error('Error al enviar correo en EmailJS:', errTxt);
+          if (Platform.OS === 'web') {
+            alert('Aviso: La propiedad se publicó pero no se pudo enviar el correo de notificación. Detalles: ' + errTxt);
+          }
+        }
       } catch (emailErr) {
         console.error('Error al enviar correo por EmailJS:', emailErr);
       }
