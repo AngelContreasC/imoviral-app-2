@@ -308,7 +308,53 @@ export default function Vendedor({ onVolver }) {
         tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
         lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
       }]);
-      if (insertError) throw insertError; setEnviado(true);
+      if (insertError) throw insertError;
+
+      // ✉️ Enviar correo de notificación por EmailJS en el frontend
+      try {
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service_id: 'service_tr9ith7',
+            template_id: 'template_48abx8o',
+            user_id: 'Ytr-HW5hBxuiLfPTy',
+            template_params: {
+              from_name: form.nombre,
+              reply_to: user?.email || '',
+              titulo: form.titulo,
+              tipo: form.tipo,
+              operacion: form.operacion,
+              precio: form.precio,
+              ubicacion: ubicacion,
+              descripcion: form.descripcion,
+              nombre_contacto: form.nombre,
+              telefono_contacto: `${form.lada} ${form.telefono}`,
+              correo_contacto: user?.email || '',
+              m2: form.superficie || 'N/A',
+              habitaciones: form.recamaras,
+              banos: form.banos,
+              estacionamientos: form.estacionamientos,
+              antiguedad: form.antiguedad,
+              amenidades: form.amenidades?.join(', ') || 'Ninguna',
+              servicios: form.servicios?.join(', ') || 'Ninguno',
+              message: `Se ha registrado una nueva propiedad:
+Título: ${form.titulo}
+Tipo: ${form.tipo}
+Operación: ${form.operacion}
+Precio: $${form.precio}
+Ubicación: ${ubicacion}
+Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
+            }
+          })
+        });
+      } catch (emailErr) {
+        console.error('Error al enviar correo por EmailJS:', emailErr);
+      }
+
+      setEnviado(true);
     } catch (err) { console.error(err); setErrorEnvio(err.message || 'Error al guardar la propiedad.'); } finally { setEnviando(false); setProgresoSubida(''); }
   };
 
