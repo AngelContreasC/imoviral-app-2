@@ -14,6 +14,9 @@
     "web": {
       "bundler": "metro"
     },
+    "android": {
+      "package": "com.inmoviral.imoviralapp2"
+    },
     "extra": {
       "eas": {
         "projectId": "2d23cc55-b178-4e6c-8010-542dc80632e4"
