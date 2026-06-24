@@ -70,7 +70,7 @@ export default function LoginPage({ onVolver }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [modo, setModo] = useState('login'); // 'login' | 'register'
+  const [modo, setModo] = useState('login'); // 'login' | 'register' | 'forgot'
 
   // ── Estados de registro
   const [fullName, setFullName] = useState('');
@@ -98,7 +98,25 @@ export default function LoginPage({ onVolver }) {
     setSuccess('');
     setLoading(true);
     try {
-      if (modo === 'login') {
+      if (modo === 'forgot') {
+        if (!email) {
+          throw new Error(
+            esES
+              ? 'Por favor introduce tu correo electrónico.'
+              : 'Please enter your email address.'
+          );
+        }
+        const redirectUrl = Platform.OS === 'web' ? window.location.origin : undefined;
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: redirectUrl,
+        });
+        if (err) throw err;
+        setSuccess(
+          esES
+            ? '¡Correo de recuperación enviado! Revisa tu bandeja de entrada.'
+            : 'Recovery email sent! Please check your inbox.'
+        );
+      } else if (modo === 'login') {
         const { error: err } = await signIn(email, password);
         if (err) throw err;
         setSuccess(t('login_success_msg', { defaultValue: '¡Sesión iniciada correctamente!' }));
@@ -135,7 +153,7 @@ export default function LoginPage({ onVolver }) {
   };
 
   const backgroundImage =
-    modo === 'login'
+    modo === 'login' || modo === 'forgot'
       ? 'https://images.pexels.com/photos/773842/pexels-photo-773842.jpeg'
       : 'https://images.unsplash.com/photo-1613621792067-8e28d16b735c?crop=entropy&cs=srgb&fm=jpg&q=85';
 
@@ -161,12 +179,12 @@ export default function LoginPage({ onVolver }) {
 
       <View style={S.imageCaption}>
         <Text style={S.captionLabel}>
-          {modo === 'login'
+          {modo === 'login' || modo === 'forgot'
             ? t('login_caption_lbl',    { defaultValue: 'Premium Real Estate' })
             : t('register_caption_lbl', { defaultValue: 'Únete a la colección' })}
         </Text>
         <Text style={S.captionQuote}>
-          {modo === 'login'
+          {modo === 'login' || modo === 'forgot'
             ? t('login_caption',    { defaultValue: 'Una colección curada de propiedades excepcionales para quienes valoran la exclusividad.' })
             : t('register_caption', { defaultValue: 'Cada propiedad es una solución a medida, diseñada en torno a la visión del cliente.' })}
         </Text>
@@ -202,17 +220,23 @@ export default function LoginPage({ onVolver }) {
         {/* ── Encabezado ── */}
         <Text style={S.overline}>
           {modo === 'login'
-            ? t('login_welcome',    { defaultValue: 'Bienvenido de nuevo' })
-            : t('register_overline',{ defaultValue: 'Acceso Privado' })}
+            ? t('login_welcome', { defaultValue: 'Bienvenido de nuevo' })
+            : modo === 'forgot'
+            ? t('login_forgot_welcome', { defaultValue: 'Recuperar Acceso' })
+            : t('register_overline', { defaultValue: 'Acceso Privado' })}
         </Text>
         <Text style={S.title}>
           {modo === 'login'
-            ? t('login_title',     { defaultValue: 'Inicia sesión' })
+            ? t('login_title', { defaultValue: 'Inicia sesión' })
+            : modo === 'forgot'
+            ? t('login_forgot_title', { defaultValue: '¿Olvidaste tu contraseña?' })
             : t('login_title_reg', { defaultValue: 'Crear cuenta' })}
         </Text>
         <Text style={S.subtitle}>
           {modo === 'login'
-            ? t('login_subtitle',    { defaultValue: 'Propiedades excepcionales para clientes exigentes.' })
+            ? t('login_subtitle', { defaultValue: 'Propiedades excepcionales para clientes exigentes.' })
+            : modo === 'forgot'
+            ? t('login_forgot_subtitle', { defaultValue: 'Introduce tu correo y te enviaremos un enlace para restablecer tu contraseña.' })
             : t('register_subtitle', { defaultValue: 'Accede a las propiedades más exclusivas del mercado.' })}
         </Text>
 
@@ -260,33 +284,37 @@ export default function LoginPage({ onVolver }) {
         </Field>
 
         {/* ── Contraseña ── */}
-        <Field
-          label={t('login_pwd_lbl', { defaultValue: 'Contraseña' })}
-          right={
-            modo === 'login' && (
-              <Pressable {...hoverForgotHandlers}>
+        {modo !== 'forgot' && (
+          <Field
+            label={t('login_pwd_lbl', { defaultValue: 'Contraseña' })}
+          >
+            <View style={S.passwordWrap}>
+              <TextInput
+                style={[S.input, { flex: 1, borderWidth: 0 }]}
+                placeholder={modo === 'login' ? '••••••••' : 'Mínimo 6 caracteres'}
+                placeholderTextColor="rgba(255,255,255,0.30)"
+                secureTextEntry={!showPwd}
+                autoCapitalize="none"
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Pressable onPress={() => setShowPwd(!showPwd)} style={S.togglePwd}>
+                <View>{EyeIcon({ open: showPwd })}</View>
+              </Pressable>
+            </View>
+            {modo === 'login' && (
+              <Pressable 
+                onPress={() => cambiarModo('forgot')} 
+                style={{ alignSelf: 'flex-end', marginTop: 10, paddingVertical: 4 }}
+                {...hoverForgotHandlers}
+              >
                 <Text style={[S.forgot, hoverForgot && S.forgotHover]}>
-                  {t('login_forgot', { defaultValue: '¿Olvidaste?' })}
+                  {t('login_forgot', { defaultValue: '¿Olvidaste tu contraseña?' })}
                 </Text>
               </Pressable>
-            )
-          }
-        >
-          <View style={S.passwordWrap}>
-            <TextInput
-              style={[S.input, { flex: 1, borderWidth: 0 }]}
-              placeholder={modo === 'login' ? '••••••••' : 'Mínimo 6 caracteres'}
-              placeholderTextColor="rgba(255,255,255,0.30)"
-              secureTextEntry={!showPwd}
-              autoCapitalize="none"
-              value={password}
-              onChangeText={setPassword}
-            />
-            <Pressable onPress={() => setShowPwd(!showPwd)} style={S.togglePwd}>
-              <View>{EyeIcon({ open: showPwd })}</View>
-            </Pressable>
-          </View>
-        </Field>
+            )}
+          </Field>
+        )}
 
         {/* ── Campos exclusivos de Registro (tipo cliente + términos) ── */}
         {modo === 'register' && (
@@ -331,47 +359,63 @@ export default function LoginPage({ onVolver }) {
             ? <ActivityIndicator color="#000" size="small" />
             : <Text style={S.btnPrimaryText}>
                 {modo === 'login'
-                  ? t('login_btn',     { defaultValue: 'Iniciar Sesión' })
+                  ? t('login_btn', { defaultValue: 'Iniciar Sesión' })
+                  : modo === 'forgot'
+                  ? t('login_forgot_btn', { defaultValue: 'Enviar enlace de recuperación' })
                   : t('login_btn_reg', { defaultValue: 'Registrarse' })}
               </Text>
           }
         </Pressable>
 
-        {/* ── Divisor ── */}
-        <View style={S.divider}>
-          <View style={S.dividerLine} />
-          <Text style={S.dividerText}>{esES ? 'o' : 'or'}</Text>
-          <View style={S.dividerLine} />
-        </View>
+        {modo !== 'forgot' && (
+          <>
+            {/* ── Divisor ── */}
+            <View style={S.divider}>
+              <View style={S.dividerLine} />
+              <Text style={S.dividerText}>{esES ? 'o' : 'or'}</Text>
+              <View style={S.dividerLine} />
+            </View>
 
-        {/* ── Botón Google ── */}
-        <Pressable
-          onPress={handleGoogle}
-          style={[S.btnGoogle, hoverGoogle && S.btnGoogleHover]}
-          {...hoverGoogleHandlers}
-        >
-          <GoogleIcon />
-          <Text style={S.btnGoogleText}>
-            {modo === 'login'
-              ? t('login_google',    { defaultValue: 'Continuar con Google' })
-              : t('register_google', { defaultValue: 'Registrarse con Google' })}
-          </Text>
-        </Pressable>
+            {/* ── Botón Google ── */}
+            <Pressable
+              onPress={handleGoogle}
+              style={[S.btnGoogle, hoverGoogle && S.btnGoogleHover]}
+              {...hoverGoogleHandlers}
+            >
+              <GoogleIcon />
+              <Text style={S.btnGoogleText}>
+                {modo === 'login'
+                  ? t('login_google',    { defaultValue: 'Continuar con Google' })
+                  : t('register_google', { defaultValue: 'Registrarse con Google' })}
+              </Text>
+            </Pressable>
+          </>
+        )}
 
         {/* ── Footer links ── */}
         <View style={S.footerLink}>
-          <Text style={S.footerText}>
-            {modo === 'login'
-              ? t('login_no_account',  { defaultValue: '¿No tienes una cuenta?' })
-              : t('login_has_account', { defaultValue: '¿Ya tienes una cuenta?' })}{' '}
-          </Text>
-          <Pressable onPress={() => cambiarModo(modo === 'login' ? 'register' : 'login')}>
-            <Text style={S.footerLinkText}>
-              {modo === 'login'
-                ? t('login_register_link', { defaultValue: 'Regístrate' })
-                : t('login_signin_link',   { defaultValue: 'Inicia sesión' })}
-            </Text>
-          </Pressable>
+          {modo === 'forgot' ? (
+            <Pressable onPress={() => cambiarModo('login')}>
+              <Text style={S.footerLinkText}>
+                {t('login_signin_link', { defaultValue: 'Inicia sesión' })}
+              </Text>
+            </Pressable>
+          ) : (
+            <>
+              <Text style={S.footerText}>
+                {modo === 'login'
+                  ? t('login_no_account',  { defaultValue: '¿No tienes una cuenta?' })
+                  : t('login_has_account', { defaultValue: '¿Ya tienes una cuenta?' })}{' '}
+              </Text>
+              <Pressable onPress={() => cambiarModo(modo === 'login' ? 'register' : 'login')}>
+                <Text style={S.footerLinkText}>
+                  {modo === 'login'
+                    ? t('login_register_link', { defaultValue: 'Regístrate' })
+                    : t('login_signin_link',   { defaultValue: 'Inicia sesión' })}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <Text style={S.footerSep}>—</Text>
@@ -497,7 +541,7 @@ const S = StyleSheet.create({
   field: { marginBottom: 22 },
   fieldHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   fieldLabel: { fontSize: 11, letterSpacing: Platform.select({ web: '0.2em', default: 2 }), textTransform: 'uppercase', color: T.textMuted, fontWeight: '300', fontFamily: T.sans },
-  forgot: { fontSize: 10, letterSpacing: Platform.select({ web: '0.2em', default: 2 }), textTransform: 'uppercase', color: T.gold, fontFamily: T.sans },
+  forgot: { fontSize: 12, color: T.gold, fontFamily: T.sans, textDecorationLine: 'underline' },
   forgotHover: { color: T.goldHover },
   input: { width: '100%', height: 48, backgroundColor: T.bgInput, borderWidth: 1, borderColor: T.borderSubtle, color: T.text, paddingHorizontal: 16, fontFamily: T.sans, fontSize: 14, fontWeight: '300', borderRadius: 0, outlineStyle: Platform.select({ web: 'none', default: undefined }) },
   passwordWrap: { flexDirection: 'row', alignItems: 'center', height: 48, backgroundColor: T.bgInput, borderWidth: 1, borderColor: T.borderSubtle, borderRadius: 0 },

@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
   Linking
 } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 
 // ══ 💎 CONFIGURACIÓN BILINGÜE NATIVA ══
 import './config/i18n'; 
@@ -27,6 +28,7 @@ import VerPropiedad from './Componentes/VerPropiedad.jsx';
 import ServiciosVirales from './Componentes/ServiciosVirales.jsx';
 import SobreNosotros from './Componentes/SobreNosotros.jsx';
 import Vendedor from './Componentes/Vendedor.jsx';
+import UserMenu from './Componentes/UserMenu.jsx';
 
 import { useAuth, AuthProvider } from './AuthContext.js'; 
 import { supabase } from './supabaseClient'; 
@@ -55,19 +57,57 @@ function FooterLink({ text, onPress }) {
   );
 }
 
-// Bloque decorativo de iconos de redes sociales
+// Bloque interactivo de iconos de redes sociales con logos oficiales
 function SocialSquare({ label }) {
   const [hovered, setHovered] = useState(false);
+
+  const handlePress = async () => {
+    let url = '';
+    if (label === 'IG') {
+      url = 'https://www.instagram.com/inmoviralbis?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==';
+    } else if (label === 'WH') {
+      url = 'https://wa.me/526181630471';
+    } else if (label === 'GM') {
+      url = 'mailto:ventas@inmoviral.com.mx';
+    } else if (label === 'FB') {
+      url = 'https://www.facebook.com';
+    }
+
+    if (url) {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          // Si canOpenURL no es compatible en web/ciertos entornos, intentamos abrir directamente
+          await Linking.openURL(url);
+        }
+      } catch (err) {
+        console.error("Error al abrir URL:", err);
+      }
+    }
+  };
+
+  const getIconName = () => {
+    if (label === 'IG') return 'instagram';
+    if (label === 'WH') return 'whatsapp';
+    if (label === 'FB') return 'facebook';
+    if (label === 'GM') return 'envelope';
+    return 'circle';
+  };
+
+  const activeColor = hovered ? '#A07840' : 'rgba(255,255,255,0.4)';
+
   return (
-    <View 
+    <TouchableOpacity 
+      onPress={handlePress}
       onMouseEnter={() => Platform.OS === 'web' && setHovered(true)} 
       onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
       style={[styles.socialIconSquare, hovered && styles.socialIconSquareHovered]}
+      activeOpacity={0.7}
     >
-      <Text style={[styles.socialIconInnerText, hovered && styles.socialIconInnerTextHovered]}>
-        {label}
-      </Text>
-    </View>
+      <FontAwesome name={getIconName()} size={16} color={activeColor} />
+    </TouchableOpacity>
   );
 }
 
@@ -80,6 +120,8 @@ function MainApp() {
   const { width } = useWindowDimensions(); 
   
   const [vista, setVista] = useState('home');
+  const [dashboardTab, setDashboardTab] = useState('dashboard');
+  const [propiedadParaEditar, setPropiedadParaEditar] = useState(null);
   const [mobileNavAbierto, setMobileNavAbierto] = useState(false); 
   const [userMenuAbierto, setUserMenuAbierto] = useState(false); 
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
@@ -270,11 +312,31 @@ function MainApp() {
 
           <ScrollView showsVerticalScrollIndicator={false} style={styles.drawerScrollContainer}>
             <Text style={styles.drawerSectionLabel}>{t('menu.my_activity', { defaultValue: 'MI ACTIVIDAD' })}</Text>
-            <TouchableOpacity style={[styles.drawerLinkRow, styles.drawerLinkRowActive]}><Text style={styles.drawerLinkRowTextActive}>📊 {t('menu.dashboard', { defaultValue: 'Dashboard' })}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.drawerLinkRow} onPress={() => { setUserMenuAbierto(false); setVista('vendedor'); }}><Text style={styles.drawerLinkRowText}>📝 {t('menu.my_listings', { defaultValue: 'Mis publicaciones' })}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.drawerLinkRow}>
-              <Text style={styles.drawerLinkRowText}>❤️ {t('menu.saved_properties', { defaultValue: 'Propiedades guardadas' })}</Text>
-              <View style={styles.rowBadge}><Text style={styles.rowBadgeText}>4</Text></View>
+            <TouchableOpacity 
+              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'dashboard' && styles.drawerLinkRowActive]}
+              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('dashboard'); }}
+            >
+              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'dashboard' && styles.drawerLinkRowTextActive]}>
+                📊 {t('menu.dashboard', { defaultValue: 'Dashboard' })}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'publicaciones' && styles.drawerLinkRowActive]}
+              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('publicaciones'); }}
+            >
+              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'publicaciones' && styles.drawerLinkRowTextActive]}>
+                📝 {t('menu.my_listings', { defaultValue: 'Mis publicaciones' })}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'guardadas' && styles.drawerLinkRowActive]}
+              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('guardadas'); }}
+            >
+              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'guardadas' && styles.drawerLinkRowTextActive]}>
+                ❤️ {t('menu.saved_properties', { defaultValue: 'Propiedades guardadas' })}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
 
@@ -313,8 +375,31 @@ function MainApp() {
   if (vista === 'renta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
   if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} /></SafeAreaView>;
   if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
-  if (vista === 'vendedor')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<Vendedor onVolver={() => setVista('home')} /></SafeAreaView>;
+  if (vista === 'vendedor')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
   if (vista === 'nosotros')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
+  if (vista === 'dashboard') {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <StatusBar barStyle="light-content" />
+        {renderNavbar()}
+        {renderUserMenuDrawer()}
+        {renderLuxuryMobileMenu()}
+        <UserMenu 
+          activeTab={dashboardTab} 
+          setActiveTab={setDashboardTab} 
+          onPublicar={() => {
+            setPropiedadParaEditar(null);
+            setVista('vendedor');
+          }}
+          onEditarPropiedad={(propiedad) => {
+            setPropiedadParaEditar(propiedad);
+            setVista('vendedor');
+          }}
+          onVolver={() => setVista('home')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -494,7 +579,7 @@ function MainApp() {
             <View style={[styles.footerColumnUnit, { width: width > 768 ? '22%' : '100%' }]}>
               <Text style={styles.footerColTitle}>{t('footer.contact_t')}</Text>
               <Text style={styles.footerInfoItem}>📞 +52 6181630471</Text>
-              <Text style={styles.footerInfoItem}>✉️ info@inmoviral.com</Text>
+              <Text style={styles.footerInfoItem}>✉️ ventas@inmoviral.com.mx</Text>
               <Text style={styles.footerInfoItem}>📍 {t('footer.address')}</Text>
               <Text style={styles.footerInfoItem}>🕒 {t('footer.hours')}</Text>
             </View>

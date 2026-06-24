@@ -10,7 +10,9 @@ import {
   Text,
   useWindowDimensions,
   View,
+  Linking,
 } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 
 // ══ 📸 IMPORTACIÓN NATIVA DE TUS FOTONAS REALES ══
 import imgJavier from '../assets/javier.jpg';       
@@ -115,10 +117,51 @@ function FooterLink({ text, onPress }) {
 
 function SocialSquare({ label }) {
   const [isHovered, hoverHandlers] = useHover();
+
+  const handlePress = async () => {
+    let url = '';
+    if (label === 'IG') {
+      url = 'https://www.instagram.com/inmoviralbis?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==';
+    } else if (label === 'WH') {
+      url = 'https://wa.me/526181630471';
+    } else if (label === 'GM') {
+      url = 'mailto:ventas@inmoviral.com.mx';
+    } else if (label === 'FB') {
+      url = 'https://www.facebook.com';
+    }
+
+    if (url) {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch (err) {
+        console.error("Error al abrir URL:", err);
+      }
+    }
+  };
+
+  const getIconName = () => {
+    if (label === 'IG') return 'instagram';
+    if (label === 'WH') return 'whatsapp';
+    if (label === 'FB') return 'facebook';
+    if (label === 'GM') return 'envelope';
+    return 'circle';
+  };
+
+  const activeColor = isHovered ? '#A07840' : 'rgba(255,255,255,0.4)';
+
   return (
-    <View { ...hoverHandlers } style={[S.socialIconSquare, isHovered && S.socialIconSquareHovered]}>
-      <Text style={[S.socialIconInnerText, isHovered && S.socialIconInnerTextHovered]}>{label}</Text>
-    </View>
+    <Pressable 
+      { ...hoverHandlers } 
+      onPress={handlePress}
+      style={[S.socialIconSquare, isHovered && S.socialIconSquareHovered]}
+    >
+      <FontAwesome name={getIconName()} size={16} color={activeColor} />
+    </Pressable>
   );
 }
 
@@ -316,7 +359,7 @@ export default function SobreNosotros({ onIrServicios, onIrPropiedades }) {
           <View style={[S.footerColumnUnit, { width: width > 768 ? '22%' : '100%' }]}>
             <Text style={S.footerColTitle}>{es ? 'CONTACTO' : 'CONTACT'}</Text>
             <Text style={S.footerInfoItem}>📞 +52 6181630471</Text>
-            <Text style={S.footerInfoItem}>✉️ info@inmoviral.com</Text>
+            <Text style={S.footerInfoItem}>✉️ ventas@inmoviral.com.mx</Text>
             <Text style={S.footerInfoItem}>📍 Chihuahua, Chih, México</Text>
             <Text style={S.footerInfoItem}>🕒 {es ? 'Lun–Vie: 9:00 AM – 7:00 PM' : 'Mon–Fri: 9:00 AM – 7:00 PM'}</Text>
           </View>

@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext';
+import { FontAwesome } from '@expo/vector-icons';
 
 // ─── DESIGN TOKENS (INMOVIRAL MATCHED LUXURY DARK) ───
 const T = {
@@ -70,6 +71,52 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
   const [hoveredLlamar, setHoveredLlamar] = useState(false);
   const [hoveredWhatsApp, setHoveredWhatsApp] = useState(false);
   const [hoveredCta, setHoveredCta] = useState(false);
+
+  useEffect(() => {
+    if (user && propiedadId) {
+      if (Platform.OS === 'web') {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            const list = JSON.parse(saved);
+            setFavorito(list.includes(propiedadId));
+          } else {
+            setFavorito(false);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } else {
+      setFavorito(false);
+    }
+  }, [user, propiedadId]);
+
+  const handleToggleFavorito = () => {
+    if (!user) {
+      alert(t('props_fav_login_alert', { defaultValue: 'Debes iniciar sesión para guardar favoritos.' }));
+      return;
+    }
+    try {
+      let list = [];
+      if (Platform.OS === 'web') {
+        const saved = localStorage.getItem(`favoritos_${user.id}`);
+        if (saved) {
+          list = JSON.parse(saved);
+        }
+        if (list.includes(propiedadId)) {
+          list = list.filter(id => id !== propiedadId);
+          setFavorito(false);
+        } else {
+          list.push(propiedadId);
+          setFavorito(true);
+        }
+        localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -195,6 +242,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
   const esPantallaMediana = width > 768;
   const padHoriz = esPantallaGrande ? 60 : esPantallaMediana ? 40 : 16;
   const idiomaActual = i18n.language || 'es';
+  const esES = idiomaActual.startsWith('es');
 
   // Hover Helpers
   const hoverProps = (setHover) => Platform.OS === 'web' ? {
@@ -339,11 +387,46 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
 
             {/* Price & Stats Row */}
             <View style={s.priceStatsRow}>
-              <View>
-                <Text style={s.priceLabel}>{t('vp_listing_price', { defaultValue: 'LISTING PRICE' })}</Text>
-                <Text style={s.priceAmount}>
-                  ${formatPrecio(propiedad.precio)} <Text style={s.priceCurrency}>MXN</Text>
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <View>
+                  <Text style={s.priceLabel}>{t('vp_listing_price', { defaultValue: 'LISTING PRICE' })}</Text>
+                  <Text style={s.priceAmount}>
+                    ${formatPrecio(propiedad.precio)} <Text style={s.priceCurrency}>MXN</Text>
+                  </Text>
+                </View>
+
+                {/* Botón de Favorito */}
+                <TouchableOpacity 
+                  onPress={handleToggleFavorito}
+                  style={{
+                    backgroundColor: favorito ? 'rgba(160,120,64,0.15)' : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: favorito ? T.gold : 'rgba(255,255,255,0.15)',
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    alignSelf: 'flex-end',
+                    marginBottom: 2,
+                  }}
+                >
+                  <FontAwesome 
+                    name={favorito ? 'heart' : 'heart-o'} 
+                    size={16} 
+                    color={favorito ? T.gold : '#FFF'} 
+                  />
+                  <Text style={{ 
+                    fontFamily: T.sans, 
+                    fontSize: 12, 
+                    fontWeight: '600', 
+                    color: favorito ? T.gold : '#FFF',
+                    letterSpacing: 1
+                  }}>
+                    {favorito ? (esES ? 'GUARDADO' : 'SAVED') : (esES ? 'GUARDAR' : 'SAVE')}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={s.statsContainer}>

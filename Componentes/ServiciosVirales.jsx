@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 
 const C = {
   bg:         '#0F0D0A',
@@ -85,16 +86,53 @@ function FooterLink({ label, onPress, customStyle }) {
   );
 }
 
-// Badge de Redes Sociales con efecto de hover dinámico
 function SocialBadge({ net }) {
   const [hovered, setHovered] = useState(false);
+
+  const handlePress = async () => {
+    let url = '';
+    if (net === 'IG') {
+      url = 'https://www.instagram.com/inmoviralbis?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==';
+    } else if (net === 'WH') {
+      url = 'https://wa.me/526181630471';
+    } else if (net === 'GM') {
+      url = 'mailto:ventas@inmoviral.com.mx';
+    } else if (net === 'FB') {
+      url = 'https://www.facebook.com';
+    }
+
+    if (url) {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch (err) {
+        console.error("Error al abrir URL:", err);
+      }
+    }
+  };
+
+  const getIconName = () => {
+    if (net === 'IG') return 'instagram';
+    if (net === 'WH') return 'whatsapp';
+    if (net === 'FB') return 'facebook';
+    if (net === 'GM') return 'envelope';
+    return 'circle';
+  };
+
+  const activeColor = hovered ? C.gold : 'rgba(255,255,255,0.4)';
+
   return (
     <Pressable
+      onPress={handlePress}
       onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
       onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
       style={[styles.footerSocialBtn, hovered && { borderColor: C.gold, backgroundColor: 'rgba(160,120,64,0.05)', transform: [{ scale: 1.08 }] }]}
     >
-      <Text style={[styles.footerSocialText, hovered && { color: C.gold }]}>{net}</Text>
+      <FontAwesome name={getIconName()} size={14} color={activeColor} />
     </Pressable>
   );
 }
@@ -490,7 +528,7 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
             <View style={styles.footerBrandCol}>
               <Text style={styles.footerColHeading}>{t('footer.contact_t')}</Text>
               <FooterLink label="📞 +52 6181630471" onPress={() => abrirUrl(`tel:${CONTACT_PHONE}`)} />
-              <FooterLink label="✉ info@inmoviral.com" onPress={mandarCorreoOficial} />
+              <FooterLink label="✉ ventas@inmoviral.com.mx" onPress={mandarCorreoOficial} />
               <FooterLink label={`📍 ${t('footer.address')}`} />
               <FooterLink label={`🕒 ${t('footer.hours')}`} />
             </View>

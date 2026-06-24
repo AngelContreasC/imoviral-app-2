@@ -13,7 +13,9 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  Linking,
 } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext.js';
 
@@ -83,13 +85,51 @@ function FooterLink({ label, customStyle }) {
 
 function SocialBadge({ net }) {
   const [hovered, setHovered] = useState(false);
+
+  const handlePress = async () => {
+    let url = '';
+    if (net === 'IG') {
+      url = 'https://www.instagram.com/inmoviralbis?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==';
+    } else if (net === 'WH') {
+      url = 'https://wa.me/526181630471';
+    } else if (net === 'GM') {
+      url = 'mailto:ventas@inmoviral.com.mx';
+    } else if (net === 'FB') {
+      url = 'https://www.facebook.com';
+    }
+
+    if (url) {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch (err) {
+        console.error("Error al abrir URL:", err);
+      }
+    }
+  };
+
+  const getIconName = () => {
+    if (net === 'IG') return 'instagram';
+    if (net === 'WH') return 'whatsapp';
+    if (net === 'FB') return 'facebook';
+    if (net === 'GM') return 'envelope';
+    return 'circle';
+  };
+
+  const activeColor = hovered ? T.gold : 'rgba(255,255,255,0.4)';
+
   return (
     <Pressable
+      onPress={handlePress}
       onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
       onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
       style={[s.socialBadgeBox, hovered && { borderColor: T.gold, backgroundColor: 'rgba(160,120,64,0.05)', transform: [{ scale: 1.05 }], transition: 'all 0.2s' }]}
     >
-      <Text style={[s.socialBadgeText, hovered && { color: T.gold }]}>{net}</Text>
+      <FontAwesome name={getIconName()} size={14} color={activeColor} />
     </Pressable>
   );
 }
@@ -98,6 +138,47 @@ function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [hovered, setHovered] = useState(false);
+  const [isFavorito, setIsFavorito] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (Platform.OS === 'web') {
+        const saved = localStorage.getItem(`favoritos_${user.id}`);
+        if (saved) {
+          const list = JSON.parse(saved);
+          setIsFavorito(list.includes(p.id));
+        }
+      }
+    }
+  }, [user, p.id]);
+
+  const handleToggleFavorito = () => {
+    if (!user) {
+      alert(t('props_fav_login_alert', { defaultValue: 'Debes iniciar sesión para guardar favoritos.' }));
+      return;
+    }
+    try {
+      let list = [];
+      if (Platform.OS === 'web') {
+        const saved = localStorage.getItem(`favoritos_${user.id}`);
+        if (saved) {
+          list = JSON.parse(saved);
+        }
+        if (list.includes(p.id)) {
+          list = list.filter(id => id !== p.id);
+          setIsFavorito(false);
+        } else {
+          list.push(p.id);
+          setIsFavorito(true);
+        }
+        localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const favRight = user?.isAdmin ? 130 : 24;
 
   return (
     <View style={[s.cardGridCell, { width: cardWidth }]}>
@@ -143,6 +224,26 @@ function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
             </Text>
           </View>
         </View>
+      </Pressable>
+
+      <Pressable 
+        onPress={handleToggleFavorito}
+        style={{ 
+          position: 'absolute', 
+          top: 24, 
+          right: favRight, 
+          zIndex: 100, 
+          backgroundColor: 'rgba(0,0,0,0.6)', 
+          width: 34, 
+          height: 34, 
+          borderRadius: 17, 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)'
+        }}
+      >
+        <FontAwesome name={isFavorito ? 'heart' : 'heart-o'} size={14} color={isFavorito ? '#A07840' : '#FFF'} />
       </Pressable>
 
       {user?.isAdmin && (
@@ -313,7 +414,7 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
                 {t('footer.desc')}
               </Text>
               <View style={s.socialFlexRow}>
-                {['WH', 'IG', 'FB', 'GM'].map(net => (
+                {['WH', 'IG', 'FB', 'GM', ].map(net => (
                   <SocialBadge key={net} net={net} />
                 ))}
               </View>
@@ -351,7 +452,7 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
             <View style={s.footerBrandCol}>
               <Text style={s.footerColHeading}>{t('footer.contact_t')}</Text>
               <FooterLink label="📞 +52 6181630471" />
-              <FooterLink label="✉ info@inmoviral.com" />
+              <FooterLink label="✉ ventas@inmoviral.com.mx" />
               <FooterLink label={`📍 ${t('footer.address')}`} />
               <FooterLink label={`🕒 ${t('footer.hours')}`} />
             </View>
@@ -404,7 +505,7 @@ const s = StyleSheet.create({
   // Grilla
   gridLayoutSection: { paddingHorizontal: 24, paddingTop: 40, maxWidth: 1400, alignSelf: 'center', width: '100%' },
   flexGridWrapper: { flexDirection: 'row', flexWrap: 'wrap', width: '100%' },
-  cardGridCell: { padding: 14 },
+  cardGridCell: { padding: 14, position: 'relative' },
   
   // Tarjetas & Sombras
   propertyLuxeCard: { backgroundColor: T.bgCard, borderWidth: 1, borderColor: 'rgba(160,120,64,0.1)', overflow: 'hidden', transition: 'transform 0.3s ease, border-color 0.3s ease' },

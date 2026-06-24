@@ -202,7 +202,7 @@ function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
   );
 }
 
-export default function Vendedor({ onVolver }) {
+export default function Vendedor({ onVolver, propiedadParaEditar }) {
   const { t } = useTranslation(); const { user } = useAuth(); const { width } = useWindowDimensions(); const isWide = width > 1024;
   const WIZARD_STEPS = [{ n: 1, label: 'Ubicación' }, { n: 2, label: 'Detalles' }, { n: 3, label: 'Amenidades' }, { n: 4, label: 'Servicios' }];
 
@@ -231,10 +231,46 @@ export default function Vendedor({ onVolver }) {
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   useEffect(() => {
-    if (user) {
+    if (propiedadParaEditar) {
+      const telContacto = propiedadParaEditar.telefono_contacto || '';
+      const ladaPart = telContacto.startsWith('+') ? telContacto.split(' ')[0] : '+52';
+      const telefonoPart = telContacto.startsWith('+') ? telContacto.split(' ').slice(1).join(' ') : telContacto;
+
+      setForm({
+        tipo: propiedadParaEditar.tipo_inmueble || '',
+        operacion: propiedadParaEditar.operacion || propiedadParaEditar.tipo_transaccion || '',
+        busqueda: propiedadParaEditar.ubicacion || '',
+        calle: propiedadParaEditar.calle || '',
+        colonia: propiedadParaEditar.colonia || '',
+        ciudad: propiedadParaEditar.ciudad || '',
+        estado: propiedadParaEditar.estado || '',
+        cp: propiedadParaEditar.cp || '',
+        pais: propiedadParaEditar.pais || 'México',
+        lat: propiedadParaEditar.lat ? String(propiedadParaEditar.lat) : '',
+        lng: propiedadParaEditar.lng ? String(propiedadParaEditar.lng) : '',
+        recamaras: propiedadParaEditar.habitaciones || 1,
+        banos: propiedadParaEditar.banos || 1,
+        estacionamientos: propiedadParaEditar.estacionamientos || 0,
+        antiguedad: propiedadParaEditar.antiguedad || '',
+        titulo: propiedadParaEditar.titulo || '',
+        precio: propiedadParaEditar.precio ? String(propiedadParaEditar.precio) : '',
+        superficie: propiedadParaEditar.m2 ? String(propiedadParaEditar.m2) : '',
+        descripcion: propiedadParaEditar.descripcion || '',
+        amenidades: propiedadParaEditar.amenidades || [],
+        servicios: propiedadParaEditar.servicios_solicitados || [],
+        nombre: propiedadParaEditar.nombre_contacto || '',
+        telefono: telefonoPart,
+        divisa: 'MXN',
+        lada: ladaPart
+      });
+      if (propiedadParaEditar.imagenes) {
+        setFotos(propiedadParaEditar.imagenes.map((url, idx) => ({ id: `${url}-${idx}`, uri: url, filename: `photo_${idx}.jpg`, isExisting: true })));
+      }
+      setMapaPinConfirmado(true);
+    } else if (user) {
       setForm(prev => ({ ...prev, nombre: prev.nombre || user.user_metadata?.full_name || '', telefono: prev.telefono || user.user_metadata?.phone || '' }));
     }
-  }, [user]);
+  }, [user, propiedadParaEditar]);
 
   // 🔄 LOOP AUTOMÁTICO DE DESVANECIMIENTO CRUZADO (CADA 2.5 SEGUNDOS)
   useEffect(() => {
@@ -296,19 +332,34 @@ export default function Vendedor({ onVolver }) {
       const ubicacion = [form.colonia, form.ciudad, form.estado].filter(Boolean).join(', ') || form.busqueda || form.calle;
       const urlsImagenes = [];
       for (let i = 0; i < fotos.length; i++) {
-        setProgresoSubida(t('vw_subiendo_foto', { current: i + 1, total: fotos.length }));
-        const foto = fotos[i]; const resp = await fetch(foto.uri); const blob = await resp.blob();
-        const path = `${user?.id || 'anonimo'}/${Date.now()}_${i}.${foto.filename?.split('.').pop() || 'jpg'}`;
-        const { error: uploadError } = await supabase.storage.from('propiedades').upload(path, blob, { cacheControl: '3600', upsert: false });
-        if (uploadError) throw uploadError;
-        const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path); urlsImagenes.push(publicUrlData.publicUrl);
+        const foto = fotos[i];
+        if (foto.isExisting) {
+          urlsImagenes.push(foto.uri);
+        } else {
+          setProgresoSubida(t('vw_subiendo_foto', { current: i + 1, total: fotos.length }));
+          const resp = await fetch(foto.uri); const blob = await resp.blob();
+          const path = `${user?.id || 'anonimo'}/${Date.now()}_${i}.${foto.filename?.split('.').pop() || 'jpg'}`;
+          const { error: uploadError } = await supabase.storage.from('propiedades').upload(path, blob, { cacheControl: '3600', upsert: false });
+          if (uploadError) throw uploadError;
+          const { data: publicUrlData } = supabase.storage.from('propiedades').getPublicUrl(path); urlsImagenes.push(publicUrlData.publicUrl);
+        }
       }
-      const { error: insertError } = await supabase.from('propiedades').insert([{
-        user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
-        tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
-        lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
-      }]);
-      if (insertError) throw insertError;
+
+      if (propiedadParaEditar) {
+        const { error: updateError } = await supabase.from('propiedades').update({
+          titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
+          tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
+          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`
+        }).eq('id', propiedadParaEditar.id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase.from('propiedades').insert([{
+          user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
+          tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
+          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: `${form.lada} ${form.telefono}`, estatus: 'pendiente'
+        }]);
+        if (insertError) throw insertError;
+      }
 
       // ✉️ Enviar correo de notificación por EmailJS en el frontend
       try {
@@ -345,7 +396,14 @@ export default function Vendedor({ onVolver }) {
               antiguedad: form.antiguedad,
               amenidades: form.amenidades?.join(', ') || 'Ninguna',
               servicios: form.servicios?.join(', ') || 'Ninguno',
-              message: `Se ha registrado una nueva propiedad:
+              message: propiedadParaEditar 
+                ? `Se ha modificado la propiedad:
+Título: ${form.titulo}
+Tipo: ${form.tipo}
+Operación: ${form.operacion}
+Precio: $${form.precio}
+Ubicación: ${ubicacion}`
+                : `Se ha registrado una nueva propiedad:
 Título: ${form.titulo}
 Tipo: ${form.tipo}
 Operación: ${form.operacion}
@@ -359,7 +417,7 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
           const errTxt = await emailResp.text();
           console.error('Error al enviar correo en EmailJS:', errTxt);
           if (Platform.OS === 'web') {
-            alert('Aviso: La propiedad se publicó pero no se pudo enviar el correo de notificación. Detalles: ' + errTxt);
+            alert('Aviso: La propiedad se guardó pero no se pudo enviar el correo de notificación. Detalles: ' + errTxt);
           }
         }
       } catch (emailErr) {
