@@ -177,6 +177,7 @@
   "vp_form_mensaje": "Mensaje",
   "vp_form_mensaje_default": "Hola, me interesa obtener información sobre la propiedad: {{titulo}}",
   "vp_form_enviar": "ENVIAR MENSAJE",
+  "vp_contact_success_msg": "¡Mensaje enviado con éxito! Nos comunicaremos contigo.",
   "vp_contact_o": "O CONTÁCTANOS DIRECTAMENTE",
   "vp_llamar": "LLAMAR",
   "vp_whatsapp": "WHATSAPP",
@@ -207,7 +208,28 @@
   "vp_location_locked_title": "UBICACIÓN EXCLUSIVA",
   "vp_location_locked_text": "Para ver la ubicación exacta y el mapa en vivo de esta propiedad, por favor inicia sesión.",
   "vp_contact_locked_title": "CONTACTAR ASESOR",
-  "vp_contact_locked_text": "Para enviar un mensaje al asesor o comunicarte por llamada/WhatsApp, por favor inicia sesión."
+  "vp_contact_locked_text": "Para enviar un mensaje al asesor o comunicarte por llamada/WhatsApp, por favor inicia sesión.",
+  "vp_overview": "Resumen",
+  "vp_architecture_title": "DECLARACIÓN ARQUITECTÓNICA",
+  "vp_specifications": "Especificaciones",
+  "vp_specs_details": "DETALLES DE LA PROPIEDAD",
+  "vp_type": "TIPO",
+  "vp_operation": "OPERACIÓN",
+  "vp_total_area": "SUPERFICIE TOTAL",
+  "vp_age_label": "ANTIGÜEDAD",
+  "vp_status": "ESTADO",
+  "vp_address_written": "DIRECCIÓN DE LA PROPIEDAD",
+  "vp_location_description": "Situada en una de las zonas residenciales más prestigiosas, con excelente plusvalía, accesos rápidos y cercanía a escuelas, centros de negocios y gastronomía de alto nivel.",
+  "vp_open_maps": "VER EN GOOGLE MAPS →",
+  "vp_interested": "¿TE INTERESA ESTA RESIDENCIA?",
+  "vp_cta_title": "AGENDAR UNA VISITA",
+  "vp_cta_subtitle": "Privada Hoy Mismo",
+  "vp_similar_title": "TAMBIÉN TE PUEDE INTERESAR",
+  "vp_similar_subtitle": "Propiedades Relacionadas",
+  "vp_listing_price": "PRECIO DE LISTA",
+  "vp_click_zoom": "AGRANDAR FOTO",
+  "vp_area": "Superficie",
+  "vp_years": "Años"
 }
 
 
