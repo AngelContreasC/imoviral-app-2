@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
   Linking
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Feather } from '@expo/vector-icons';
 
 // ══ 💎 CONFIGURACIÓN BILINGÜE NATIVA ══
 import './config/i18n'; 
@@ -27,8 +27,13 @@ import PropiedadesRenta from './Componentes/PropiedadesRenta.jsx';
 import VerPropiedad from './Componentes/VerPropiedad.jsx';
 import ServiciosVirales from './Componentes/ServiciosVirales.jsx';
 import SobreNosotros from './Componentes/SobreNosotros.jsx';
+import SobreNosotrosSection from './Componentes/SobreNosotrosSection.jsx';
 import Vendedor from './Componentes/Vendedor.jsx';
-import UserMenu from './Componentes/UserMenu.jsx';
+import UserMenu from './Componentes/UserMenu';
+import Dashboard from './Componentes/Dashboard.jsx';
+import NuestroProceso from './Componentes/NuestroProceso.jsx';
+import Testimonios from './Componentes/Testimonios.jsx';
+import NuestrasSoluciones from './Componentes/NuestrasSoluciones.jsx';
 
 import { useAuth, AuthProvider } from './AuthContext.js'; 
 import { supabase } from './supabaseClient'; 
@@ -111,6 +116,25 @@ function SocialSquare({ label }) {
   );
 }
 
+const MOCK_PROPERTIES = [
+  { id: 'mock-1', titulo: 'Penthouse Ébano', ubicacion: 'Santa Fe, CDMX', precio: 12000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'] },
+  { id: 'mock-2', titulo: 'Casa Jardines', ubicacion: 'Lomas de Chapultepec, CDMX', precio: 85000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800'] },
+  { id: 'mock-3', titulo: 'Residencia Serena', ubicacion: 'Bosques de las Lomas, CDMX', precio: 95000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800'] },
+  { id: 'mock-4', titulo: 'Departamento Cielo', ubicacion: 'Polanco, CDMX', precio: 32000, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'] },
+  { id: 'mock-5', titulo: 'Loft Copernico', ubicacion: 'Roma Norte, CDMX', precio: 19500, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800'] },
+  { id: 'mock-6', titulo: 'Penthouse Lomas', ubicacion: 'Lomas Altas, CDMX', precio: 150000, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800'] },
+];
+
+const TICKER_PHRASES = [
+  'LUXURY RESIDENCES',
+  'PREMIUM REAL ESTATE INVESTMENTS',
+  'EXCLUSIVE LISTINGS',
+  'SEAMLESS TRANSACTIONS',
+  'EXCLUSIVE MARKET ACCESS',
+  'CONFIDENTIAL NEGOTIATIONS',
+];
+
+
 /* ─────────────────────────────────────────────
    COMPONENTE DE APLICACIÓN PRINCIPAL
 ───────────────────────────────────────────── */
@@ -119,6 +143,9 @@ function MainApp() {
   const { user, signOut } = useAuth(); 
   const { width } = useWindowDimensions(); 
   
+  const esPantallaGrande = width > 768;
+  const idiomaActual = i18n.language || 'es';
+  
   const [vista, setVista] = useState('home');
   const [dashboardTab, setDashboardTab] = useState('dashboard');
   const [propiedadParaEditar, setPropiedadParaEditar] = useState(null);
@@ -126,13 +153,27 @@ function MainApp() {
   const [userMenuAbierto, setUserMenuAbierto] = useState(false); 
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
   const [propiedades, setPropiedades] = useState([]); 
+  const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
+
+  const listaPropiedades = useMemo(() => {
+    if (!propiedades || propiedades.length === 0) return MOCK_PROPERTIES;
+    if (propiedades.length >= 6) return propiedades.slice(0, 6);
+    const combined = [...propiedades];
+    for (const mock of MOCK_PROPERTIES) {
+      if (combined.length >= 6) break;
+      if (!combined.some(p => p.id === mock.id)) {
+        combined.push(mock);
+      }
+    }
+    return combined;
+  }, [propiedades]);
   
   // Contadores Animados (Count-Up)
   const [countYears, setCountYears] = useState(0);
   const [countProps, setCountProps] = useState(0);
 
-  // Estados de Hovers Interactivos Premium
-  const [isScrolled, setIsScrolled] = useState(false);
+  // Referencia animada de scroll continuo y sus interpolaciones premium
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [hoveredLogin, setHoveredLogin] = useState(false);
   const [hoveredNav, setHoveredNav] = useState(null);       
   const [hoveredHeroBtn, setHoveredHeroBtn] = useState(false); 
@@ -141,11 +182,46 @@ function MainApp() {
   const [hoveredAboutImg, setHoveredAboutImg] = useState(false); 
   const [hoveredCtaBtn, setHoveredCtaBtn] = useState(false);   
   const [hoveredLogout, setHoveredLogout] = useState(false);   
-  const [hoveredPublishNav, setHoveredPublishNav] = useState(false); // ◄ Estado de hover del nuevo botón
+  const [hoveredPublishNav, setHoveredPublishNav] = useState(false); 
 
   const tickerValue = useRef(new Animated.Value(0)).current;
-  const esPantallaGrande = Platform.OS === 'web' && width > 1024;
-  const idiomaActual = i18n.language || 'es';
+
+  // Interpolación de fondo y bordes para el Navbar premium
+  const navBgColor = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: ['rgba(6, 6, 6, 0)', '#0C0C0C'],
+    extrapolate: 'clamp',
+  });
+
+  const navBorderColor = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: ['rgba(160, 120, 64, 0)', 'rgba(160, 120, 64, 0.15)'],
+    extrapolate: 'clamp',
+  });
+
+  const navPaddingTop = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [20, 14],
+    extrapolate: 'clamp',
+  });
+
+  const navPaddingBottom = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [20, 14],
+    extrapolate: 'clamp',
+  });
+
+  const animatedNavBarStyle = {
+    backgroundColor: vista === 'home' ? navBgColor : '#0C0C0C',
+    borderBottomColor: vista === 'home' ? navBorderColor : 'rgba(160, 120, 64, 0.15)',
+    paddingTop: vista === 'home' ? navPaddingTop : 14,
+    paddingBottom: vista === 'home' ? navPaddingBottom : 14,
+  };
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
 
   const obtenerIniciales = () => {
     if (!user) return 'GR';
@@ -215,7 +291,7 @@ function MainApp() {
   }, []);
 
   const renderNavbar = () => (
-    <View style={[styles.navBar, isScrolled && styles.navBarScrolled, vista !== 'home' && styles.navBarStaticSolid]}>
+    <Animated.View style={[styles.navBar, animatedNavBarStyle]}>
       <TouchableOpacity onPress={() => setVista('home')}><Text style={styles.logoText}>INMOVIRAL</Text></TouchableOpacity>
       
       {esPantallaGrande && (
@@ -252,13 +328,21 @@ function MainApp() {
               onMouseLeave={() => Platform.OS === 'web' && setHoveredPublishNav(false)}
               activeOpacity={0.7}
             >
-              <Text style={[
-                styles.navPublishBtnText, 
-                hoveredPublishNav && styles.navPublishBtnTextHover,
-                vista === 'vendedor' && styles.navPublishBtnTextActive
-              ]}>
-                ➕ {idiomaActual.startsWith('es') ? 'PUBLICAR' : 'PUBLISH'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Feather 
+                  name="plus" 
+                  size={11} 
+                  color={vista === 'vendedor' ? '#525252' : hoveredPublishNav ? '#C39B5F' : '#A07840'} 
+                  style={{ marginRight: 5 }} 
+                />
+                <Text style={[
+                  styles.navPublishBtnText, 
+                  hoveredPublishNav && styles.navPublishBtnTextHover,
+                  vista === 'vendedor' && styles.navPublishBtnTextActive
+                ]}>
+                  {idiomaActual.startsWith('es') ? 'PUBLICAR' : 'PUBLISH'}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navAvatarCircle} onPress={() => setUserMenuAbierto(true)}>
@@ -285,70 +369,10 @@ function MainApp() {
           <TouchableOpacity onPress={() => cambiarIdioma('en')} style={[styles.langBtn, idiomaActual.startsWith('en') && styles.langBtnActive]}><Text style={styles.langText}>EN</Text></TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 
-  const renderUserMenuDrawer = () => {
-    if (!userMenuAbierto) return null;
-    return (
-      <View style={styles.userMenuDrawerOverlay}>
-        <TouchableOpacity style={styles.drawerDismissOverlay} activeOpacity={1} onPress={() => setUserMenuAbierto(false)} />
-        <View style={styles.userMenuDrawerBody}>
-          <View style={styles.drawerProfileHeader}>
-            <View style={styles.profileAvatarBox}><Text style={styles.profileAvatarText}>{obtenerIniciales()}</Text></View>
-            <View style={styles.profileInfoBox}>
-              <Text style={styles.profileNameText} numberOfLines={1}>{obtenerNombreUsuario()}</Text>
-              <Text style={styles.profileRoleText}>{user?.user_metadata?.client_type || 'Comprador'} · Premium</Text>
-            </View>
-            <TouchableOpacity onPress={() => setUserMenuAbierto(false)} style={styles.closeDrawerBtn}><Text style={styles.closeDrawerBtnText}>✕</Text></TouchableOpacity>
-          </View>
-
-          <View style={styles.roleStripBox}>
-            <View style={styles.roleDot} />
-            <Text style={styles.roleStripText}>
-              {idiomaActual.startsWith('es') ? `Modo ${user?.user_metadata?.client_type || 'Comprador'} activo` : `${user?.user_metadata?.client_type || 'Buyer'} mode active`}
-            </Text>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.drawerScrollContainer}>
-            <Text style={styles.drawerSectionLabel}>{t('menu.my_activity', { defaultValue: 'MI ACTIVIDAD' })}</Text>
-            <TouchableOpacity 
-              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'dashboard' && styles.drawerLinkRowActive]}
-              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('dashboard'); }}
-            >
-              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'dashboard' && styles.drawerLinkRowTextActive]}>
-                📊 {t('menu.dashboard', { defaultValue: 'Dashboard' })}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'publicaciones' && styles.drawerLinkRowActive]}
-              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('publicaciones'); }}
-            >
-              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'publicaciones' && styles.drawerLinkRowTextActive]}>
-                📝 {t('menu.my_listings', { defaultValue: 'Mis publicaciones' })}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.drawerLinkRow, vista === 'dashboard' && dashboardTab === 'guardadas' && styles.drawerLinkRowActive]}
-              onPress={() => { setUserMenuAbierto(false); setVista('dashboard'); setDashboardTab('guardadas'); }}
-            >
-              <Text style={[styles.drawerLinkRowText, vista === 'dashboard' && dashboardTab === 'guardadas' && styles.drawerLinkRowTextActive]}>
-                ❤️ {t('menu.saved_properties', { defaultValue: 'Propiedades guardadas' })}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-
-          <View style={styles.drawerFooterBox}>
-            <TouchableOpacity style={[styles.logoutBtn, hoveredLogout && styles.logoutBtnHover]} onMouseEnter={() => setHoveredLogout(true)} onMouseLeave={() => setHoveredLogout(false)} onPress={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} >
-              <Text style={[styles.logoutBtnText, hoveredLogout && styles.logoutBtnTextHover]}>🚪 {t('menu.logout', { defaultValue: 'Cerrar Sesión' })}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  };
+  // La función renderUserMenuDrawer() ha sido eliminada y modularizada en el componente UserMenu.jsx
 
   const renderLuxuryMobileMenu = () => {
     if (!mobileNavAbierto) return null;
@@ -357,6 +381,12 @@ function MainApp() {
         <SafeAreaView style={{ flex: 1 }}>
           <View style={styles.luxuryMenuHeader}>
             <Text style={styles.logoText}>INMOVIRAL</Text>
+            
+            <View style={[styles.langContainer, { marginRight: 12 }]}>
+              <TouchableOpacity onPress={() => cambiarIdioma('es')} style={[styles.langBtn, idiomaActual.startsWith('es') && styles.langBtnActive]}><Text style={styles.langText}>ES</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => cambiarIdioma('en')} style={[styles.langBtn, idiomaActual.startsWith('en') && styles.langBtnActive]}><Text style={styles.langText}>EN</Text></TouchableOpacity>
+            </View>
+
             <TouchableOpacity onPress={() => setMobileNavAbierto(false)} style={styles.closeMenuBtn}><Text style={styles.closeMenuBtnText}>✕</Text></TouchableOpacity>
           </View>
           <View style={styles.luxuryMenuLinksContainer}>
@@ -370,21 +400,76 @@ function MainApp() {
     );
   };
 
-  if (vista === 'login')     return <LoginPage onVolver={() => setVista('home')} />;
-  if (vista === 'venta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
-  if (vista === 'renta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
-  if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} /></SafeAreaView>;
-  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
-  if (vista === 'vendedor')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
-  if (vista === 'nosotros')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}{renderUserMenuDrawer()}{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
+  const renderFooter = () => (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerGrid, { flexDirection: width > 768 ? 'row' : 'column' }]}>
+        <View style={[styles.footerColumnUnit, { width: width > 768 ? '30%' : '100%' }]}>
+          <Text style={styles.footerLogoText}>INMOVIRAL</Text>
+          <Text style={styles.footerBrandDesc}>{t('footer.desc')}</Text>
+          <View style={styles.footerSocialContainer}>
+            {['WH', 'IG', 'FB', 'GM'].map((red) => (<SocialSquare key={red} label={red} />))}
+          </View>
+        </View>
+        <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
+          <Text style={styles.footerColTitle}>{t('footer.company_t')}</Text>
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Sobre Nosotros' : 'About Us'} onPress={() => setVista('nosotros')} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Propiedades' : 'Properties'} onPress={() => setVista('venta')} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Nuestro Equipo' : 'Our Team'} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Testimonios' : 'Testimonials'} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Bolsa de Trabajo' : 'Careers'} />
+        </View>
+        <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
+          <Text style={styles.footerColTitle}>{t('footer.catalog_t')}</Text>
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Residencias de Lujo' : 'Luxury Homes'} onPress={() => setVista('venta')} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Departamentos' : 'Apartments'} onPress={() => setVista('venta')} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Colección Penthouses' : 'Penthouses'} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Terrenos' : 'Land'} />
+          <FooterLink text={idiomaActual.startsWith('es') ? 'Comercial' : 'Commercial'} />
+        </View>
+        <View style={[styles.footerColumnUnit, { width: width > 768 ? '22%' : '100%' }]}>
+          <Text style={styles.footerColTitle}>{t('footer.contact_t')}</Text>
+          <Text style={styles.footerInfoItem}>📞 +52 6181630471</Text>
+          <Text style={styles.footerInfoItem}>✉️ ventas@inmoviral.com.mx</Text>
+          <Text style={styles.footerInfoItem}>📍 {t('footer.address')}</Text>
+          <Text style={styles.footerInfoItem}>🕒 {t('footer.hours')}</Text>
+        </View>
+      </View>
+      <View style={styles.footerBottomBar}>
+        <Text style={styles.footerCopyright}>© 2026 INMOVIRAL. All rights reserved.</Text>
+        <View style={styles.footerBottomRightLinks}>
+          <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Política de Privacidad' : 'Privacy Policy'}</Text>
+          <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Términos de Uso' : 'Terms of Use'}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  if (vista === 'login') return (
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {renderNavbar()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      {renderLuxuryMobileMenu()}
+      <ScrollView contentContainerStyle={{ paddingTop: 0 }} keyboardShouldPersistTaps="handled">
+        <LoginPage onVolver={() => setVista('home')} />
+        {renderFooter()}
+      </ScrollView>
+    </SafeAreaView>
+  );
+  if (vista === 'venta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
+  if (vista === 'renta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
+  if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} /></SafeAreaView>;
+  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
+  if (vista === 'vendedor')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
+  if (vista === 'nosotros')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
   if (vista === 'dashboard') {
     return (
       <SafeAreaView style={styles.screen}>
         <StatusBar barStyle="light-content" />
         {renderNavbar()}
-        {renderUserMenuDrawer()}
+        <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
         {renderLuxuryMobileMenu()}
-        <UserMenu 
+        <Dashboard 
           activeTab={dashboardTab} 
           setActiveTab={setDashboardTab} 
           onPublicar={() => {
@@ -405,10 +490,14 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      {renderUserMenuDrawer()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} onScroll={(e) => setIsScrolled(e.nativeEvent.contentOffset.y > 50)} scrollEventThrottle={16}>
+      <Animated.ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         
         {/* ══ 1. HERO ══ */}
         <View style={styles.heroSection}>
@@ -441,7 +530,12 @@ function MainApp() {
         {/* ══ 2. TICKER MARQUEE ══ */}
         <View style={styles.tickerBar}>
           <Animated.View style={[styles.tickerInnerLoop, { transform: [{ translateX: tickerValue }] }]}>
-            <Text style={styles.tickerText}>{t('ticker.text')}</Text>
+            {[...TICKER_PHRASES, ...TICKER_PHRASES, ...TICKER_PHRASES].map((phrase, idx) => (
+              <View key={idx} style={styles.tickerItem}>
+                <Text style={styles.tickerText}>{phrase}</Text>
+                <Text style={styles.tickerSeparator}>✦</Text>
+              </View>
+            ))}
           </Animated.View>
         </View>
 
@@ -470,59 +564,73 @@ function MainApp() {
         </View>
 
         {/* ══ 4. NUESTRAS SOLUCIONES ══ */}
-        <View className="reveal-section" style={styles.solutionsSection}>
-          <Text style={styles.solutionsLabel}>{t('solutions.label')}</Text>
-          <Text style={styles.solutionsTitle}>{t('solutions.title')}</Text>
-          <View style={styles.solutionsGrid}>
-            <View style={[styles.solutionCard, hoveredCardId === 'lux' && styles.solutionCardHovered]} onMouseEnter={() => setHoveredCardId('lux')} onMouseLeave={() => setHoveredCardId(null)}>
-              <View style={styles.solContent}>
-                <Text style={styles.solTag}>{t('solutions.lux_houses.tag')}</Text>
-                <Text style={styles.solCardTitle}>{t('solutions.lux_houses.title')}</Text>
-                <Text style={styles.solCardText}>{t('solutions.lux_houses.desc')}</Text>
-                <TouchableOpacity style={styles.solLink}><Text style={styles.solLinkText}>{t('solutions.visit_cta')}</Text></TouchableOpacity>
-              </View>
-              <View style={styles.solImgWrap}>
-                <Image source={{ uri: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600" }} style={styles.solImg} />
-                <View style={[styles.technicalOverlay, hoveredCardId === 'lux' && styles.technicalOverlayActive]}>
-                  <Text style={styles.techOverlayTitle}>{t('solutions.profile_label')}</Text>
-                  <Text style={styles.techOverlayText}>{t('solutions.lux_houses.profile')}</Text>
-                </View>
-              </View>
-              <View style={[styles.cardGoldIndicator, hoveredCardId === 'lux' && styles.cardGoldIndicatorActive]} />
-            </View>
+        <View className="reveal-section">
+          <NuestrasSoluciones onNavigate={(destino) => setVista(destino)} />
+        </View>
 
-            <View style={[styles.solutionCard, hoveredCardId === 'prem' && styles.solutionCardHovered]} onMouseEnter={() => setHoveredCardId('prem')} onMouseLeave={() => setHoveredCardId(null)}>
-              <View style={styles.solContent}>
-                <Text style={styles.solTag}>{t('solutions.premium_apts.tag')}</Text>
-                <Text style={styles.solCardTitle}>{t('solutions.premium_apts.title')}</Text>
-                <Text style={styles.solCardText}>{t('solutions.premium_apts.desc')}</Text>
-                <TouchableOpacity style={styles.solLink}><Text style={styles.solLinkText}>{t('solutions.visit_cta')}</Text></TouchableOpacity>
-              </View>
-              <View style={styles.solImgWrap}>
-                <Image source={{ uri: "https://images.unsplash.com/photo-1503174971373-b1f69850bded?w=600" }} style={styles.solImg} />
-                <View style={[styles.technicalOverlay, hoveredCardId === 'prem' && styles.technicalOverlayActive]}>
-                  <Text style={styles.techOverlayTitle}>{t('solutions.profile_label')}</Text>
-                  <Text style={styles.techOverlayText}>{t('solutions.premium_apts.profile')}</Text>
-                </View>
-              </View>
-              <View style={[styles.cardGoldIndicator, hoveredCardId === 'prem' && styles.cardGoldIndicatorActive]} />
-            </View>
+        {/* ══ 5. PROPIEDADES DESTACADAS ══ */}
+        <View className="reveal-section" style={styles.featuredPropsSection}>
+          <Text style={styles.featuredPropsLabel}>{idiomaActual.startsWith('es') ? 'COLECCIÓN EXCLUSIVA' : 'EXCLUSIVE COLLECTION'}</Text>
+          <Text style={styles.featuredPropsTitle}>{idiomaActual.startsWith('es') ? 'Propiedades Destacadas' : 'Featured Properties'}</Text>
+          
+          <View style={styles.propsGrid}>
+            {listaPropiedades.slice(0, 6).map((prop) => {
+              const isHovered = hoveredPropertyId === prop.id;
+              return (
+                <TouchableOpacity
+                  key={prop.id}
+                  style={styles.propCardItem}
+                  onPress={() => irAPropiedad(prop.id)}
+                  onMouseEnter={() => Platform.OS === 'web' && setHoveredPropertyId(prop.id)}
+                  onMouseLeave={() => Platform.OS === 'web' && setHoveredPropertyId(null)}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.propCardImageWrap}>
+                    <Image
+                      source={{ uri: prop.imagenes?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600' }}
+                      style={[
+                        styles.propCardImage,
+                        isHovered && styles.propCardImageZoomed
+                      ]}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.propOperationTag}>
+                      <Text style={styles.propOperationText}>
+                        {prop.operacion?.toUpperCase() === 'RENTA' ? (idiomaActual.startsWith('es') ? 'RENTA' : 'RENT') : (idiomaActual.startsWith('es') ? 'VENTA' : 'SALE')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.propCardInfo}>
+                    <Text style={styles.propCardTitle} numberOfLines={1}>
+                      {prop.titulo}
+                    </Text>
+                    <Text style={styles.propCardPrice}>
+                      ${parseFloat(prop.price || prop.precio || 0).toLocaleString()} MXN
+                    </Text>
+                    <Text style={styles.propCardLocation} numberOfLines={1}>
+                      📍 {prop.ubicacion}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* ══ 5. SOBRE NOSOTROS ══ */}
-        <View className="reveal-section" style={styles.aboutSection}>
-          <View style={styles.aboutGrid}>
-            <TouchableOpacity activeOpacity={1} style={styles.aboutImgWrap} onMouseEnter={() => setHoveredAboutImg(true)} onMouseLeave={() => setHoveredAboutImg(false)}>
-              <Image source={{ uri: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800" }} style={[styles.aboutImg, hoveredAboutImg && styles.aboutImgZoomed]} />
-            </TouchableOpacity>
-            <View style={styles.aboutContent}>
-              <Text style={styles.aboutLabel}>{t('about.label')}</Text>
-              <Text style={styles.aboutTitleText}>{t('about.title')}{'\n'}<Text style={styles.aboutTitleItalic}>{t('about.title_italic')}</Text></Text>
-              <Text style={styles.aboutDescriptionText}>{t('about.desc')}</Text>
-              <TouchableOpacity style={styles.btnOutlineLight} onPress={() => setVista('nosotros')}><Text style={styles.btnTextWhite}>{t('about.cta')}</Text></TouchableOpacity>
-            </View>
-          </View>
+        {/* ══ NUESTRO PROCESO ══ */}
+        <View className="reveal-section">
+          <NuestroProceso />
+        </View>
+
+        {/* ══ 6. SOBRE NOSOTROS ══ */}
+        <View className="reveal-section">
+          <SobreNosotrosSection onNavigate={(destino) => setVista(destino)} />
+        </View>
+
+        {/* ══ TESTIMONIOS ══ */}
+        <View className="reveal-section">
+          <Testimonios />
         </View>
 
         {/* ══ 6. FINAL CTA BANNER ══ */}
@@ -596,7 +704,7 @@ function MainApp() {
           </View>
         </View>
 
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -622,14 +730,8 @@ const styles = StyleSheet.create({
     left: 0, 
     right: 0, 
     zIndex: 999, 
-    backgroundColor: '#060606', 
     borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(160,120,64,0.05)', 
-    paddingTop: 20, 
-    paddingBottom: 20 
   },
-  navBarScrolled: { backgroundColor: '#0c0c0c', paddingTop: 14, paddingBottom: 14, borderBottomColor: 'rgba(160,120,64,0.15)' },
-  navBarStaticSolid: { backgroundColor: '#0c0c0c', paddingTop: 14, paddingBottom: 14, borderBottomColor: 'rgba(160,120,64,0.12)' },
   logoText: { fontFamily: LUXURY_FONT, fontSize: 24, fontWeight: '400', color: '#fff', letterSpacing: 7.5, textTransform: 'uppercase' },
   navLinksRow: { flexDirection: 'row', gap: 28 },
   navLink: { color: '#a3a3a3', fontSize: 11, fontWeight: '700', letterSpacing: 2 },
@@ -650,29 +752,30 @@ const styles = StyleSheet.create({
   // ── ESTILOS DEL BOTÓN PUBLICAR (BASE, HOVER Y ACTIVO) ──
   navPublishBtn: {
     borderWidth: 1,
-    borderColor: 'rgba(160,120,64,0.4)',
+    borderColor: '#A07840',
     paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 0,
+    paddingHorizontal: 12,
+    borderRadius: 2,
     marginRight: 4,
+    backgroundColor: 'transparent',
   },
   navPublishBtnHover: {
-    backgroundColor: '#A07840',
-    borderColor: '#A07840',
+    backgroundColor: 'rgba(160, 120, 64, 0.1)',
+    borderColor: '#C39B5F',
   },
   navPublishBtnActive: {
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   navPublishBtnText: {
     color: '#A07840',
     fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     fontFamily: SANS_FONT
   },
   navPublishBtnTextHover: {
-    color: '#000000',
+    color: '#C39B5F',
   },
   navPublishBtnTextActive: {
     color: '#525252', // Gris apagado premium para indicar sección actual
@@ -742,8 +845,10 @@ const styles = StyleSheet.create({
   hcNum: { fontFamily: SERIF_FONT, fontSize: 34, color: '#fff' },
   hcLabel: { color: '#737373', fontSize: 9, letterSpacing: 2, maxWidth: 110 },
   tickerBar: { backgroundColor: '#A07840', paddingVertical: 18, overflow: 'hidden' },
-  tickerInnerLoop: { flexDirection: 'row', width: 3200 },
-  tickerText: { fontFamily: SERIF_FONT, color: '#ffffff', fontSize: 10, letterSpacing: 4.5 },
+  tickerInnerLoop: { flexDirection: 'row', width: 5000 },
+  tickerItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 48 },
+  tickerText: { fontFamily: SANS_FONT, color: '#ffffff', fontSize: 11, fontWeight: '400', letterSpacing: 2.5, textTransform: 'uppercase' },
+  tickerSeparator: { fontSize: 8, color: '#ffffff', opacity: 0.6, marginLeft: 48 },
   featuresSection: { paddingVertical: 100, paddingHorizontal: 24, backgroundColor: '#ffffff' },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 30, justifyContent: 'center' },
   featureItem: { width: Platform.OS === 'web' ? '23%' : '100%', minWidth: 260, padding: 35, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
@@ -772,17 +877,6 @@ const styles = StyleSheet.create({
   technicalOverlayActive: { top: 0 },
   techOverlayTitle: { fontFamily: LUXURY_FONT, color: '#A07840', fontSize: 16 },
   techOverlayText: { color: '#a3a3a3', fontSize: 12, lineHeight: 22 },
-  aboutSection: { paddingVertical: 90, paddingHorizontal: 24, backgroundColor: '#0a0a0a' },
-  aboutGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 50, alignItems: 'center' },
-  aboutImgWrap: { flex: 1, minWidth: 480, height: 400, overflow: 'hidden' },
-  aboutImg: { width: '100%', height: '100%' },
-  aboutImgZoomed: { transform: [{ scale: 1.03 }] },
-  aboutContent: { flex: 1 },
-  aboutLabel: { color: '#A07840', fontSize: 11, fontWeight: '600', letterSpacing: 4, marginBottom: 16 },
-  aboutTitleText: { fontFamily: LUXURY_FONT, fontSize: 36, color: '#fff', lineHeight: 46, marginBottom: 22 },
-  aboutTitleItalic: { fontStyle: 'italic', color: '#A07840' },
-  aboutDescriptionText: { color: '#a3a3a3', fontSize: 14, lineHeight: 26, marginBottom: 20 },
-  btnOutlineLight: { borderBottomWidth: 1, borderBottomColor: '#A07840', paddingVertical: 8, marginTop: 12 },
   finalCtaSection: { height: 400, position: 'relative', justifyContent: 'center', alignItems: 'center' },
   ctaBgImage: { ...StyleSheet.absoluteFillObject },
   ctaDarkLayer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,6,6,0.82)' },
@@ -817,5 +911,156 @@ const styles = StyleSheet.create({
   footerBottomBar: { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.07)', marginTop: 40, paddingTop: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, maxWidth: 1100, alignSelf: 'center', width: '100%' },
   footerCopyright: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
   footerBottomRightLinks: { flexDirection: 'row', gap: 24 },
-  footerCopyrightLink: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT }
+  footerCopyrightLink: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
+
+  // Estilos de la sección de Propiedades Destacadas
+  featuredPropsSection: {
+    paddingVertical: 100,
+    paddingHorizontal: 24,
+    backgroundColor: '#0a0a0a',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  featuredPropsLabel: {
+    color: '#A07840',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 5,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  featuredPropsTitle: {
+    fontFamily: LUXURY_FONT,
+    fontSize: 34,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 65,
+  },
+  propsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 30,
+    justifyContent: 'center',
+    maxWidth: 1100,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  propCardItem: {
+    width: Platform.select({ web: '31%', default: '100%' }),
+    minWidth: 280,
+    backgroundColor: '#111110',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    overflow: 'hidden',
+  },
+  propCardImageWrap: {
+    height: 220,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  propCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  propCardImageZoomed: {
+    transform: [{ scale: 1.06 }],
+  },
+  propOperationTag: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(10, 10, 10, 0.75)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(160, 120, 64, 0.3)',
+  },
+  propOperationText: {
+    color: '#A07840',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    fontFamily: SANS_FONT,
+  },
+  propCardInfo: {
+    padding: 20,
+  },
+  propCardTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 20,
+    color: '#fff',
+    marginBottom: 8,
+  },
+  propCardPrice: {
+    color: '#A07840',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: SANS_FONT,
+    marginBottom: 8,
+  },
+  propCardLocation: {
+    color: '#8A8A84',
+    fontSize: 12,
+    fontFamily: SANS_FONT,
+  },
+  
+  // ══ 📱 ESTILOS EXCLUSIVOS DEL MENÚ HAMBURGUESA LUXURY ══
+  luxuryOverlayMenu: {
+    position: 'absolute',
+    ...Platform.select({
+      web: { position: 'fixed' },
+      default: { position: 'absolute' }
+    }),
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0C0C0C',
+    zIndex: 10000,
+    padding: 24,
+  },
+  luxuryMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 40,
+  },
+  closeMenuBtn: {
+    padding: 8,
+  },
+  closeMenuBtnText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '300',
+  },
+  luxuryMenuLinksContainer: {
+    gap: 32,
+    marginTop: 20,
+  },
+  luxuryMenuLinkWrap: {
+    paddingVertical: 12,
+  },
+  luxuryMenuFlexRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  luxuryMenuIndex: {
+    fontFamily: SANS_FONT,
+    fontSize: 10,
+    color: '#A07840',
+    fontWeight: '500',
+  },
+  luxuryMenuLinkText: {
+    fontFamily: LUXURY_FONT,
+    fontSize: 28,
+    color: '#a3a3a3',
+    fontWeight: '300',
+  },
+  luxuryActiveLink: {
+    color: '#fff',
+  },
 });

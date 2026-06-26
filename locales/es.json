@@ -49,27 +49,33 @@
   "solutions": {
     "label": "COLECCIONES",
     "title": "NUESTRAS SOLUCIONES",
-    "visit_cta": "AGENDAR UNA VISITA  →",
-    "profile_label": "FICHA DE PRESTIGIO",
-    "lux_houses": {
-      "tag": "UNIFAMILIAR · PRESTIGIO",
-      "title": "CASAS DE\nLUJO",
-      "desc": "Residencias unifamiliares exclusivas que combinan belleza arquitectónica con máxima privacidad y valor a largo plazo.",
-      "profile": "• 480 m² de Construcción\n• 4 Recámaras Premium\n• Alberca & Solárium Privado"
+    "card1": {
+      "tag": "VIVIENDA · URBANA Y FAMILIAR",
+      "title": "PROPIEDADES\nRESIDENCIALES",
+      "desc": "Encuentra el hogar ideal en las zonas con mayor crecimiento de Chihuahua. Desde casas familiares tradicionales hasta departamentos modernos, seleccionados para ofrecer comodidad, seguridad y una excelente calidad de vida para todo presupuesto.",
+      "cta": "AGENDAR VISITA →"
     },
-    "premium_apts": {
-      "tag": "ELEGANCIA · DISEÑO",
-      "title": "APARTAMENTOS\nPREMIUM",
-      "desc": "Espacios de vida modernos en ubicaciones privilegiadas con líneas limpias y amenidades excepcionales.",
-      "profile": "• 210 m² Habitables\n• Penthouse de Doble Altura\n• Terraza con Vista Skyview"
+    "card2": {
+      "tag": "INVERSIÓN · PLUSVALÍA GARANTIZADA",
+      "title": "TERRENOS Y\nCOMERCIALES",
+      "desc": "Aprovecha el auge comercial e industrial de la capital. Ofrecemos una cartera integral de terrenos estratégicos, locales comerciales y bodegas industriales diseñadas para potenciar tu negocio o asegurar rendimientos patrimoniales a largo plazo.",
+      "cta": "VER CATÁLOGO →"
     }
   },
   "about": {
-    "label": "SOBRE NOSOTROS",
-    "title": "INMOVIRAL —",
-    "title_italic": "ENGINEERING DE EXCELENCIA",
-    "desc": "INMOVIRAL combina experiencia en el mercado, estrategia moderna y un servicio impecable. Conectamos a nuestros clientes con propiedades que elevan su estilo de vida y reflejan su visión.",
-    "cta": "CONOCE MÁS SOBRE NOSOTROS  →"
+    "label": "ABOUT US",
+    "title": "INMOVIRAL —\nEngineering\nExcellence",
+    "desc": "INMOVIRAL combina experiencia en el mercado, estrategia moderna y un servicio impecable. Conectamos a nuestros clientes con propiedades que elevan su estilo de vida y reflejan su visión.\n\nCada proyecto es una solución a la medida, diseñada en torno a las necesidades, objetivos del cliente y el carácter único de cada propiedad.",
+    "cta": "CONOCE MÁS SOBRE NOSOTROS →",
+    "stat1_num": "12",
+    "stat1_suffix": "yrs",
+    "stat1_desc": "De experiencia en asesoría inmobiliaria premium y transacciones comerciales.",
+    "stat2_num": "150+",
+    "stat2_suffix": "",
+    "stat2_desc": "Propiedades vendidas con éxito en mercados nacionales e internacionales.",
+    "stat3_num": "5",
+    "stat3_suffix": "yrs",
+    "stat3_desc": "De soporte garantizado y seguimiento para cada cliente después del cierre."
   },
   "process": {
     "label": "CÓMO TRABAJAMOS",
@@ -83,9 +89,18 @@
   "testimonials": {
     "label": "RESEÑAS DE CLIENTES",
     "title": "LA CONFIANZA DE NUESTROS CLIENTES",
-    "testi1": { "q": "Compramos la casa de nuestros sueños a través de INMOVIRAL. El resultado superó todas las expectativas — una experiencia verdaderamente excepcional y personalizada de principio a fin.", "r": "Cliente Privado, Chihuahua" },
-    "testi2": { "q": "El equipo de INMOVIRAL gestionó cada paso con profesionalismo — desde la búsqueda inicial hasta el cierre. Los tiempos fueron respetados y la calidad del servicio fue sobresaliente.", "r": "Diseñadora de Interiores" },
-    "testi3": { "q": "Nuestro penthouse se convirtió en la pieza central de nuestro portafolio de inversión. Cada visita queda cautivada. ¡Gracias por el servicio impecable y la atención al detalle!", "r": "Cliente Privado, Miami" }
+    "testi1": {
+      "q": "La discreción y la exclusividad de InmoViral superaron todas mis expectativas. Logré adquirir una propiedad excepcional con un proceso blindado y completamente confidencial.",
+      "r": "Inversionista Premium, Buenos Aires"
+    },
+    "testi2": {
+      "q": "Una experiencia impecable de principio a fin. El catálogo de off-market opportunities y la atención personalizada de su equipo reflejan un verdadero estándar de ultra lujo.",
+      "r": "Cliente Privado, Los Ángeles"
+    },
+    "testi3": {
+      "q": "El análisis inteligente de plusvalía y el ecosistema digital de la plataforma hicieron que expandir mi portafolio inmobiliario fuera un proceso estratégico, seguro y transparente.",
+      "r": "Desarrollador Patrimonial, Miami"
+    }
   },
   "cta": {
     "label": "COMIENZA TU CAMINO",

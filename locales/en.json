@@ -49,27 +49,33 @@
   "solutions": {
     "label": "COLLECTIONS",
     "title": "OUR SOLUTIONS",
-    "visit_cta": "SCHEDULE A VISIT  →",
-    "profile_label": "PRESTIGE PROFILE",
-    "lux_houses": {
-      "tag": "SINGLE FAMILY · PRESTIGE",
-      "title": "LUXURY\nHOUSES",
-      "desc": "Exclusive single-family residences combining architectural beauty with maximum privacy and long-term value.",
-      "profile": "• 480 m² Construction\n• 4 Premium Bedrooms\n• Pool & Private Solarium"
+    "card1": {
+      "tag": "HOUSING · URBAN & FAMILY",
+      "title": "RESIDENTIAL\nPROPERTIES",
+      "desc": "Find the ideal home in Chihuahua's fastest-growing areas. From traditional family houses to modern apartments, selected to offer comfort, security, and excellent quality of life for any budget.",
+      "cta": "SCHEDULE VISIT →"
     },
-    "premium_apts": {
-      "tag": "ELEGANCIA · DISEÑO",
-      "title": "PREMIUM\nAPARTMENTS",
-      "desc": "Modern living spaces in privileged locations with clean lines and exceptional amenities.",
-      "profile": "• 210 m² Living Space\n• Double Height Penthouse\n• Terrace with Skyview"
+    "card2": {
+      "tag": "INVESTMENT · GUARANTEED APPRECIATION",
+      "title": "LANDS &\nCOMMERCIALS",
+      "desc": "Seize the commercial and industrial boom in the capital. We offer a comprehensive portfolio of strategic lands, commercial premises, and industrial warehouses designed to boost your business or secure long-term equity returns.",
+      "cta": "VIEW CATALOG →"
     }
   },
   "about": {
     "label": "ABOUT US",
-    "title": "INMOVIRAL —",
-    "title_italic": "ENGINEERING OF EXCELLENCE",
-    "desc": "INMOVIRAL combines market experience, modern strategy, and impeccable service. We connect our clients with properties that elevate their lifestyle and reflect their vision.",
-    "cta": "LEARN MORE ABOUT US  →"
+    "title": "INMOVIRAL —\nEngineering\nExcellence",
+    "desc": "INMOVIRAL combines market expertise, modern strategy, and flawless service. We connect clients with properties that elevate their lifestyle and reflect their vision.\n\nEvery project is a tailored solution, crafted around the client's needs, goals, and the unique character of each property.",
+    "cta": "LEARN MORE ABOUT US →",
+    "stat1_num": "12",
+    "stat1_suffix": "yrs",
+    "stat1_desc": "Of experience in premium real estate advisory and transactions",
+    "stat2_num": "150+",
+    "stat2_suffix": "",
+    "stat2_desc": "Properties successfully sold across domestic and international markets",
+    "stat3_num": "5",
+    "stat3_suffix": "yrs",
+    "stat3_desc": "Guaranteed support and follow-up for every client after closing"
   },
   "process": {
     "label": "HOW WE WORK",
@@ -82,10 +88,19 @@
   },
   "testimonials": {
     "label": "CLIENT REVIEWS",
-    "title": "OUR CLIENTS' TRUST",
-    "testi1": { "q": "We bought the house of our dreams through INMOVIRAL. The result exceeded all expectations — a truly exceptional and personalized experience from start to finish.", "r": "Private Client, Chihuahua" },
-    "testi2": { "q": "The INMOVIRAL team managed every step with professionalism — from the initial search to the closing. Timelines were respected and service quality was outstanding.", "r": "Interior Designer" },
-    "testi3": { "q": "Our penthouse became the centerpiece of our investment portfolio. Every visitor is captivated. Thank you for the impeccable service and attention to detail!", "r": "Private Client, Miami" }
+    "title": "TRUSTED BY OUR CLIENTS",
+    "testi1": {
+      "q": "The discretion and exclusivity of InmoViral exceeded all my expectations. I managed to acquire an exceptional property with a secure and completely confidential process.",
+      "r": "Premium Investor, Buenos Aires"
+    },
+    "testi2": {
+      "q": "An impeccable experience from start to finish. The catalog of off-market opportunities and the personalized attention of their team reflect a true standard of ultra-luxury.",
+      "r": "Private Client, Los Angeles"
+    },
+    "testi3": {
+      "q": "The intelligent appreciation analysis and the digital ecosystem of the platform made expanding my real estate portfolio a strategic, secure, and transparent process.",
+      "r": "Patrimonial Developer, Miami"
+    }
   },
   "cta": {
     "label": "START YOUR JOURNEY",
