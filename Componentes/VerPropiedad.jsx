@@ -17,22 +17,23 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
+import Chat from './Chat.jsx';
 
 // ─── DESIGN TOKENS (INMOVIRAL MATCHED LUXURY DARK) ───
 const T = {
-  bgPage:      '#0F0D0A',
-  bgCard:      '#141210',
-  bgFilter:    '#0E0C09',
-  textMain:    '#F2EDE5',
-  textSub:     '#7A6E62',
-  textDim:     'rgba(242,237,229,0.5)',
-  border:      'rgba(160,120,64,0.15)',
+  bgPage: '#0F0D0A',
+  bgCard: '#141210',
+  bgFilter: '#0E0C09',
+  textMain: '#F2EDE5',
+  textSub: '#7A6E62',
+  textDim: 'rgba(242,237,229,0.5)',
+  border: 'rgba(160,120,64,0.15)',
   borderFocus: 'rgba(160,120,64,0.34)',
-  gold:        '#A07840',
-  goldLight:   '#C49A58',
-  white:       '#FDFBF8',
-  serif:       Platform.select({ ios: 'Georgia', android: 'serif', default: 'Cormorant Garamond, Georgia, serif' }),
-  sans:        Platform.select({ ios: 'System',  android: 'sans-serif', default: 'Jost, Montserrat, sans-serif' }),
+  gold: '#A07840',
+  goldLight: '#C49A58',
+  white: '#FDFBF8',
+  serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Cormorant Garamond, Georgia, serif' }),
+  sans: Platform.select({ ios: 'System', android: 'sans-serif', default: 'Jost, Montserrat, sans-serif' }),
 };
 
 const formatPrecio = (num) => {
@@ -40,7 +41,15 @@ const formatPrecio = (num) => {
   return Number(num).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 };
 
-export default function VerPropiedad({ propiedadId, onVolver }) {
+const formatTelefonoRender = (tel) => {
+  if (!tel) return '';
+  let limpio = tel.trim();
+  // Remove duplicate "+52 +52" or similar
+  limpio = limpio.replace(/\+52\s*\+52/g, '+52');
+  return limpio;
+};
+
+export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEditarPropiedad }) {
   const { t, i18n } = useTranslation();
   const { width, height } = useWindowDimensions();
   const { user } = useAuth();
@@ -71,6 +80,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
   const [hoveredLlamar, setHoveredLlamar] = useState(false);
   const [hoveredWhatsApp, setHoveredWhatsApp] = useState(false);
   const [hoveredCta, setHoveredCta] = useState(false);
+  const [hoveredChat, setHoveredChat] = useState(false);
 
   useEffect(() => {
     if (user && propiedadId) {
@@ -91,6 +101,21 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
       setFavorito(false);
     }
   }, [user, propiedadId]);
+
+  const handleChatWithSeller = async () => {
+    if (!user) {
+      alert(t('props_fav_login_alert', { defaultValue: 'Debes iniciar sesión para chatear con el vendedor.' }));
+      return;
+    }
+    try {
+      const roomId = await Chat.crearSala(propiedad, user);
+      if (onStartChat) {
+        onStartChat(roomId);
+      }
+    } catch (e) {
+      console.error("Error starting chat:", e);
+    }
+  };
 
   const handleToggleFavorito = () => {
     if (!user) {
@@ -138,6 +163,88 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
         setPropiedad(data);
         setImagenActiva(0);
         setMensaje(t('vp_form_mensaje_default', { titulo: data.titulo, defaultValue: `Hola, me interesa obtener información sobre la propiedad: ${data.titulo}` }));
+
+        // Auto-sync contact details if this is the user's own property and details are missing or malformed
+        const esPropietario = user && (
+          data.user_id === user.id || 
+          data.propietario_id === user.id ||
+          (data.nombre_contacto && data.nombre_contacto.toLowerCase() === (user.user_metadata?.full_name || '').toLowerCase())
+        );
+
+        if (esPropietario) {
+          const cleanedTel = formatTelefonoRender(data.telefono_contacto);
+          const needsSync = !data.email_contacto || !data.avatar_url_contacto || data.telefono_contacto !== cleanedTel || !data.user_id || !data.propietario_id;
+
+          if (needsSync) {
+            const syncPropertyContact = async () => {
+              try {
+                const updatedFields = {
+                  email_contacto: user.email,
+                  avatar_url_contacto: user.user_metadata?.avatar_url || null,
+                  telefono_contacto: cleanedTel,
+                  user_id: user.id,
+                  propietario_id: user.id
+                };
+                const { data: updatedData } = await supabase
+                  .from('propiedades')
+                  .update(updatedFields)
+                  .eq('id', data.id)
+                  .select('*')
+                  .single();
+                if (updatedData) {
+                  setPropiedad(updatedData);
+                }
+              } catch (e) {
+                console.error("Error auto-syncing property contact metadata:", e);
+              }
+            };
+            syncPropertyContact();
+          }
+        } else {
+          // Fallback: If contact details are missing, try to resolve them from reviews or other listings of this user
+          const fetchMissingContactInfo = async () => {
+            try {
+              let foundAvatar = data.avatar_url_contacto;
+              let foundEmail = data.email_contacto;
+
+              if (!foundAvatar) {
+                const { data: resenaData } = await supabase
+                  .from('resenas')
+                  .select('avatar_url')
+                  .eq('nombre_usuario', data.nombre_contacto)
+                  .not('avatar_url', 'is', null)
+                  .limit(1);
+                if (resenaData && resenaData.length > 0) {
+                  foundAvatar = resenaData[0].avatar_url;
+                }
+              }
+
+              if (!foundAvatar || !foundEmail) {
+                const { data: otherProps } = await supabase
+                  .from('propiedades')
+                  .select('avatar_url_contacto, email_contacto')
+                  .eq('nombre_contacto', data.nombre_contacto)
+                  .or('avatar_url_contacto.not.is.null,email_contacto.not.is.null')
+                  .limit(1);
+                if (otherProps && otherProps.length > 0) {
+                  if (!foundAvatar) foundAvatar = otherProps[0].avatar_url_contacto;
+                  if (!foundEmail) foundEmail = otherProps[0].email_contacto;
+                }
+              }
+
+              if (foundAvatar !== data.avatar_url_contacto || foundEmail !== data.email_contacto) {
+                setPropiedad(prev => ({
+                  ...prev,
+                  avatar_url_contacto: foundAvatar,
+                  email_contacto: foundEmail
+                }));
+              }
+            } catch (e) {
+              console.error("Error resolving missing contact info:", e);
+            }
+          };
+          fetchMissingContactInfo();
+        }
 
         // Fetch similar properties
         const { data: similarData, error: similarError } = await supabase
@@ -236,7 +343,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
 
   const esRenta = propiedad.tipo_transaccion === 'Renta';
   const amenidades = propiedad.amenidades || [];
-  
+
   // Breakpoints
   const esPantallaGrande = width > 1024;
   const esPantallaMediana = width > 768;
@@ -271,7 +378,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
             <Text style={s.modalIndex}>
               {lightboxIndex + 1} / {imagenes.length}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setLightboxVisible(false)}
               style={s.modalCloseBtn}
             >
@@ -283,7 +390,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
           <View style={s.modalWorkspace}>
             {/* Left navigation arrow (only shown if there are multiple images) */}
             {imagenes.length > 1 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={prevPhoto}
                 style={[s.modalNavArrow, s.modalNavArrowLeft]}
               >
@@ -293,16 +400,16 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
 
             {/* Main Image */}
             <View style={s.modalMainImageWrap}>
-              <Image 
-                source={{ uri: imagenes[lightboxIndex] }} 
-                style={s.modalMainImage} 
-                resizeMode="contain" 
+              <Image
+                source={{ uri: imagenes[lightboxIndex] }}
+                style={s.modalMainImage}
+                resizeMode="contain"
               />
             </View>
 
             {/* Right navigation arrow (only shown if there are multiple images) */}
             {imagenes.length > 1 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={nextPhoto}
                 style={[s.modalNavArrow, s.modalNavArrowRight]}
               >
@@ -333,27 +440,44 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
         </View>
       </Modal>
 
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
-        style={s.page} 
+        style={s.page}
         contentContainerStyle={s.pageScrollContent}
       >
-        
+
         {/* ══ PROPERTY HEADER (HERO) ══ */}
         <View style={[s.propHeader, { height: esPantallaGrande ? 460 : 380 }]}>
           <Image source={{ uri: imagenes[imagenActiva] }} style={s.propBgImage} resizeMode="cover" />
           <View style={s.propOverlay} />
-          
+
           <View style={[s.propHeaderBody, { paddingHorizontal: padHoriz }]}>
             {/* Breadcrumb */}
             <View style={s.breadcrumb}>
-              <TouchableOpacity 
-                onPress={() => onVolver && onVolver(esRenta ? 'renta' : 'venta')}
-                {...hoverProps(setHoveredVolver)}
-                style={[s.backArrowBtn, hoveredVolver && s.backArrowBtnHover]}
-              >
-                <Text style={s.backArrowText}>← {t('vd_back', { defaultValue: 'Volver' })}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={() => onVolver && onVolver(esRenta ? 'renta' : 'venta')}
+                  {...hoverProps(setHoveredVolver)}
+                  style={[s.backArrowBtn, hoveredVolver && s.backArrowBtnHover]}
+                >
+                  <Text style={s.backArrowText}>← {t('vd_back', { defaultValue: 'Volver' })}</Text>
+                </TouchableOpacity>
+
+                {(() => {
+                  const isAdmin = user?.isAdmin || user?.email === 'admin@inmoviral.com' || user?.id === 'admin-id-0000';
+                  const canEdit = user && (isAdmin || user.id === propiedad.user_id || user.id === propiedad.propietario_id);
+                  if (!canEdit) return null;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => onEditarPropiedad && onEditarPropiedad(propiedad)}
+                      style={s.editPropertyHeaderBtn}
+                    >
+                      <FontAwesome name="edit" size={11} color="#000" style={{ marginRight: 6 }} />
+                      <Text style={s.editPropertyHeaderBtnText}>{esES ? 'EDITAR PROPIEDAD' : 'EDIT PROPERTY'}</Text>
+                    </TouchableOpacity>
+                  );
+                })()}
+              </View>
               <View style={s.breadcrumbLinks}>
                 <TouchableOpacity onPress={() => onVolver && onVolver('home')}>
                   <Text style={s.breadcrumbText}>{t('vp_breadcrumb_inicio')}</Text>
@@ -396,7 +520,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                 </View>
 
                 {/* Botón de Favorito */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={handleToggleFavorito}
                   style={{
                     backgroundColor: favorito ? 'rgba(160,120,64,0.15)' : 'rgba(255,255,255,0.05)',
@@ -412,15 +536,15 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                     marginBottom: 2,
                   }}
                 >
-                  <FontAwesome 
-                    name={favorito ? 'heart' : 'heart-o'} 
-                    size={16} 
-                    color={favorito ? T.gold : '#FFF'} 
+                  <FontAwesome
+                    name={favorito ? 'heart' : 'heart-o'}
+                    size={16}
+                    color={favorito ? T.gold : '#FFF'}
                   />
-                  <Text style={{ 
-                    fontFamily: T.sans, 
-                    fontSize: 12, 
-                    fontWeight: '600', 
+                  <Text style={{
+                    fontFamily: T.sans,
+                    fontSize: 12,
+                    fontWeight: '600',
                     color: favorito ? T.gold : '#FFF',
                     letterSpacing: 1
                   }}>
@@ -459,15 +583,15 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
         <View style={[s.galleryGridSection, { paddingHorizontal: padHoriz }]}>
           <View style={s.galleryContainer}>
             {/* Main active image - fits standard proportions and uses contain to keep full document visible */}
-            <TouchableOpacity 
-              activeOpacity={0.9} 
+            <TouchableOpacity
+              activeOpacity={0.9}
               onPress={() => abrirLightbox(imagenActiva)}
               style={[s.mainImageContainer, { height: esPantallaGrande ? 480 : 300 }]}
             >
-              <Image 
-                source={{ uri: imagenes[imagenActiva] }} 
-                style={s.mainImage} 
-                resizeMode="contain" 
+              <Image
+                source={{ uri: imagenes[imagenActiva] }}
+                style={s.mainImage}
+                resizeMode="contain"
               />
               <View style={s.zoomIconOverlay}>
                 <Text style={s.zoomIconText}>{t('vp_click_zoom', { defaultValue: 'AGRANDAR FOTO' })}</Text>
@@ -476,9 +600,9 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
 
             {/* Horizontal thumbnails below main image (Only rendered if property has multiple images) */}
             {imagenes.length > 1 && (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 style={s.thumbsHorizontal}
                 contentContainerStyle={s.thumbsHorizontalContent}
               >
@@ -488,7 +612,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                     activeOpacity={0.8}
                     onPress={() => setImagenActiva(idx)}
                     style={[
-                      s.thumbItemHoriz, 
+                      s.thumbItemHoriz,
                       imagenActiva === idx && s.thumbItemHorizActive
                     ]}
                   >
@@ -503,10 +627,10 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
         {/* ══ MAIN CONTENT LAYOUT (DARK LUXURY) ══ */}
         <View style={[s.propertyContent, { paddingHorizontal: padHoriz }]}>
           <View style={[s.layoutColumns, esPantallaGrande ? s.layoutColumnsWeb : s.layoutColumnsMobile]}>
-            
+
             {/* Left Column */}
             <View style={s.mainColumn}>
-              
+
               {/* Overview */}
               <View style={s.contentBlock}>
                 <View style={s.sectionHeader}>
@@ -514,7 +638,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                   <Text style={s.sectionHeaderLabel}>{t('vp_overview', { defaultValue: 'Overview' })}</Text>
                 </View>
                 <Text style={s.contentBlockTitle}>{t('vp_architecture_title', { defaultValue: 'AN ARCHITECTURAL STATEMENT' })}</Text>
-                
+
                 {propiedad.descripcion ? (
                   propiedad.descripcion.split('\n').filter(Boolean).map((para, i) => (
                     <Text key={i} style={s.blockParagraph}>{para}</Text>
@@ -531,7 +655,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                   <Text style={s.sectionHeaderLabel}>{t('vp_specifications', { defaultValue: 'Specifications' })}</Text>
                 </View>
                 <Text style={s.contentBlockTitle}>{t('vp_specs_details', { defaultValue: 'PROPERTY DETAILS' })}</Text>
-                
+
                 <View style={s.specGrid}>
                   <View style={s.specCell}>
                     <Text style={s.specCellLabel}>{t('vp_type', { defaultValue: 'TYPE' })}</Text>
@@ -580,7 +704,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                     <Text style={s.sectionHeaderLabel}>{t('vp_amenidades_title', { defaultValue: 'Amenities' })}</Text>
                   </View>
                   <Text style={s.contentBlockTitle}>{t('vp_features_finishes', { defaultValue: 'FEATURES & FINISHES' })}</Text>
-                  
+
                   <View style={s.amenitiesGrid}>
                     {amenidades.map((am, idx) => (
                       <View key={idx} style={[s.amenityCell, { width: esPantallaMediana ? '48%' : '100%' }]}>
@@ -601,7 +725,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                 <Text style={s.contentBlockTitle}>
                   {propiedad.colonia || propiedad.ciudad || 'PRESTIGE RESIDENTIAL'}
                 </Text>
-                
+
                 {user ? (
                   <>
                     {/* Written Address details */}
@@ -627,14 +751,14 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                           loading="lazy"
                         />
                       ) : (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           activeOpacity={0.8}
                           onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(propiedad.ubicacion)}`)}
                           style={s.mapPlaceholder}
                         >
-                          <Image 
-                            source={{ uri: 'https://images.unsplash.com/photo-1494522358652-f30e61a60313?w=800' }} 
-                            style={s.mapPlaceholderImage} 
+                          <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1494522358652-f30e61a60313?w=800' }}
+                            style={s.mapPlaceholderImage}
                           />
                           <View style={s.mapLink}>
                             <Text style={s.mapLinkLabel}>{t('vp_open_maps', { defaultValue: 'VER EN GOOGLE MAPS →' })}</Text>
@@ -647,7 +771,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                   <View style={s.lockedMapContainer}>
                     <Text style={s.lockedMapTitle}>{t('vp_location_locked_title')}</Text>
                     <Text style={s.lockedMapText}>{t('vp_location_locked_text')}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       activeOpacity={0.8}
                       style={s.lockedMapBtn}
                       onPress={() => onVolver && onVolver('login')}
@@ -665,14 +789,14 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
               <View style={s.sidebarCard}>
                 <Text style={s.sidebarPriceLabel}>{t('vp_listing_price', { defaultValue: 'LISTING PRICE' })}</Text>
                 <Text style={s.sidebarPrice}>${formatPrecio(propiedad.precio)} <Text style={s.sidebarPriceCurrency}>MXN</Text></Text>
-                
+
                 {propiedad.m2 && (
                   <Text style={s.sidebarPriceSub}>
                     MXN · ${formatPrecio(Math.round(propiedad.precio / propiedad.m2))} / M²
                   </Text>
                 )}
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                   {...hoverProps(setHoveredSchedule)}
@@ -681,7 +805,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                   <Text style={s.btnPrimaryFullText}>{t('solutions.visit_cta', { defaultValue: 'AGENDAR VISITA →' })}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                   {...hoverProps(setHoveredInfo)}
@@ -696,11 +820,15 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                 {user ? (
                   <View>
                     <View style={s.agentRow}>
-                      <View style={s.agentAvatar}>
-                        <Text style={s.agentAvatarText}>
-                          {(propiedad.nombre_contacto || t('vp_agente_default'))[0].toUpperCase()}
-                        </Text>
-                      </View>
+                      {propiedad.avatar_url_contacto ? (
+                        <Image source={{ uri: propiedad.avatar_url_contacto }} style={s.agentAvatarImage} />
+                      ) : (
+                        <View style={s.agentAvatar}>
+                          <Text style={s.agentAvatarText}>
+                            {(propiedad.nombre_contacto || t('vp_agente_default'))[0].toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                       <View>
                         <Text style={s.agentName}>{propiedad.nombre_contacto || t('vp_agente_default')}</Text>
                         <Text style={s.agentRole}>{t('vp_agente_role')}</Text>
@@ -711,11 +839,11 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                     <View style={s.agentContacts}>
                       {propiedad.telefono_contacto && (
                         <TouchableOpacity onPress={abrirTelefono} style={s.agentContactLink}>
-                          <Text style={s.agentContactText}>Tel: {propiedad.telefono_contacto}</Text>
+                          <Text style={s.agentContactText}>Tel: {formatTelefonoRender(propiedad.telefono_contacto)}</Text>
                         </TouchableOpacity>
                       )}
-                      <TouchableOpacity 
-                        onPress={() => Linking.openURL(`mailto:${propiedad.email_contacto || 'info@inmoviral.com'}`)} 
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(`mailto:${propiedad.email_contacto || 'info@inmoviral.com'}`)}
                         style={s.agentContactLink}
                       >
                         <Text style={s.agentContactText}>Email: {propiedad.email_contacto || 'info@inmoviral.com'}</Text>
@@ -726,40 +854,40 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
 
                     {/* Quick message form */}
                     <View style={s.quickForm}>
-                      <TextInput 
-                        style={s.formInput} 
-                        placeholder={t('register_name_lbl', { defaultValue: 'Nombre completo' })} 
+                      <TextInput
+                        style={s.formInput}
+                        placeholder={t('register_name_lbl', { defaultValue: 'Nombre completo' })}
                         placeholderTextColor={T.textSub}
                         value={nombre}
                         onChangeText={setNombre}
                       />
-                      <TextInput 
-                        style={s.formInput} 
-                        placeholder={t('login_email_lbl', { defaultValue: 'Correo electrónico' })} 
+                      <TextInput
+                        style={s.formInput}
+                        placeholder={t('login_email_lbl', { defaultValue: 'Correo electrónico' })}
                         placeholderTextColor={T.textSub}
                         keyboardType="email-address"
                         value={email}
                         onChangeText={setEmail}
                       />
-                      <TextInput 
-                        style={s.formInput} 
-                        placeholder={t('register_phone_lbl', { defaultValue: 'Teléfono' })} 
+                      <TextInput
+                        style={s.formInput}
+                        placeholder={t('register_phone_lbl', { defaultValue: 'Teléfono' })}
                         placeholderTextColor={T.textSub}
                         keyboardType="phone-pad"
                         value={telefono}
                         onChangeText={setTelefono}
                       />
-                      <TextInput 
-                        style={[s.formInput, s.formTextArea]} 
-                        placeholder={t('vp_form_mensaje', { defaultValue: 'Mensaje' })} 
+                      <TextInput
+                        style={[s.formInput, s.formTextArea]}
+                        placeholder={t('vp_form_mensaje', { defaultValue: 'Mensaje' })}
                         placeholderTextColor={T.textSub}
                         multiline
                         numberOfLines={3}
                         value={mensaje}
                         onChangeText={setMensaje}
                       />
-                      
-                      <TouchableOpacity 
+
+                      <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleEnviarMensaje}
                         {...hoverProps(setHoveredEnviar)}
@@ -767,19 +895,28 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                       >
                         <Text style={s.submitBtnText}>{t('vp_form_enviar', { defaultValue: 'ENVIAR MENSAJE' })}</Text>
                       </TouchableOpacity>
+
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleChatWithSeller}
+                        {...hoverProps(setHoveredChat)}
+                        style={[s.chatBtn, hoveredChat && s.chatBtnHover]}
+                      >
+                        <Text style={s.chatBtnText}>{t('chat.start_chat', { defaultValue: 'CHATEAR CON EL VENDEDOR' })}</Text>
+                      </TouchableOpacity>
                     </View>
 
                     <Text style={s.formOrText}>{t('vp_contact_o')}</Text>
 
                     <View style={s.actionRow}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={abrirTelefono}
                         {...hoverProps(setHoveredLlamar)}
                         style={[s.altActionBtn, hoveredLlamar && s.altActionBtnHover]}
                       >
                         <Text style={[s.altActionBtnText, hoveredLlamar && s.altActionBtnTextHover]}>{t('vp_llamar')}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={abrirWhatsApp}
                         {...hoverProps(setHoveredWhatsApp)}
                         style={[s.altActionBtn, hoveredWhatsApp && s.altActionBtnHover]}
@@ -793,7 +930,7 @@ export default function VerPropiedad({ propiedadId, onVolver }) {
                   <View style={s.lockedFormContainer}>
                     <Text style={s.lockedFormTitle}>{t('vp_contact_locked_title')}</Text>
                     <Text style={s.lockedFormText}>{t('vp_contact_locked_text')}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       activeOpacity={0.8}
                       style={s.lockedFormBtn}
                       onPress={() => onVolver && onVolver('login')}
@@ -1567,6 +1704,12 @@ const s = StyleSheet.create({
     color: T.white,
     fontWeight: '700',
   },
+  agentAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    resizeMode: 'cover',
+  },
   agentName: {
     fontFamily: T.serif,
     fontSize: 17,
@@ -1629,6 +1772,24 @@ const s = StyleSheet.create({
     fontFamily: T.sans,
     fontSize: 10.5,
     color: T.white,
+    letterSpacing: 1.5,
+    fontWeight: '500',
+  },
+  chatBtn: {
+    borderWidth: 1,
+    borderColor: T.gold,
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  chatBtnHover: {
+    backgroundColor: 'rgba(160,120,64,0.1)',
+  },
+  chatBtnText: {
+    fontFamily: T.sans,
+    fontSize: 10.5,
+    color: T.gold,
     letterSpacing: 1.5,
     fontWeight: '500',
   },
@@ -1992,5 +2153,23 @@ const s = StyleSheet.create({
     fontFamily: T.sans,
     fontSize: 11.5,
     color: 'rgba(255,255,255,0.25)',
+  },
+  editPropertyHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A07840',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#A07840',
+    borderRadius: 0,
+    marginLeft: 12,
+  },
+  editPropertyHeaderBtnText: {
+    color: '#000',
+    fontFamily: Platform.select({ ios: 'System', android: 'sans-serif', default: 'Montserrat, sans-serif' }),
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
 });

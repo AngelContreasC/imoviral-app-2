@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Animated,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -230,7 +231,11 @@ export default function UserMenu({
         <View style={S.header}>
           <View style={S.profileSection}>
             <View style={S.avatar}>
-              <Text style={S.avatarText}>{obtenerIniciales()}</Text>
+              {user?.user_metadata?.avatar_url ? (
+                <Image source={{ uri: user.user_metadata.avatar_url }} style={S.avatarImage} />
+              ) : (
+                <Text style={S.avatarText}>{obtenerIniciales()}</Text>
+              )}
             </View>
             <View style={S.userInfo}>
               <Text style={S.userName} numberOfLines={1}>{obtenerNombreUsuario()}</Text>
@@ -261,10 +266,19 @@ export default function UserMenu({
             <DrawerItem
               icon="heart"
               label="Favoritos"
-              isActive={false} // Favoritos se activa dinámicamente o solo redirige
+              isActive={false}
               onPress={() => {
                 setVista('dashboard');
                 setDashboardTab('guardadas');
+                onClose();
+              }}
+            />
+            <DrawerItem
+              icon="message-circle"
+              label="Mensajes"
+              isActive={vistaActual === 'chat'}
+              onPress={() => {
+                setVista('chat');
                 onClose();
               }}
             />
@@ -315,20 +329,29 @@ export default function UserMenu({
             <DrawerItem
               icon="user"
               label="Mi perfil"
-              isActive={false}
-              onPress={onClose}
+              isActive={vistaActual === 'perfil'}
+              onPress={() => {
+                setVista('perfil');
+                onClose();
+              }}
             />
             <DrawerItem
               icon="settings"
               label="Configuración"
-              isActive={false}
-              onPress={onClose}
+              isActive={vistaActual === 'configuracion'}
+              onPress={() => {
+                setVista('configuracion');
+                onClose();
+              }}
             />
             <DrawerItem
-              icon="info"
-              label="Información"
-              isActive={false}
-              onPress={onClose}
+              icon="star"
+              label="Reseñas"
+              isActive={vistaActual === 'resenas'}
+              onPress={() => {
+                setVista('resenas');
+                onClose();
+              }}
             />
           </DrawerSection>
         </ScrollView>
@@ -402,6 +425,12 @@ const S = StyleSheet.create({
     borderColor: T.gold,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
   avatarText: {
     color: T.gold,

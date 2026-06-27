@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
-  StatusBar, 
-  Platform, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  StatusBar,
+  Platform,
   SafeAreaView,
   Animated,
   Easing,
@@ -17,7 +17,7 @@ import {
 import { FontAwesome, Feather } from '@expo/vector-icons';
 
 // ══ 💎 CONFIGURACIÓN BILINGÜE NATIVA ══
-import './config/i18n'; 
+import './config/i18n';
 import { useTranslation } from 'react-i18next';
 
 // Componentes del ecosistema Inmoviral
@@ -34,9 +34,13 @@ import Dashboard from './Componentes/Dashboard.jsx';
 import NuestroProceso from './Componentes/NuestroProceso.jsx';
 import Testimonios from './Componentes/Testimonios.jsx';
 import NuestrasSoluciones from './Componentes/NuestrasSoluciones.jsx';
+import Resenas from './Componentes/Resenas.jsx';
+import Chat from './Componentes/Chat.jsx';
+import Perfil from './Componentes/Perfil.jsx';
+import Configuracion from './Componentes/Configuracion.jsx';
 
-import { useAuth, AuthProvider } from './AuthContext.js'; 
-import { supabase } from './supabaseClient'; 
+import { useAuth, AuthProvider } from './AuthContext.js';
+import { supabase } from './supabaseClient';
 
 const LUXURY_FONT = 'Cormorant Garamond, Georgia, serif';
 const SERIF_FONT = Platform.OS === 'ios' ? 'Georgia' : Platform.OS === 'android' ? 'serif' : 'Georgia, serif';
@@ -48,7 +52,7 @@ const SANS_FONT = Platform.OS === 'ios' ? 'System' : 'sans-serif';
 function FooterLink({ text, onPress }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={onPress}
       onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
       onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
@@ -104,9 +108,9 @@ function SocialSquare({ label }) {
   const activeColor = hovered ? '#A07840' : 'rgba(255,255,255,0.4)';
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={handlePress}
-      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)} 
+      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
       onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
       style={[styles.socialIconSquare, hovered && styles.socialIconSquareHovered]}
       activeOpacity={0.7}
@@ -140,20 +144,21 @@ const TICKER_PHRASES = [
 ───────────────────────────────────────────── */
 function MainApp() {
   const { t, i18n } = useTranslation();
-  const { user, signOut } = useAuth(); 
-  const { width } = useWindowDimensions(); 
-  
+  const { user, signOut } = useAuth();
+  const { width } = useWindowDimensions();
+
   const esPantallaGrande = width > 768;
   const idiomaActual = i18n.language || 'es';
-  
+
   const [vista, setVista] = useState('home');
   const [dashboardTab, setDashboardTab] = useState('dashboard');
   const [propiedadParaEditar, setPropiedadParaEditar] = useState(null);
-  const [mobileNavAbierto, setMobileNavAbierto] = useState(false); 
-  const [userMenuAbierto, setUserMenuAbierto] = useState(false); 
+  const [mobileNavAbierto, setMobileNavAbierto] = useState(false);
+  const [userMenuAbierto, setUserMenuAbierto] = useState(false);
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
-  const [propiedades, setPropiedades] = useState([]); 
+  const [propiedades, setPropiedades] = useState([]);
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
+  const [chatRoomId, setChatRoomId] = useState(null);
 
   const listaPropiedades = useMemo(() => {
     if (!propiedades || propiedades.length === 0) return MOCK_PROPERTIES;
@@ -167,7 +172,7 @@ function MainApp() {
     }
     return combined;
   }, [propiedades]);
-  
+
   // Contadores Animados (Count-Up)
   const [countYears, setCountYears] = useState(0);
   const [countProps, setCountProps] = useState(0);
@@ -175,14 +180,14 @@ function MainApp() {
   // Referencia animada de scroll continuo y sus interpolaciones premium
   const scrollY = useRef(new Animated.Value(0)).current;
   const [hoveredLogin, setHoveredLogin] = useState(false);
-  const [hoveredNav, setHoveredNav] = useState(null);       
-  const [hoveredHeroBtn, setHoveredHeroBtn] = useState(false); 
-  const [hoveredFeatureIdx, setHoveredFeatureIdx] = useState(null); 
-  const [hoveredCardId, setHoveredCardId] = useState(null);   
-  const [hoveredAboutImg, setHoveredAboutImg] = useState(false); 
-  const [hoveredCtaBtn, setHoveredCtaBtn] = useState(false);   
-  const [hoveredLogout, setHoveredLogout] = useState(false);   
-  const [hoveredPublishNav, setHoveredPublishNav] = useState(false); 
+  const [hoveredNav, setHoveredNav] = useState(null);
+  const [hoveredHeroBtn, setHoveredHeroBtn] = useState(false);
+  const [hoveredFeatureIdx, setHoveredFeatureIdx] = useState(null);
+  const [hoveredCardId, setHoveredCardId] = useState(null);
+  const [hoveredAboutImg, setHoveredAboutImg] = useState(false);
+  const [hoveredCtaBtn, setHoveredCtaBtn] = useState(false);
+  const [hoveredLogout, setHoveredLogout] = useState(false);
+  const [hoveredPublishNav, setHoveredPublishNav] = useState(false);
 
   const tickerValue = useRef(new Animated.Value(0)).current;
 
@@ -293,7 +298,7 @@ function MainApp() {
   const renderNavbar = () => (
     <Animated.View style={[styles.navBar, animatedNavBarStyle]}>
       <TouchableOpacity onPress={() => setVista('home')}><Text style={styles.logoText}>INMOVIRAL</Text></TouchableOpacity>
-      
+
       {esPantallaGrande && (
         <View style={styles.navLinksRow}>
           <TouchableOpacity onPress={() => setVista('venta')} onMouseEnter={() => setHoveredNav('venta')} onMouseLeave={() => setHoveredNav(null)} style={[hoveredNav === 'venta' && styles.navLinkItemHovered]}>
@@ -314,11 +319,11 @@ function MainApp() {
       <View style={styles.navActions}>
         {user ? (
           <View style={styles.navAuthenticatedRow}>
-            
+
             {/* 🚀 BOTÓN AL LADO DEL AVATAR CON CAMBIO A GRIS AUTOMÁTICO */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.navPublishBtn, 
+                styles.navPublishBtn,
                 hoveredPublishNav && styles.navPublishBtnHover,
                 vista === 'vendedor' && styles.navPublishBtnActive
               ]}
@@ -329,14 +334,14 @@ function MainApp() {
               activeOpacity={0.7}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Feather 
-                  name="plus" 
-                  size={11} 
-                  color={vista === 'vendedor' ? '#525252' : hoveredPublishNav ? '#C39B5F' : '#A07840'} 
-                  style={{ marginRight: 5 }} 
+                <Feather
+                  name="plus"
+                  size={11}
+                  color={vista === 'vendedor' ? '#525252' : hoveredPublishNav ? '#C39B5F' : '#A07840'}
+                  style={{ marginRight: 5 }}
                 />
                 <Text style={[
-                  styles.navPublishBtnText, 
+                  styles.navPublishBtnText,
                   hoveredPublishNav && styles.navPublishBtnTextHover,
                   vista === 'vendedor' && styles.navPublishBtnTextActive
                 ]}>
@@ -346,7 +351,11 @@ function MainApp() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navAvatarCircle} onPress={() => setUserMenuAbierto(true)}>
-              <Text style={styles.navAvatarText}>{obtenerIniciales()}</Text>
+              {user?.user_metadata?.avatar_url ? (
+                <Image source={{ uri: user.user_metadata.avatar_url }} style={styles.navAvatarImage} />
+              ) : (
+                <Text style={styles.navAvatarText}>{obtenerIniciales()}</Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.hamMenuButtonAuthenticated} onPress={() => setUserMenuAbierto(true)}>
               <Text style={styles.hamMenuButtonIcon}>☰</Text>
@@ -381,7 +390,7 @@ function MainApp() {
         <SafeAreaView style={{ flex: 1 }}>
           <View style={styles.luxuryMenuHeader}>
             <Text style={styles.logoText}>INMOVIRAL</Text>
-            
+
             <View style={[styles.langContainer, { marginRight: 12 }]}>
               <TouchableOpacity onPress={() => cambiarIdioma('es')} style={[styles.langBtn, idiomaActual.startsWith('es') && styles.langBtnActive]}><Text style={styles.langText}>ES</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => cambiarIdioma('en')} style={[styles.langBtn, idiomaActual.startsWith('en') && styles.langBtnActive]}><Text style={styles.langText}>EN</Text></TouchableOpacity>
@@ -456,12 +465,53 @@ function MainApp() {
       </ScrollView>
     </SafeAreaView>
   );
-  if (vista === 'venta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
-  if (vista === 'renta')     return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
-  if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} /></SafeAreaView>;
-  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
-  if (vista === 'vendedor')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
-  if (vista === 'nosotros')  return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content"/>{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
+  if (vista === 'venta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
+  if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
+  if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} onStartChat={(roomId) => { setChatRoomId(roomId); setVista('chat'); }} onEditarPropiedad={(prop) => { setPropiedadParaEditar(prop); setVista('vendedor'); }} /></SafeAreaView>;
+  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
+  if (vista === 'vendedor') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
+  if (vista === 'nosotros') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
+
+  if (vista === 'resenas') return (
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {renderNavbar()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      {renderLuxuryMobileMenu()}
+      <Resenas onVolver={() => setVista('home')} />
+    </SafeAreaView>
+  );
+
+  if (vista === 'chat') return (
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {renderNavbar()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      {renderLuxuryMobileMenu()}
+      <Chat initialRoomId={chatRoomId} onVolver={() => { setChatRoomId(null); setVista('home'); }} />
+    </SafeAreaView>
+  );
+
+  if (vista === 'perfil') return (
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {renderNavbar()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      {renderLuxuryMobileMenu()}
+      <Perfil onVolver={() => setVista('home')} />
+    </SafeAreaView>
+  );
+
+  if (vista === 'configuracion') return (
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {renderNavbar()}
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      {renderLuxuryMobileMenu()}
+      <Configuracion onVolver={() => setVista('home')} />
+    </SafeAreaView>
+  );
+
   if (vista === 'dashboard') {
     return (
       <SafeAreaView style={styles.screen}>
@@ -469,9 +519,9 @@ function MainApp() {
         {renderNavbar()}
         <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
         {renderLuxuryMobileMenu()}
-        <Dashboard 
-          activeTab={dashboardTab} 
-          setActiveTab={setDashboardTab} 
+        <Dashboard
+          activeTab={dashboardTab}
+          setActiveTab={setDashboardTab}
           onPublicar={() => {
             setPropiedadParaEditar(null);
             setVista('vendedor');
@@ -493,12 +543,12 @@ function MainApp() {
       <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
 
-      <Animated.ScrollView 
-        contentContainerStyle={styles.scrollContainer} 
+      <Animated.ScrollView
+        contentContainerStyle={styles.scrollContainer}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        
+
         {/* ══ 1. HERO ══ */}
         <View style={styles.heroSection}>
           <Image source={{ uri: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1800&q=85" }} style={styles.heroBg} />
@@ -543,17 +593,17 @@ function MainApp() {
         <View className="reveal-section" style={styles.featuresSection}>
           <View style={styles.featuresGrid}>
             {[
-              { id: 1, json_base: 'features.residential', svg: <path d="M3 21h4v-4H3v4zm0-6h4v-4H3v4zm6 6h4v-6H9v6zm0-10h4V7H9v4zm6 10h4V11h-4v10zm0-12h4V3h-4v6z"/> },
-              { id: 2, json_base: 'features.premium', svg: <><rect x="2" y="6" width="20" height="14" rx="1"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></> },
-              { id: 3, json_base: 'features.investment', svg: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/> },
-              { id: 4, json_base: 'features.advisory', svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/> }
+              { id: 1, json_base: 'features.residential', svg: <path d="M3 21h4v-4H3v4zm0-6h4v-4H3v4zm6 6h4v-6H9v6zm0-10h4V7H9v4zm6 10h4V11h-4v10zm0-12h4V3h-4v6z" /> },
+              { id: 2, json_base: 'features.premium', svg: <><rect x="2" y="6" width="20" height="14" rx="1" /><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="9.5" y1="13.5" x2="14.5" y2="13.5" /></> },
+              { id: 3, json_base: 'features.investment', svg: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /> },
+              { id: 4, json_base: 'features.advisory', svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /> }
             ].map((feat, idx) => (
               <View key={feat.id} style={[styles.featureItem, hoveredFeatureIdx === idx && styles.featureItemHovered]} onMouseEnter={() => setHoveredFeatureIdx(idx)} onMouseLeave={() => setHoveredFeatureIdx(null)}>
                 <Text style={styles.featureNum}>0{feat.id}</Text>
                 <View style={styles.featureIconWrap}>
                   {Platform.OS === 'web' ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="#A07840" strokeWidth="1.2" strokeLinecap="round" style={{ width: 24, height: 24 }}>{feat.svg}</svg>
-                  ) : ( <View style={{ width: 24, height: 24, backgroundColor: 'rgba(160,120,64,0.1)' }} /> )}
+                  ) : (<View style={{ width: 24, height: 24, backgroundColor: 'rgba(160,120,64,0.1)' }} />)}
                 </View>
                 <Text style={styles.featureTitle}>{t(`${feat.json_base}.t1`)} {t(`${feat.json_base}.t2`)}</Text>
                 <Text style={styles.featureText}>{t(`${feat.json_base}.d`)}</Text>
@@ -572,7 +622,7 @@ function MainApp() {
         <View className="reveal-section" style={styles.featuredPropsSection}>
           <Text style={styles.featuredPropsLabel}>{idiomaActual.startsWith('es') ? 'COLECCIÓN EXCLUSIVA' : 'EXCLUSIVE COLLECTION'}</Text>
           <Text style={styles.featuredPropsTitle}>{idiomaActual.startsWith('es') ? 'Propiedades Destacadas' : 'Featured Properties'}</Text>
-          
+
           <View style={styles.propsGrid}>
             {listaPropiedades.slice(0, 6).map((prop) => {
               const isHovered = hoveredPropertyId === prop.id;
@@ -630,7 +680,7 @@ function MainApp() {
 
         {/* ══ TESTIMONIOS ══ */}
         <View className="reveal-section">
-          <Testimonios />
+          <Testimonios onNavigate={(destino) => setVista(destino)} />
         </View>
 
         {/* ══ 6. FINAL CTA BANNER ══ */}
@@ -649,7 +699,7 @@ function MainApp() {
         {/* ══ 7. 👑 LUXURY 4-COLUMN FOOTER INTERACTIVO SIN FLECHAS MATCHEADO ══ */}
         <View style={styles.footerContainer}>
           <View style={[styles.footerGrid, { flexDirection: width > 768 ? 'row' : 'column' }]}>
-            
+
             {/* Columna 1: Marca & Redes Animadas */}
             <View style={[styles.footerColumnUnit, { width: width > 768 ? '30%' : '100%' }]}>
               <Text style={styles.footerLogoText}>INMOVIRAL</Text>
@@ -717,20 +767,20 @@ export default function App() { return <AuthProvider><MainApp /></AuthProvider>;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#060606' },
   scrollContainer: { paddingBottom: 0 },
-  navBar: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingHorizontal: 24, 
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
     ...Platform.select({
       web: { position: 'fixed' },
       default: { position: 'absolute' }
     }),
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    zIndex: 999, 
-    borderBottomWidth: 1, 
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    borderBottomWidth: 1,
   },
   logoText: { fontFamily: LUXURY_FONT, fontSize: 24, fontWeight: '400', color: '#fff', letterSpacing: 7.5, textTransform: 'uppercase' },
   navLinksRow: { flexDirection: 'row', gap: 28 },
@@ -746,9 +796,9 @@ const styles = StyleSheet.create({
   langBtn: { paddingVertical: 5, paddingHorizontal: 10 },
   langBtnActive: { backgroundColor: '#A07840' },
   langText: { color: '#fff', fontSize: 9, fontWeight: '600' },
-  
+
   navAuthenticatedRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  
+
   // ── ESTILOS DEL BOTÓN PUBLICAR (BASE, HOVER Y ACTIVO) ──
   navPublishBtn: {
     borderWidth: 1,
@@ -781,21 +831,22 @@ const styles = StyleSheet.create({
     color: '#525252', // Gris apagado premium para indicar sección actual
   },
 
-  navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
+  navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent', overflow: 'hidden' },
+  navAvatarImage: { width: '100%', height: '100%', borderRadius: 17 },
   navAvatarText: { color: '#F2EDE5', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   hamMenuButtonAuthenticated: { padding: 4 },
   hamMenuButton: { paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)' },
   hamMenuButtonIcon: { color: '#A07840', fontSize: 16 },
 
-  userMenuDrawerOverlay: { 
-    ...StyleSheet.absoluteFillObject, 
+  userMenuDrawerOverlay: {
+    ...StyleSheet.absoluteFillObject,
     ...Platform.select({
       web: { position: 'fixed' },
       default: { position: 'absolute' }
     }),
-    zIndex: 10000, 
-    flexDirection: 'row', 
-    justifyContent: 'flex-end' 
+    zIndex: 10000,
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
   },
   drawerDismissOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
   userMenuDrawerBody: { width: 320, backgroundColor: '#111111', borderLeftWidth: 1, borderColor: '#1E1E1C', height: '100%', paddingVertical: 20 },
@@ -895,18 +946,18 @@ const styles = StyleSheet.create({
   footerLogoText: { fontFamily: LUXURY_FONT, fontSize: 24, fontWeight: '400', color: '#FDFBF8', letterSpacing: 8, textTransform: 'uppercase', marginBottom: 10 },
   footerBrandDesc: { color: 'rgba(255,255,255,0.35)', fontSize: 13, lineHeight: 22, fontWeight: '300', fontFamily: SANS_FONT },
   footerSocialContainer: { flexDirection: 'row', gap: 14, marginTop: 15 },
-  
+
   socialIconSquare: { width: 36, height: 36, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
   socialIconSquareHovered: { borderColor: '#A07840', backgroundColor: 'rgba(160,120,64,0.15)', transform: [{ scale: 1.15 }] },
   socialIconInnerText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '500', textTransform: 'uppercase' },
   socialIconInnerTextHovered: { color: '#A07840', fontWeight: '700' },
-  
+
   footerColTitle: { fontFamily: SERIF_FONT, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, fontWeight: '400', textTransform: 'uppercase', marginBottom: 10 },
   footerLinkTouch: { paddingVertical: 2 },
-  
+
   footerLinkItem: { color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: '300', marginBottom: 4, fontFamily: SANS_FONT },
   footerLinkItemHovered: { color: '#A07840', transform: [{ scale: 1.05 }] },
-  
+
   footerInfoItem: { color: 'rgba(255,255,255,0.35)', fontSize: 13, lineHeight: 22, fontWeight: '300', fontFamily: SANS_FONT },
   footerBottomBar: { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.07)', marginTop: 40, paddingTop: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, maxWidth: 1100, alignSelf: 'center', width: '100%' },
   footerCopyright: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
@@ -1003,7 +1054,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: SANS_FONT,
   },
-  
+
   // ══ 📱 ESTILOS EXCLUSIVOS DEL MENÚ HAMBURGUESA LUXURY ══
   luxuryOverlayMenu: {
     position: 'absolute',

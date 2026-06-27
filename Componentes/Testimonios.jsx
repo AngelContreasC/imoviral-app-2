@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
+  Animated,
   Image,
   Platform,
   Pressable,
@@ -9,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../supabaseClient';
 
 // ─────────────────────────────────────────────
 // TOKENS DE DISEÑO OFICIALES (INMOVIRAL MATCHED)
@@ -24,92 +26,210 @@ const T = {
   sans:         Platform.select({ ios: 'System',  android: 'sans-serif', default: 'Montserrat, sans-serif' }),
 };
 
-const TESTIMONIALS_DATA = [
-  {
-    id: 'testi1',
-    name: 'Mauro Lombardo',
-    avatar: require('../assets/mauro.jpg'),
-    stars: 5,
-  },
-  {
-    id: 'testi2',
-    name: 'Benito Ocasio',
-    avatar: require('../assets/benito.jpg'),
-    stars: 5,
-  },
-  {
-    id: 'testi3',
-    name: 'Michael Torres',
-    avatar: require('../assets/michael.jpg'),
-    stars: 5,
-  },
-];
-
-export default function Testimonios() {
+export default function Testimonios({ onNavigate }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const [hoveredCardId, setHoveredCardId] = useState(null);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
 
   const isWide = width > 768;
 
+  // DB reviews
+  const [dbResenas, setDbResenas] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Load reviews from Supabase
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('resenas')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          setDbResenas(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    cargar();
+  }, []);
+
+  const defaultResenas = [
+    {
+      id: 'testi1',
+      user_name: 'Mauro Lombardo',
+      avatar: require('../assets/mauro.jpg'),
+      role: t('testimonials.testi1.r'),
+      estrellas: 5,
+      comentario: t('testimonials.testi1.q'),
+    },
+    {
+      id: 'testi2',
+      user_name: 'Benito Ocasio',
+      avatar: require('../assets/benito.jpg'),
+      role: t('testimonials.testi2.r'),
+      estrellas: 5,
+      comentario: t('testimonials.testi2.q'),
+    },
+    {
+      id: 'testi3',
+      user_name: 'Michael Torres',
+      avatar: require('../assets/michael.jpg'),
+      role: t('testimonials.testi3.r'),
+      estrellas: 5,
+      comentario: t('testimonials.testi3.q'),
+    },
+  ];
+
+  // Map DB reviews to have similar fields
+  const formattedDb = dbResenas.map(item => ({
+    id: item.id,
+    user_name: item.user_name,
+    avatar: item.avatar_url ? { uri: item.avatar_url } : null,
+    role: item.role || 'Cliente verificado',
+    estrellas: item.estrellas,
+    comentario: item.comentario,
+  }));
+
+  const todas = [...formattedDb, ...defaultResenas];
+
+  const transitionToNext = useCallback((nextIndex) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setActiveIndex(nextIndex);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [fadeAnim]);
+
+  // Auto scroll testimonials
+  useEffect(() => {
+    const totalVisibleLimit = isWide ? 3 : 1;
+    if (todas.length <= totalVisibleLimit) return;
+
+    const interval = setInterval(() => {
+      const nextIdx = (activeIndex + 1) % todas.length;
+      transitionToNext(nextIdx);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [todas.length, activeIndex, isWide, transitionToNext]);
+
+  // Determine what to show
+  const getVisibleReviews = () => {
+    if (todas.length === 0) return [];
+    if (!isWide) {
+      return [todas[activeIndex]];
+    }
+    // Desktop layout (show 3 cards)
+    if (todas.length <= 3) return todas;
+    return [
+      todas[activeIndex],
+      todas[(activeIndex + 1) % todas.length],
+      todas[(activeIndex + 2) % todas.length],
+    ];
+  };
+
+  const visibleReviews = getVisibleReviews();
+
   return (
     <View style={[s.sectionContainer, { paddingHorizontal: isWide ? 60 : 24 }]}>
-      {/* ── Encabezado de Sección ── */}
+      {/* Header */}
       <View style={s.headerContainer}>
         <Text style={s.sectionLabel}>{t('testimonials.label')}</Text>
         <Text style={s.sectionTitle}>{t('testimonials.title')}</Text>
       </View>
 
-      {/* ── Grid/Lista de Tarjetas ── */}
+      {/* Cards Grid */}
       <View style={s.cardsWrapper}>
-        <View style={[s.cardsGrid, isWide ? s.cardsGridRow : s.cardsGridCol]}>
-          {TESTIMONIALS_DATA.map((item) => {
-            const isHovered = hoveredCardId === item.id;
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={[s.cardsGrid, isWide ? s.cardsGridRow : s.cardsGridCol]}>
+            {visibleReviews.map((item) => {
+              const isHovered = hoveredCardId === item.id;
 
+              return (
+                <Pressable
+                  key={item.id}
+                  onMouseEnter={() => Platform.OS === 'web' && setHoveredCardId(item.id)}
+                  onMouseLeave={() => Platform.OS === 'web' && setHoveredCardId(null)}
+                  style={[
+                    s.card,
+                    isWide ? s.cardWide : s.cardMobile,
+                    isHovered && s.cardHovered,
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.quoteMark}>{'\u201C'}</Text>
+                    <Text style={s.comentarioText}>{item.comentario}</Text>
+                  </View>
+                  <View style={s.separator} />
+                  <View style={s.authorRow}>
+                    {item.avatar ? (
+                      <Image source={item.avatar} style={s.avatarImage} />
+                    ) : (
+                      <View style={[s.avatarImage, { backgroundColor: T.gold, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>
+                          {(item.user_name || 'U').substring(0, 2).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={s.authorInfo}>
+                      <Text style={s.authorName}>{item.user_name}</Text>
+                      <Text style={s.authorMeta}>{item.role}</Text>
+                    </View>
+                  </View>
+                  <View style={s.starsRow}>
+                    {Array.from({ length: item.estrellas }).map((_, starIdx) => (
+                      <Text key={starIdx} style={s.starIcon}>{'\u2605'}</Text>
+                    ))}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Animated.View>
+      </View>
+
+      {/* Pagination dots */}
+      {todas.length > (isWide ? 3 : 1) && (
+        <View style={s.dotsRow}>
+          {todas.map((_, idx) => {
+            const active = idx === activeIndex;
             return (
               <Pressable
-                key={item.id}
-                onMouseEnter={() => Platform.OS === 'web' && setHoveredCardId(item.id)}
-                onMouseLeave={() => Platform.OS === 'web' && setHoveredCardId(null)}
-                style={[
-                  s.card,
-                  isWide ? s.cardWide : s.cardMobile,
-                  isHovered && s.cardHovered,
-                ]}
-              >
-                {/* Comillas decorativas gigantes */}
-                <Text style={s.quoteMark}>“</Text>
-
-                {/* Comentario en cursiva */}
-                <Text style={s.comentarioText}>
-                  {t(`testimonials.${item.id}.q`)}
-                </Text>
-
-                {/* Separador sutil */}
-                <View style={s.separator} />
-
-                {/* Fila del Autor */}
-                <View style={s.authorRow}>
-                  <Image source={item.avatar} style={s.avatarImage} />
-                  <View style={s.authorInfo}>
-                    <Text style={s.authorName}>{item.name}</Text>
-                    <Text style={s.authorMeta}>
-                      {t(`testimonials.${item.id}.r`)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Fila de estrellas doradas */}
-                <View style={s.starsRow}>
-                  {Array.from({ length: item.stars }).map((_, starIdx) => (
-                    <Text key={starIdx} style={s.starIcon}>★</Text>
-                  ))}
-                </View>
-              </Pressable>
+                key={idx}
+                onPress={() => transitionToNext(idx)}
+                style={[s.dot, active && s.dotActive]}
+              />
             );
           })}
         </View>
-      </View>
+      )}
+
+      {/* CTA Button to full reviews page */}
+      {onNavigate && (
+        <View style={s.ctaContainer}>
+          <Pressable
+            onPress={() => onNavigate('resenas')}
+            onMouseEnter={() => Platform.OS === 'web' && setHoveredBtn(true)}
+            onMouseLeave={() => Platform.OS === 'web' && setHoveredBtn(false)}
+            style={[s.ctaBtn, hoveredBtn && s.ctaBtnHovered]}
+          >
+            <Text style={[s.ctaBtnText, hoveredBtn && s.ctaBtnTextHovered]}>
+              {t('reviews.see_all')}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -262,5 +382,56 @@ const s = StyleSheet.create({
   starIcon: {
     color: T.gold,
     fontSize: 12,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 36,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(160, 120, 64, 0.25)',
+    ...Platform.select({
+      web: { transition: 'background-color 0.2s ease', cursor: 'pointer' },
+      default: {},
+    }),
+  },
+  dotActive: {
+    backgroundColor: T.gold,
+  },
+  ctaContainer: {
+    alignItems: 'center',
+    marginTop: 48,
+  },
+  ctaBtn: {
+    paddingVertical: 16,
+    paddingHorizontal: 36,
+    borderWidth: 1,
+    borderColor: T.gold,
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      web: { transition: 'all 0.25s ease', cursor: 'pointer' },
+      default: {},
+    }),
+  },
+  ctaBtnHovered: {
+    backgroundColor: T.gold,
+  },
+  ctaBtnText: {
+    color: T.gold,
+    fontSize: 11,
+    fontFamily: T.sans,
+    fontWeight: '600',
+    letterSpacing: 3,
+    ...Platform.select({
+      web: { transition: 'color 0.25s ease' },
+      default: {},
+    }),
+  },
+  ctaBtnTextHovered: {
+    color: '#FFFFFF',
   },
 });

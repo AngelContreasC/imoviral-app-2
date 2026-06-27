@@ -41,16 +41,22 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
   const [favoritos, setFavoritos] = useState([]);
   const [loadingFavs, setLoadingFavs] = useState(false);
 
-  // Cargar propiedades creadas por el usuario
+  // Cargar propiedades creadas por el usuario (o todas si es admin)
   const cargarPropiedades = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const isAdmin = user.isAdmin || user.email === 'admin@inmoviral.com' || user.id === 'admin-id-0000';
+      let query = supabase
         .from('propiedades')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      if (!isAdmin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setPropiedades(data || []);
@@ -165,14 +171,16 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
     }
   };
 
-  // Renderizar pesta├▒as superiores del panel
-  const renderTabs = () => (
-    <View style={S.tabBar}>
-      {[
-        { id: 'dashboard', label: esES ? 'Dashboard' : 'Dashboard', icon: 'bar-chart' },
-        { id: 'publicaciones', label: esES ? 'Mis publicaciones' : 'My listings', icon: 'pencil-square-o' },
-        { id: 'guardadas', label: esES ? 'Favoritos' : 'Saved', icon: 'heart-o' },
-      ].map(tab => (
+  // Renderizar pestañas superiores del panel
+  const renderTabs = () => {
+    const isAdmin = user?.isAdmin || user?.email === 'admin@inmoviral.com' || user?.id === 'admin-id-0000';
+    return (
+      <View style={S.tabBar}>
+        {[
+          { id: 'dashboard', label: esES ? 'Dashboard' : 'Dashboard', icon: 'bar-chart' },
+          { id: 'publicaciones', label: isAdmin ? (esES ? 'Todas las publicaciones' : 'All listings') : (esES ? 'Mis publicaciones' : 'My listings'), icon: 'pencil-square-o' },
+          { id: 'guardadas', label: esES ? 'Favoritos' : 'Saved', icon: 'heart-o' },
+        ].map(tab => (
         <Pressable
           key={tab.id}
           onPress={() => setActiveTab(tab.id)}
@@ -189,8 +197,9 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
           </Text>
         </Pressable>
       ))}
-    </View>
-  );
+      </View>
+    );
+  };
 
   // Renderizado Pesta├▒a 1: Dashboard
   const renderDashboard = () => {
@@ -239,8 +248,9 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
     );
   };
 
-  // Renderizado Pesta├▒a 2: Mis publicaciones
+  // Renderizado Pestaña 2: Mis publicaciones
   const renderMisPublicaciones = () => {
+    const isAdmin = user?.isAdmin || user?.email === 'admin@inmoviral.com' || user?.id === 'admin-id-0000';
     if (loading) {
       return (
         <View style={S.centerLoader}>
@@ -265,7 +275,7 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
     return (
       <View style={S.tabContent}>
         <Text style={S.sectionHeading}>
-          {esES ? 'Tus Propiedades' : 'Your Properties'} ({propiedades.length})
+          {isAdmin ? (esES ? 'Todas las Propiedades' : 'All Properties') : (esES ? 'Tus Propiedades' : 'Your Properties')} ({propiedades.length})
         </Text>
         
         <View style={S.propertiesList}>

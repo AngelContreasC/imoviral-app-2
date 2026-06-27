@@ -269,6 +269,7 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
   const [propiedades, setPropiedades] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('Todos');
   const [orden, setOrden] = useState('reciente');
   const [inputFocused, setInputFocused] = useState(false);
 
@@ -318,17 +319,22 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
 
   const listaFiltrada = useMemo(() => {
     return propiedades
-      .filter(p => 
-        filtro === '' ||
-        p.titulo?.toLowerCase().includes(filtro.toLowerCase()) ||
-        p.ubicacion?.toLowerCase().includes(filtro.toLowerCase())
-      )
+      .filter(p => {
+        const matchText = filtro === '' ||
+          p.titulo?.toLowerCase().includes(filtro.toLowerCase()) ||
+          p.ubicacion?.toLowerCase().includes(filtro.toLowerCase());
+          
+        const matchType = filtroTipo === 'Todos' ||
+          p.tipo_inmueble?.toLowerCase() === filtroTipo.toLowerCase();
+          
+        return matchText && matchType;
+      })
       .sort((a, b) => {
         if (orden === 'precio-asc') return (a.precio || 0) - (b.precio || 0);
         if (orden === 'precio-desc') return (b.precio || 0) - (a.precio || 0);
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       });
-  }, [propiedades, filtro, orden]);
+  }, [propiedades, filtro, filtroTipo, orden]);
 
   return (
     <SafeAreaView style={s.pageWrapper}>
@@ -368,6 +374,16 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
               value={filtro}
               onChangeText={setFiltro}
             />
+            <View style={s.sortPillsContainer}>
+              {['Todos', 'Casa', 'Departamento', 'Terreno', 'Local'].map(tipo => (
+                <SortPill
+                  key={tipo}
+                  label={tipo === 'Todos' ? t('props_filter_todos', { defaultValue: 'Todos' }) : t(`props_filter_${tipo.toLowerCase()}`, { defaultValue: tipo })}
+                  active={filtroTipo === tipo}
+                  onPress={() => setFiltroTipo(tipo)}
+                />
+              ))}
+            </View>
             <View style={s.sortPillsContainer}>
               <SortPill label={t('props_sort_reciente', { defaultValue: 'Más Recientes' })} active={orden === 'reciente'} onPress={() => setOrden('reciente')} />
               <SortPill label={t('props_sort_precio_asc', { defaultValue: 'Precio ↑' })} active={orden === 'precio-asc'} onPress={() => setOrden('precio-asc')} />

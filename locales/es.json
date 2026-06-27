@@ -248,7 +248,89 @@
   "vp_listing_price": "PRECIO DE LISTA",
   "vp_click_zoom": "AGRANDAR FOTO",
   "vp_area": "Superficie",
-  "vp_years": "Años"
+  "vp_years": "Años",
+
+  "reviews": {
+    "page_label": "RESEÑAS DE CLIENTES",
+    "page_title": "LA OPINIÓN DE NUESTROS CLIENTES",
+    "page_subtitle": "Conoce las experiencias reales de quienes han confiado en INMOVIRAL.",
+    "write_review": "DEJAR MI RESEÑA",
+    "see_all": "VER TODAS LAS RESEÑAS →",
+    "form_title": "Escribe tu reseña",
+    "form_subtitle": "Tu opinión nos ayuda a mejorar.",
+    "form_placeholder": "Cuéntanos tu experiencia con INMOVIRAL...",
+    "form_submit": "PUBLICAR RESEÑA",
+    "form_update": "ACTUALIZAR RESEÑA",
+    "form_cancel": "CANCELAR",
+    "stars_label": "Tu calificación",
+    "edit_btn": "Editar",
+    "delete_btn": "Eliminar",
+    "delete_confirm": "¿Estás seguro de que deseas eliminar esta reseña?",
+    "login_required": "Inicia sesión para dejar una reseña.",
+    "empty": "Aún no hay reseñas. ¡Sé el primero en compartir tu experiencia!",
+    "success_created": "¡Reseña publicada con éxito!",
+    "success_updated": "Reseña actualizada correctamente.",
+    "success_deleted": "Reseña eliminada.",
+    "error_generic": "Ocurrió un error. Intenta de nuevo."
+  },
+
+  "chat": {
+    "title": "Mensajes",
+    "no_conversations": "No tienes conversaciones aún.",
+    "start_chat": "CHATEAR CON EL VENDEDOR",
+    "placeholder": "Escribe un mensaje...",
+    "send": "Enviar",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "property_label": "Propiedad",
+    "participants": "Participantes",
+    "admin_label": "Administrador",
+    "you_label": "Tú",
+    "back_to_list": "← Volver a conversaciones",
+    "new_messages": "mensajes nuevos",
+    "no_messages": "Envía un mensaje para comenzar la conversación.",
+    "chat_created": "Conversación iniciada."
+  },
+
+  "profile": {
+    "page_title": "Mi Perfil",
+    "section_personal": "Datos Personales",
+    "section_personal_desc": "Completa o actualiza tu información personal.",
+    "section_contact": "Contacto",
+    "section_contact_desc": "Estos datos son para que podamos enviarte información y ofertas.",
+    "label_name": "Nombre completo",
+    "label_email": "Email",
+    "label_phone": "Teléfono",
+    "label_type": "Tipo de cliente",
+    "save_btn": "GUARDAR CAMBIOS",
+    "save_success": "Perfil actualizado correctamente.",
+    "save_error": "Error al guardar los cambios.",
+    "photo_change": "Cambiar foto",
+    "photo_remove": "Quitar foto",
+    "delete_account": "Eliminar Cuenta",
+    "delete_confirm": "¿Estás seguro? Esta acción no se puede deshacer.",
+    "delete_btn": "ELIMINAR MI CUENTA"
+  },
+
+  "settings": {
+    "page_title": "Configuración",
+    "section_language": "Idioma",
+    "section_language_desc": "Selecciona tu idioma preferido.",
+    "section_notifications": "Notificaciones",
+    "section_notifications_desc": "Administra tus preferencias de notificación.",
+    "notif_email": "Notificaciones por email",
+    "notif_promos": "Ofertas y promociones",
+    "notif_messages": "Nuevos mensajes de chat",
+    "section_privacy": "Privacidad",
+    "section_privacy_desc": "Controla la visibilidad de tu información.",
+    "privacy_profile": "Perfil público",
+    "privacy_activity": "Mostrar actividad reciente",
+    "section_about": "Acerca de",
+    "app_version": "Versión",
+    "app_name": "INMOVIRAL App",
+    "save_btn": "GUARDAR CONFIGURACIÓN",
+    "save_success": "Configuración guardada."
+  }
 }
 
 
