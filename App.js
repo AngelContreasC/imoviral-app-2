@@ -38,6 +38,7 @@ import Resenas from './Componentes/Resenas.jsx';
 import Chat from './Componentes/Chat.jsx';
 import Perfil from './Componentes/Perfil.jsx';
 import Configuracion from './Componentes/Configuracion.jsx';
+import InteractiveMap from './Componentes/InteractiveMap';
 
 import { useAuth, AuthProvider } from './AuthContext.js';
 import { supabase } from './supabaseClient';
@@ -120,14 +121,7 @@ function SocialSquare({ label }) {
   );
 }
 
-const MOCK_PROPERTIES = [
-  { id: 'mock-1', titulo: 'Penthouse Ébano', ubicacion: 'Santa Fe, CDMX', precio: 12000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'] },
-  { id: 'mock-2', titulo: 'Casa Jardines', ubicacion: 'Lomas de Chapultepec, CDMX', precio: 85000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800'] },
-  { id: 'mock-3', titulo: 'Residencia Serena', ubicacion: 'Bosques de las Lomas, CDMX', precio: 95000000, operacion: 'venta', imagenes: ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800'] },
-  { id: 'mock-4', titulo: 'Departamento Cielo', ubicacion: 'Polanco, CDMX', precio: 32000, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'] },
-  { id: 'mock-5', titulo: 'Loft Copernico', ubicacion: 'Roma Norte, CDMX', precio: 19500, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800'] },
-  { id: 'mock-6', titulo: 'Penthouse Lomas', ubicacion: 'Lomas Altas, CDMX', precio: 150000, operacion: 'renta', imagenes: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800'] },
-];
+const MOCK_PROPERTIES = [];
 
 const TICKER_PHRASES = [
   'LUXURY RESIDENCES',
@@ -159,18 +153,19 @@ function MainApp() {
   const [propiedades, setPropiedades] = useState([]);
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
   const [chatRoomId, setChatRoomId] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
 
-  const listaPropiedades = useMemo(() => {
-    if (!propiedades || propiedades.length === 0) return MOCK_PROPERTIES;
-    if (propiedades.length >= 6) return propiedades.slice(0, 6);
-    const combined = [...propiedades];
-    for (const mock of MOCK_PROPERTIES) {
-      if (combined.length >= 6) break;
-      if (!combined.some(p => p.id === mock.id)) {
-        combined.push(mock);
-      }
-    }
-    return combined;
+  const propiedadesPorPagina = 6;
+  const totalPaginas = Math.ceil(propiedades.length / propiedadesPorPagina);
+
+  const listaPropiedadesPaginada = useMemo(() => {
+    if (!propiedades || propiedades.length === 0) return [];
+    const pageIndex = paginaActual > totalPaginas ? 1 : paginaActual;
+    return propiedades.slice((pageIndex - 1) * propiedadesPorPagina, pageIndex * propiedadesPorPagina);
+  }, [propiedades, paginaActual, totalPaginas]);
+
+  const propiedadesMapa = useMemo(() => {
+    return propiedades;
   }, [propiedades]);
 
   // Contadores Animados (Count-Up)
@@ -624,7 +619,7 @@ function MainApp() {
           <Text style={styles.featuredPropsTitle}>{idiomaActual.startsWith('es') ? 'Propiedades Destacadas' : 'Featured Properties'}</Text>
 
           <View style={styles.propsGrid}>
-            {listaPropiedades.slice(0, 6).map((prop) => {
+            {listaPropiedadesPaginada.map((prop) => {
               const isHovered = hoveredPropertyId === prop.id;
               return (
                 <TouchableOpacity
@@ -665,6 +660,46 @@ function MainApp() {
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          {/* Flechitas de Navegación de Páginas */}
+          {totalPaginas > 1 && (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity 
+                disabled={paginaActual === 1} 
+                onPress={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                style={[styles.pageArrowBtn, paginaActual === 1 && styles.pageArrowBtnDisabled]}
+              >
+                <Feather name="arrow-left" size={16} color={paginaActual === 1 ? 'rgba(255,255,255,0.15)' : '#A07840'} />
+              </TouchableOpacity>
+              
+              <Text style={styles.pageIndicatorText}>
+                {paginaActual} / {totalPaginas}
+              </Text>
+
+              <TouchableOpacity 
+                disabled={paginaActual === totalPaginas} 
+                onPress={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                style={[styles.pageArrowBtn, paginaActual === totalPaginas && styles.pageArrowBtnDisabled]}
+              >
+                <Feather name="arrow-right" size={16} color={paginaActual === totalPaginas ? 'rgba(255,255,255,0.15)' : '#A07840'} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* ══ 5b. MAPA INTERACTIVO DE PROPIEDADES ══ */}
+        <View className="reveal-section" style={styles.mapSection}>
+          <Text style={styles.featuredPropsLabel}>{idiomaActual.startsWith('es') ? 'UBICACIONES EXCLUSIVAS' : 'EXCLUSIVE LOCATIONS'}</Text>
+          <Text style={styles.featuredPropsTitle}>{idiomaActual.startsWith('es') ? 'Explora en el Mapa' : 'Explore on the Map'}</Text>
+          <View style={styles.mapContainer}>
+            <InteractiveMap 
+              propiedades={propiedadesMapa} 
+              onSelectProperty={irAPropiedad} 
+              user={user}
+              onRequireLogin={() => setVista('login')}
+              onDeleteProperty={(id) => setPropiedades(prev => prev.filter(p => p.id !== id))}
+            />
           </View>
         </View>
 
@@ -964,6 +999,35 @@ const styles = StyleSheet.create({
   footerBottomRightLinks: { flexDirection: 'row', gap: 24 },
   footerCopyrightLink: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
 
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    marginTop: 40,
+  },
+  pageArrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#A07840',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  pageArrowBtnDisabled: {
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'transparent',
+  },
+  pageIndicatorText: {
+    color: '#FFFFFF',
+    fontFamily: SANS_FONT,
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+
   // Estilos de la sección de Propiedades Destacadas
   featuredPropsSection: {
     paddingVertical: 100,
@@ -971,6 +1035,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a0a',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  // Estilos del Mapa Interactivo
+  mapSection: {
+    paddingVertical: 100,
+    paddingHorizontal: 24,
+    backgroundColor: '#060606',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  mapContainer: {
+    maxWidth: 1100,
+    alignSelf: 'center',
+    width: '100%',
+    marginTop: 20,
   },
   featuredPropsLabel: {
     color: '#A07840',
