@@ -29,6 +29,7 @@ import ServiciosVirales from './Componentes/ServiciosVirales.jsx';
 import SobreNosotros from './Componentes/SobreNosotros.jsx';
 import SobreNosotrosSection from './Componentes/SobreNosotrosSection.jsx';
 import Vendedor from './Componentes/Vendedor.jsx';
+import Footer from './Componentes/Footer';
 import UserMenu from './Componentes/UserMenu';
 import Dashboard from './Componentes/Dashboard.jsx';
 import NuestroProceso from './Componentes/NuestroProceso.jsx';
@@ -46,80 +47,6 @@ import { supabase } from './supabaseClient';
 const LUXURY_FONT = 'Cormorant Garamond, Georgia, serif';
 const SERIF_FONT = Platform.OS === 'ios' ? 'Georgia' : Platform.OS === 'android' ? 'serif' : 'Georgia, serif';
 const SANS_FONT = Platform.OS === 'ios' ? 'System' : 'sans-serif';
-
-/* ─────────────────────────────────────────────
-   👑 SUB-COMPONENTES INTERACTIVOS DEL FOOTER
-───────────────────────────────────────────── */
-function FooterLink({ text, onPress }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
-      onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
-      style={{ paddingVertical: 2 }}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.footerLinkItem, hovered && styles.footerLinkItemHovered]}>
-        {text}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-// Bloque interactivo de iconos de redes sociales con logos oficiales
-function SocialSquare({ label }) {
-  const [hovered, setHovered] = useState(false);
-
-  const handlePress = async () => {
-    let url = '';
-    if (label === 'IG') {
-      url = 'https://www.instagram.com/inmoviralbis?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==';
-    } else if (label === 'WH') {
-      url = 'https://wa.me/526181630471';
-    } else if (label === 'GM') {
-      url = 'mailto:ventas@inmoviral.com.mx';
-    } else if (label === 'FB') {
-      url = 'https://www.facebook.com';
-    }
-
-    if (url) {
-      try {
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-        } else {
-          // Si canOpenURL no es compatible en web/ciertos entornos, intentamos abrir directamente
-          await Linking.openURL(url);
-        }
-      } catch (err) {
-        console.error("Error al abrir URL:", err);
-      }
-    }
-  };
-
-  const getIconName = () => {
-    if (label === 'IG') return 'instagram';
-    if (label === 'WH') return 'whatsapp';
-    if (label === 'FB') return 'facebook';
-    if (label === 'GM') return 'envelope';
-    return 'circle';
-  };
-
-  const activeColor = hovered ? '#A07840' : 'rgba(255,255,255,0.4)';
-
-  return (
-    <TouchableOpacity
-      onPress={handlePress}
-      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
-      onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
-      style={[styles.socialIconSquare, hovered && styles.socialIconSquareHovered]}
-      activeOpacity={0.7}
-    >
-      <FontAwesome name={getIconName()} size={16} color={activeColor} />
-    </TouchableOpacity>
-  );
-}
 
 const MOCK_PROPERTIES = [];
 
@@ -190,10 +117,7 @@ function MainApp() {
   const [hoveredNav, setHoveredNav] = useState(null);
   const [hoveredHeroBtn, setHoveredHeroBtn] = useState(false);
   const [hoveredFeatureIdx, setHoveredFeatureIdx] = useState(null);
-  const [hoveredCardId, setHoveredCardId] = useState(null);
-  const [hoveredAboutImg, setHoveredAboutImg] = useState(false);
   const [hoveredCtaBtn, setHoveredCtaBtn] = useState(false);
-  const [hoveredLogout, setHoveredLogout] = useState(false);
   const [hoveredPublishNav, setHoveredPublishNav] = useState(false);
 
   const tickerValue = useRef(new Animated.Value(0)).current;
@@ -224,10 +148,10 @@ function MainApp() {
   });
 
   const animatedNavBarStyle = esPantallaGrande ? {
-    backgroundColor: vista === 'home' ? navBgColor : '#0C0C0C',
-    borderBottomColor: vista === 'home' ? navBorderColor : 'rgba(160, 120, 64, 0.15)',
-    paddingTop: vista === 'home' ? navPaddingTop : 14 + safeTopPadding,
-    paddingBottom: vista === 'home' ? navPaddingBottom : 14,
+    backgroundColor: (vista === 'home' || vista === 'propiedad') ? navBgColor : '#0C0C0C',
+    borderBottomColor: (vista === 'home' || vista === 'propiedad') ? navBorderColor : 'rgba(160, 120, 64, 0.15)',
+    paddingTop: (vista === 'home' || vista === 'propiedad') ? navPaddingTop : 14 + safeTopPadding,
+    paddingBottom: (vista === 'home' || vista === 'propiedad') ? navPaddingBottom : 14,
   } : {
     position: 'relative',
     top: undefined,
@@ -255,16 +179,10 @@ function MainApp() {
     return user.email ? user.email.substring(0, 2).toUpperCase() : 'US';
   };
 
-  const obtenerNombreUsuario = () => {
-    if (!user) return 'Gabriel Ramírez';
-    return user.user_metadata?.full_name || user.email || 'Usuario Premium';
-  };
-
   const cambiarIdioma = (idioma) => i18n.changeLanguage(idioma);
   const irAPropiedad = (id) => { setPropiedadSeleccionada(id); setVista('propiedad'); setMobileNavAbierto(false); };
   const navegacionMovil = (destino) => { setVista(destino); setMobileNavAbierto(false); };
   const volverDePropiedad = (destino) => { setPropiedadSeleccionada(null); setVista(destino || 'home'); };
-  const abrirWhatsAppOficial = () => Linking.openURL(`https://wa.me/526140000000?text=${encodeURIComponent(t('whatsapp.message'))}`);
 
   useEffect(() => {
     if (vista !== 'home') return;
@@ -344,7 +262,6 @@ function MainApp() {
       <View style={[styles.navActions, !esPantallaGrande && { gap: 8 }]}>
         {user ? (
           <View style={[styles.navAuthenticatedRow, !esPantallaGrande && { gap: 8 }]}>
-            {/* 🚀 BOTÓN AL LADO DEL AVATAR CON CAMBIO A GRIS AUTOMÁTICO */}
             <TouchableOpacity
               style={[
                 styles.navPublishBtn,
@@ -413,8 +330,6 @@ function MainApp() {
     </Animated.View>
   );
 
-  // La función renderUserMenuDrawer() ha sido eliminada y modularizada en el componente UserMenu.jsx
-
   const renderLuxuryMobileMenu = () => {
     if (!mobileNavAbierto || esPantallaGrande) return null;
     return (
@@ -435,56 +350,11 @@ function MainApp() {
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('renta')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>02</Text><Text style={[styles.luxuryMenuLinkText, vista === 'renta' && styles.luxuryActiveLink]}>{t('navbar.rent')}</Text></View></TouchableOpacity>
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('servicios')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>03</Text><Text style={[styles.luxuryMenuLinkText, vista === 'servicios' && styles.luxuryActiveLink]}>{t('navbar.services')}</Text></View></TouchableOpacity>
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('nosotros')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>04</Text><Text style={[styles.luxuryMenuLinkText, vista === 'nosotros' && styles.luxuryActiveLink]}>{t('navbar.about')}</Text></View></TouchableOpacity>
-
           </View>
         </SafeAreaView>
       </View>
     );
   };
-
-  const renderFooter = () => (
-    <View style={styles.footerContainer}>
-      <View style={[styles.footerGrid, { flexDirection: width > 768 ? 'row' : 'column' }]}>
-        <View style={[styles.footerColumnUnit, { width: width > 768 ? '30%' : '100%' }]}>
-          <Text style={styles.footerLogoText}>INMOVIRAL</Text>
-          <Text style={styles.footerBrandDesc}>{t('footer.desc')}</Text>
-          <View style={styles.footerSocialContainer}>
-            {['WH', 'IG', 'FB', 'GM'].map((red) => (<SocialSquare key={red} label={red} />))}
-          </View>
-        </View>
-        <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
-          <Text style={styles.footerColTitle}>{t('footer.company_t')}</Text>
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Sobre Nosotros' : 'About Us'} onPress={() => setVista('nosotros')} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Propiedades' : 'Properties'} onPress={() => setVista('venta')} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Nuestro Equipo' : 'Our Team'} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Testimonios' : 'Testimonials'} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Bolsa de Trabajo' : 'Careers'} />
-        </View>
-        <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
-          <Text style={styles.footerColTitle}>{t('footer.catalog_t')}</Text>
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Residencias de Lujo' : 'Luxury Homes'} onPress={() => setVista('venta')} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Departamentos' : 'Apartments'} onPress={() => setVista('venta')} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Colección Penthouses' : 'Penthouses'} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Terrenos' : 'Land'} />
-          <FooterLink text={idiomaActual.startsWith('es') ? 'Comercial' : 'Commercial'} />
-        </View>
-        <View style={[styles.footerColumnUnit, { width: width > 768 ? '22%' : '100%' }]}>
-          <Text style={styles.footerColTitle}>{t('footer.contact_t')}</Text>
-          <Text style={styles.footerInfoItem}>📞 +52 6181630471</Text>
-          <Text style={styles.footerInfoItem}>✉️ ventas@inmoviral.com.mx</Text>
-          <Text style={styles.footerInfoItem}>📍 {t('footer.address')}</Text>
-          <Text style={styles.footerInfoItem}>🕒 {t('footer.hours')}</Text>
-        </View>
-      </View>
-      <View style={styles.footerBottomBar}>
-        <Text style={styles.footerCopyright}>© 2026 INMOVIRAL. All rights reserved.</Text>
-        <View style={styles.footerBottomRightLinks}>
-          <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Política de Privacidad' : 'Privacy Policy'}</Text>
-          <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Términos de Uso' : 'Terms of Use'}</Text>
-        </View>
-      </View>
-    </View>
-  );
 
   if (vista === 'login') return (
     <SafeAreaView style={styles.screen}>
@@ -494,7 +364,7 @@ function MainApp() {
       {renderLuxuryMobileMenu()}
       <ScrollView contentContainerStyle={{ paddingTop: 0 }} keyboardShouldPersistTaps="handled">
         <LoginPage onVolver={() => setVista('home')} />
-        {renderFooter()}
+        <Footer onNavigate={setVista} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -502,7 +372,7 @@ function MainApp() {
   if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} /></SafeAreaView>;
   if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} onStartChat={(roomId) => { setChatRoomId(roomId); setVista('chat'); }} onEditarPropiedad={(prop) => { setPropiedadParaEditar(prop); setVista('vendedor'); }} /></SafeAreaView>;
   if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} /></SafeAreaView>;
-  if (vista === 'vendedor') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} /></SafeAreaView>;
+  if (vista === 'vendedor') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} onVerPropiedadPublicada={(id) => irAPropiedad(id)} /></SafeAreaView>;
   if (vista === 'nosotros') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} /></SafeAreaView>;
 
   if (vista === 'resenas') return (
@@ -804,63 +674,8 @@ function MainApp() {
           </View>
         </View>
 
-        {/* ══ 7. 👑 LUXURY 4-COLUMN FOOTER INTERACTIVO SIN FLECHAS MATCHEADO ══ */}
-        <View style={styles.footerContainer}>
-          <View style={[styles.footerGrid, { flexDirection: width > 768 ? 'row' : 'column' }]}>
-
-            {/* Columna 1: Marca & Redes Animadas */}
-            <View style={[styles.footerColumnUnit, { width: width > 768 ? '30%' : '100%' }]}>
-              <Text style={styles.footerLogoText}>INMOVIRAL</Text>
-              <Text style={styles.footerBrandDesc}>
-                {t('footer.desc')}
-              </Text>
-              <View style={styles.footerSocialContainer}>
-                {['WH', 'IG', 'FB', 'GM'].map((red) => (
-                  <SocialSquare key={red} label={red} />
-                ))}
-              </View>
-            </View>
-
-            {/* Columna 2: Empresa Animada */}
-            <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
-              <Text style={styles.footerColTitle}>{t('footer.company_t')}</Text>
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Sobre Nosotros' : 'About Us'} onPress={() => setVista('nosotros')} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Propiedades' : 'Properties'} onPress={() => setVista('venta')} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Nuestro Equipo' : 'Our Team'} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Testimonios' : 'Testimonials'} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Bolsa de Trabajo' : 'Careers'} />
-            </View>
-
-            {/* Columna 3: Catálogo Animado */}
-            <View style={[styles.footerColumnUnit, { width: width > 768 ? '20%' : '100%' }]}>
-              <Text style={styles.footerColTitle}>{t('footer.catalog_t')}</Text>
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Residencias de Lujo' : 'Luxury Homes'} onPress={() => setVista('venta')} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Departamentos' : 'Apartments'} onPress={() => setVista('venta')} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Colección Penthouses' : 'Penthouses'} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Terrenos' : 'Land'} />
-              <FooterLink text={idiomaActual.startsWith('es') ? 'Comercial' : 'Commercial'} />
-            </View>
-
-            {/* Columna 4: Contacto */}
-            <View style={[styles.footerColumnUnit, { width: width > 768 ? '22%' : '100%' }]}>
-              <Text style={styles.footerColTitle}>{t('footer.contact_t')}</Text>
-              <Text style={styles.footerInfoItem}>📞 +52 6181630471</Text>
-              <Text style={styles.footerInfoItem}>✉️ ventas@inmoviral.com.mx</Text>
-              <Text style={styles.footerInfoItem}>📍 {t('footer.address')}</Text>
-              <Text style={styles.footerInfoItem}>🕒 {t('footer.hours')}</Text>
-            </View>
-
-          </View>
-
-          {/* Copyright Inferior */}
-          <View style={styles.footerBottomBar}>
-            <Text style={styles.footerCopyright}>© 2026 INMOVIRAL. All rights reserved.</Text>
-            <View style={styles.footerBottomRightLinks}>
-              <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Política de Privacidad' : 'Privacy Policy'}</Text>
-              <Text style={styles.footerCopyrightLink}>{idiomaActual.startsWith('es') ? 'Términos de Uso' : 'Terms of Use'}</Text>
-            </View>
-          </View>
-        </View>
+        {/* FOOTER */}
+        <Footer onNavigate={setVista} />
 
       </Animated.ScrollView>
     </SafeAreaView>
@@ -921,7 +736,6 @@ const styles = StyleSheet.create({
 
   navAuthenticatedRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 
-  // ── ESTILOS DEL BOTÓN PUBLICAR (BASE, HOVER Y ACTIVO) ──
   navPublishBtn: {
     borderWidth: 1,
     borderColor: '#A07840',
@@ -950,7 +764,7 @@ const styles = StyleSheet.create({
     color: '#C39B5F',
   },
   navPublishBtnTextActive: {
-    color: '#525252', // Gris apagado premium para indicar sección actual
+    color: '#525252',
   },
 
   navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent', overflow: 'hidden' },
@@ -959,46 +773,6 @@ const styles = StyleSheet.create({
   hamMenuButtonAuthenticated: { padding: 4 },
   hamMenuButton: { paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)' },
   hamMenuButtonIcon: { color: '#A07840', fontSize: 16 },
-
-  userMenuDrawerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    ...Platform.select({
-      web: { position: 'fixed' },
-      default: { position: 'absolute' }
-    }),
-    zIndex: 10000,
-    flexDirection: 'row',
-    justifyContent: 'flex-end'
-  },
-  drawerDismissOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
-  userMenuDrawerBody: { width: 320, backgroundColor: '#111111', borderLeftWidth: 1, borderColor: '#1E1E1C', height: '100%', paddingVertical: 20 },
-  drawerProfileHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderColor: '#1E1E1C', gap: 12 },
-  profileAvatarBox: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#9A7C50', justifyContent: 'center', alignItems: 'center' },
-  profileAvatarText: { color: '#F2EDE5', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
-  profileInfoBox: { flex: 1 },
-  profileNameText: { fontSize: 14, fontWeight: '500', color: '#F2EDE5', marginBottom: 2 },
-  profileRoleText: { fontSize: 10, color: '#9A7C50', letterSpacing: 1, textTransform: 'uppercase' },
-  closeDrawerBtn: { padding: 6 },
-  closeDrawerBtnText: { color: '#555', fontSize: 16 },
-  roleStripBox: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: '#0A0A09', borderBottomWidth: 1, borderColor: '#1E1E1C', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  roleDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9A7C50' },
-  roleStripText: { fontSize: 11, color: '#666' },
-  drawerScrollContainer: { flex: 1, marginTop: 16 },
-  drawerSectionLabel: { fontSize: 10, color: '#3A3A38', letterSpacing: 1.5, fontWeight: '700', paddingHorizontal: 20, marginBottom: 8 },
-  drawerLinkRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, gap: 12 },
-  drawerLinkRowActive: { backgroundColor: '#1A1A18', borderLeftWidth: 2, borderColor: '#9A7C50' },
-  drawerLinkRowText: { fontSize: 13, color: '#888', flex: 1 },
-  drawerLinkRowTextActive: { fontSize: 13, color: '#F2EDE5', fontWeight: '500' },
-  rowBadge: { backgroundColor: '#9A7C50', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, minWidth: 18, alignItems: 'center' },
-  rowBadgeMuted: { backgroundColor: '#1E1E1C' },
-  rowBadgeText: { color: '#F2EDE5', fontSize: 9, fontWeight: '700' },
-  rowBadgeTextMuted: { color: '#555', fontSize: 9 },
-  drawerInnerDivider: { height: 1, backgroundColor: '#1A1A18', marginVertical: 12, marginHorizontal: 16 },
-  drawerFooterBox: { paddingHorizontal: 16, paddingTop: 14, borderTopWidth: 1, borderColor: '#1A1A18' },
-  logoutBtn: { width: '100%', borderWidth: 1, borderColor: '#2A2A28', paddingVertical: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  logoutBtnHover: { borderColor: '#7A2020', backgroundColor: '#1A0A0A' },
-  logoutBtnText: { color: '#666', fontSize: 13, fontWeight: '500' },
-  logoutBtnTextHover: { color: '#C05050' },
 
   heroSection: { height: 750, justifyContent: 'center', paddingHorizontal: 24, position: 'relative' },
   heroBg: { ...StyleSheet.absoluteFillObject },
@@ -1030,26 +804,8 @@ const styles = StyleSheet.create({
   featureIconWrap: { marginBottom: 20 },
   featureTitle: { fontFamily: SERIF_FONT, fontSize: 24, color: '#0a0a0a', marginBottom: 18 },
   featureText: { color: '#525252', fontSize: 13, lineHeight: 22 },
-  solutionsSection: { paddingVertical: 100, paddingHorizontal: 24, backgroundColor: '#efede7' },
-  solutionsLabel: { color: '#A07840', fontSize: 11, fontWeight: '600', letterSpacing: 5, marginBottom: 16, textAlign: 'center' },
-  solutionsTitle: { fontFamily: LUXURY_FONT, fontSize: 34, color: '#0a0a0a', textAlign: 'center', marginBottom: 65 },
-  solutionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 40, justifyContent: 'center' },
-  solutionCard: { flexDirection: Platform.OS === 'web' ? 'row' : 'column-reverse', backgroundColor: '#fff', width: Platform.OS === 'web' ? '47%' : '100%', minWidth: 300 },
-  solutionCardHovered: { backgroundColor: '#e5e2db' },
   cardGoldIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 0, backgroundColor: '#A07840' },
   cardGoldIndicatorActive: { height: 3 },
-  solContent: { flex: 1.1, padding: 35 },
-  solTag: { color: '#A07840', fontSize: 9, fontWeight: '600', marginBottom: 14 },
-  solCardTitle: { fontFamily: SERIF_FONT, fontSize: 24, color: '#0a0a0a', marginBottom: 18 },
-  solCardText: { color: '#525252', fontSize: 13, lineHeight: 23, marginBottom: 22 },
-  solLink: { borderBottomWidth: 1, borderBottomColor: '#A07840', paddingBottom: 4 },
-  solLinkText: { color: '#0a0a0a', fontSize: 10, fontWeight: '700' },
-  solImgWrap: { flex: 0.9, minHeight: 240, overflow: 'hidden', position: 'relative' },
-  solImg: { width: '100%', height: '100%' },
-  technicalOverlay: { position: 'absolute', top: '100%', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12,12,12,0.92)', padding: 24, justifyContent: 'center' },
-  technicalOverlayActive: { top: 0 },
-  techOverlayTitle: { fontFamily: LUXURY_FONT, color: '#A07840', fontSize: 16 },
-  techOverlayText: { color: '#a3a3a3', fontSize: 12, lineHeight: 22 },
   finalCtaSection: { height: 400, position: 'relative', justifyContent: 'center', alignItems: 'center' },
   ctaBgImage: { ...StyleSheet.absoluteFillObject },
   ctaDarkLayer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,6,6,0.82)' },
@@ -1060,31 +816,6 @@ const styles = StyleSheet.create({
   ctaGoldButtonHovered: { backgroundColor: '#A07840' },
   ctaGoldButtonText: { color: '#A07840', fontSize: 11, letterSpacing: 2 },
   ctaGoldButtonTextHover: { color: '#000000', fontWeight: '700' },
-
-  // ══ 💎 ESTILOS EXCLUSIVOS DEL FOOTER 4 COLUMNAS PREMIUM ══
-  footerContainer: { paddingVertical: 80, paddingHorizontal: 60, backgroundColor: '#0F0D0A', borderTopWidth: 1, borderColor: 'rgba(160,120,64,0.2)' },
-  footerGrid: { justifyContent: 'space-between', gap: 40, maxWidth: 1100, alignSelf: 'center', width: '100%' },
-  footerColumnUnit: { gap: 14, marginBottom: 20 },
-  footerLogoText: { fontFamily: LUXURY_FONT, fontSize: 24, fontWeight: '400', color: '#FDFBF8', letterSpacing: 8, textTransform: 'uppercase', marginBottom: 10 },
-  footerBrandDesc: { color: 'rgba(255,255,255,0.35)', fontSize: 13, lineHeight: 22, fontWeight: '300', fontFamily: SANS_FONT },
-  footerSocialContainer: { flexDirection: 'row', gap: 14, marginTop: 15 },
-
-  socialIconSquare: { width: 36, height: 36, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
-  socialIconSquareHovered: { borderColor: '#A07840', backgroundColor: 'rgba(160,120,64,0.15)', transform: [{ scale: 1.15 }] },
-  socialIconInnerText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '500', textTransform: 'uppercase' },
-  socialIconInnerTextHovered: { color: '#A07840', fontWeight: '700' },
-
-  footerColTitle: { fontFamily: SERIF_FONT, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, fontWeight: '400', textTransform: 'uppercase', marginBottom: 10 },
-  footerLinkTouch: { paddingVertical: 2 },
-
-  footerLinkItem: { color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: '300', marginBottom: 4, fontFamily: SANS_FONT },
-  footerLinkItemHovered: { color: '#A07840', transform: [{ scale: 1.05 }] },
-
-  footerInfoItem: { color: 'rgba(255,255,255,0.35)', fontSize: 13, lineHeight: 22, fontWeight: '300', fontFamily: SANS_FONT },
-  footerBottomBar: { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.07)', marginTop: 40, paddingTop: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, maxWidth: 1100, alignSelf: 'center', width: '100%' },
-  footerCopyright: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
-  footerBottomRightLinks: { flexDirection: 'row', gap: 24 },
-  footerCopyrightLink: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: SANS_FONT },
 
   paginationRow: {
     flexDirection: 'row',
@@ -1114,8 +845,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
   },
-
-  // Estilos de la sección de Propiedades Destacadas
   featuredPropsSection: {
     paddingVertical: 100,
     paddingHorizontal: 24,
@@ -1123,7 +852,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.03)',
   },
-  // Estilos del Mapa Interactivo
   mapSection: {
     paddingVertical: 100,
     paddingHorizontal: 24,

@@ -80,11 +80,26 @@
   "process": {
     "label": "HOW WE WORK",
     "title": "OUR PROCESS",
-    "consulta": { "t": "Consultation", "d": "We analyze your objectives, evaluate your budget, and understand your vision." },
-    "busqueda": { "t": "Property Search", "d": "We curate a personalized selection of properties that match your criteria." },
-    "diligence": { "t": "Due Diligence", "d": "We perform a thorough analysis and verification of each property." },
-    "negociacion": { "t": "Negotiation", "d": "Professional negotiation and seamless closing by our expert team." },
-    "soporte": { "t": "Post-Sale Support", "d": "5 years of continuous support and guidance after each transaction." }
+    "consulta": {
+      "t": "Consultation",
+      "d": "We analyze your objectives, evaluate your budget, and understand your vision."
+    },
+    "busqueda": {
+      "t": "Property Search",
+      "d": "We curate a personalized selection of properties that match your criteria."
+    },
+    "diligence": {
+      "t": "Due Diligence",
+      "d": "We perform a thorough analysis and verification of each property."
+    },
+    "negociacion": {
+      "t": "Negotiation",
+      "d": "Professional negotiation and seamless closing by our expert team."
+    },
+    "soporte": {
+      "t": "Post-Sale Support",
+      "d": "5 years of continuous support and guidance after each transaction."
+    }
   },
   "testimonials": {
     "label": "CLIENT REVIEWS",
@@ -150,7 +165,6 @@
   "register_caption": "\"Each property is a tailored solution, designed around the client's vision.\"",
   "login_success_msg": "Logged in successfully!",
   "register_success_msg": "Account successfully created! Check your user list.",
-  
   "vd_back": "BACK TO HOME",
   "props_renta_eyebrow": "EXCLUSIVE COLLECTION",
   "props_renta_title_1": "Properties",
@@ -269,7 +283,6 @@
   "vp_click_zoom": "ZOOM PHOTO",
   "vp_area": "Area",
   "vp_years": "Years",
-
   "reviews": {
     "page_label": "CLIENT REVIEWS",
     "page_title": "WHAT OUR CLIENTS SAY",
@@ -293,7 +306,6 @@
     "success_deleted": "Review deleted.",
     "error_generic": "An error occurred. Please try again."
   },
-
   "chat": {
     "title": "Messages",
     "no_conversations": "You have no conversations yet.",
@@ -311,7 +323,6 @@
     "no_messages": "Send a message to start the conversation.",
     "chat_created": "Conversation started."
   },
-
   "profile": {
     "page_title": "My Profile",
     "section_personal": "Personal Information",
@@ -331,7 +342,6 @@
     "delete_confirm": "Are you sure? This action cannot be undone.",
     "delete_btn": "DELETE MY ACCOUNT"
   },
-
   "settings": {
     "page_title": "Settings",
     "section_language": "Language",
@@ -350,5 +360,62 @@
     "app_name": "INMOVIRAL App",
     "save_btn": "SAVE SETTINGS",
     "save_success": "Settings saved."
-  }
+  },
+  "ubicacion": "Location",
+  "detalles": "Details",
+  "amenidades": "Amenities",
+  "servicios": "Services",
+  "alta_inmueble": "List Property",
+  "paso_x_de_4": "Step {{step}} of 4",
+  "tipo_propiedad_label": "PROPERTY TYPE",
+  "operacion_label": "OPERATION",
+  "ubicacion_aprox_label": "APPROXIMATE LOCATION (ZONE OR CITY)",
+  "ej_reliz": "E.g. El Reliz, Chihuahua",
+  "calle_numero_label": "STREET AND NUMBER (Optional)",
+  "ej_calle": "E.g. Av. Teofilo Borunda 1204",
+  "colonia_label": "NEIGHBORHOOD / SECTOR (Optional)",
+  "ej_colonia": "E.g. Diamante Reliz",
+  "cp_label": "ZIP CODE (Optional)",
+  "ej_cp": "E.g. 31203",
+  "selecciona_mapa": "SELECT ON MAP / DRAG THE PIN",
+  "confirma_mapa": "Confirm the location by dragging the pin to the exact point. (Web Only)",
+  "recamaras_label": "BEDROOMS",
+  "banos_label": "FULL BATHROOMS",
+  "estacionamientos_label": "PARKING SPOTS",
+  "antiguedad_label": "PROPERTY AGE",
+  "titulo_pub_label": "PUBLICATION TITLE",
+  "ej_titulo": "E.g. Beautiful house in El Reliz with nice view",
+  "remate_bancario_q": "IS THIS PROPERTY A BANK FORECLOSURE?",
+  "si_remate": "YES, FORECLOSURE",
+  "no_remate": "NO",
+  "precio_label": "EVALUATED PRICE ($)",
+  "superficie_label": "TOTAL AREA SQM",
+  "max_m2": "Max. 9,999 sqm",
+  "ej_superficie": "E.g. 150",
+  "descripcion_label": "FULL EDITORIAL DESCRIPTION",
+  "ej_desc": "E.g. Beautiful house in El Reliz with nice view, spacious modern areas, 24-hour security, and luxury finishes.",
+  "galeria_label": "PRESTIGE IMAGE GALLERY",
+  "arrastra_reordenar": "Drag to reorder",
+  "seleccionar_fotos": "Select premium photos...",
+  "max_15_img": "Maximum 15 images.",
+  "primera_portada": "(The first image will be the cover)",
+  "amenidades_incluidas_label": "INCLUDED AMENITIES",
+  "servicios_virales_label": "OPTIONAL VIRAL SERVICES",
+  "datos_propietario_label": "OWNER OR REPRESENTATIVE DATA",
+  "nombre_completo_label": "FULL NAME",
+  "ej_nombre": "E.g. Robert Garcia",
+  "tel_contacto_label": "CONTACT PHONE (PUBLIC)",
+  "ej_telefono": "E.g. 614 123 4567",
+  "siguiente_btn": "NEXT",
+  "atras_btn": "BACK",
+  "publicar_prop_btn": "PUBLISH PROPERTY",
+  "guardar_cambios_btn": "SAVE CHANGES",
+  "publicando_btn": "Publishing...",
+  "volver_inicio_btn": "RETURN TO HOME",
+  "prop_publicada_exito": "PROPERTY PUBLISHED SUCCESSFULLY!",
+  "prop_publicada_desc": "Your property has been integrated into the InmoViral network with high quality standards. It will soon be visible to prospects nationwide.",
+  "vender_rentar_hero": "SELL OR RENT",
+  "haz_tu_prop": "Make your\nproperty go",
+  "viral_italic": "viral",
+  "hero_desc_ventas": "Publish quickly and securely. Connect directly with thousands of prospects, buyers, and potential tenants."
 }

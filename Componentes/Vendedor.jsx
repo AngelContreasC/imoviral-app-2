@@ -19,6 +19,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext.js';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const T = {
   gold:      '#A07840',
@@ -34,19 +36,40 @@ const T = {
 };
 
 const LISTA_AMENIDADES = [
-  "Alberca Infinita", "Gimnasio VIP", "Seguridad 24/7", "Cochera Eléctrica",
-  "Terraza con Vista", "Acabados de Mármol", "Bodega Privada", "Calefacción Central",
+  "Estacionamiento", "Pet Friendly", "Fraccionamiento Privado", "Patio / Jardín", "Cocina Equipada", "Aire Acondicionado", 
+  "Calefacción", "Cuarto de Lavado", "Seguridad 24/7", "Balcón",
+  "Canchas de Padel", "Área Infantil", "Alberca Infinita", 
+  "Gimnasio VIP", "Terraza con Vista", "Acabados de Mármol", "Bodega Privada", 
   "Área de Asadores", "Jacuzzi Premium", "Cocina de Chef", "Paneles Solares",
-  "Elevador Privado", "Sala de Cine", "Salón de Eventos", "Jardín Amplio",
-  "Cava de Vinos", "Domótica Inteligente", "Cuarto de Servicio", "Piso Radiante"
+  "Elevador Privado", "Sala de Cine", "Salón de Eventos", "Cuarto de Juegos", 
+  "Roof Garden", "Cava de Vinos", "Domótica Inteligente", "Cuarto de Servicio", "Piso Radiante"
 ];
 
+const getIconForAmenity = (name) => {
+  const n = String(name).toLowerCase();
+  if (n.includes('estacionamiento') || n.includes('cochera')) return 'layout';
+  if (n.includes('piscina') || n.includes('alberca') || n.includes('jacuzzi')) return 'droplet';
+  if (n.includes('aire') || n.includes('calefacción') || n.includes('clima')) return 'wind';
+  if (n.includes('jardín') || n.includes('patio') || n.includes('terraza') || n.includes('roof garden') || n.includes('balcón')) return 'sun';
+  if (n.includes('seguridad') || n.includes('vigilancia')) return 'shield';
+  if (n.includes('cocina') || n.includes('asadores')) return 'coffee';
+  if (n.includes('gimnasio') || n.includes('padel')) return 'activity';
+  if (n.includes('cine') || n.includes('tv') || n.includes('juegos') || n.includes('infantil')) return 'smile';
+  if (n.includes('cuarto') || n.includes('bodega')) return 'box';
+  if (n.includes('paneles')) return 'battery';
+  if (n.includes('domótica')) return 'cpu';
+  if (n.includes('lavado')) return 'aperture';
+  if (n.includes('vino')) return 'archive';
+  if (n.includes('pet') || n.includes('mascota')) return 'heart';
+  if (n.includes('fracc') || n.includes('privado')) return 'lock';
+  return 'check-circle';
+};
+
 const SERVICIOS_VIRALES = [
-  { key: 'asesor',      titulo: 'Asesoramiento Agente INMOVIRAL', icon: '💼', desc: 'Acompañamiento legal completo, análisis comparativo de mercado, due diligence notarial y soporte estratégico patrimonial de principio a fin.' },
-  { key: 'mudanza',     titulo: 'Ayuda con la Mudanza', icon: '🚚', desc: 'Logística de traslado patrimonial, embalaje técnico y seguro de bienes premium incluido de puerta a puerta.' },
-  { key: 'redes',       titulo: 'Exposición en Redes Sociales', icon: '📱', desc: 'Campañas de marketing digital segmentadas en Instagram, Facebook y TikTok Ads para captar leads calificados.' },
-  { key: 'fotografia',  titulo: 'Fotografía Profesional', icon: '📷', desc: 'Sesión fotográfica de alta gama, levantamiento cinemático con drones 4K y diseño de tour virtual 360°.' },
-  { key: 'limpieza',    titulo: 'Limpieza Profunda Antes de la Visita', icon: '✨', desc: 'Detallado estético de interiores y sanitización profunda pre-visita con estándares de hotel de 5 estrellas.' },
+  { key: 'asesor',      titulo: 'Asesoramiento Agente INMOVIRAL', icon: 'briefcase', desc: 'Acompañamiento legal completo, análisis comparativo de mercado, due diligence notarial y soporte estratégico patrimonial de principio a fin.' },
+  { key: 'redes',       titulo: 'Exposición en Redes Sociales', icon: 'smartphone', desc: 'Campañas de marketing digital segmentadas en Instagram, Facebook y TikTok Ads para captar leads calificados.' },
+  { key: 'fotografia',  titulo: 'Fotografía Profesional', icon: 'camera', desc: 'Sesión fotográfica de alta gama, levantamiento cinemático con drones 4K y diseño de tour virtual 360°.' },
+  { key: 'limpieza',    titulo: 'Limpieza Profunda Antes de la Visita', icon: 'star', desc: 'Detallado estético de interiores y sanitización profunda pre-visita con estándares de hotel de 5 estrellas.' },
 ];
 
 // 📷 GALERÍA PREMIUM DE TRANSMISIÓN PARA EL FADE CONTINUO DEL HERO IZQUIERDO
@@ -134,18 +157,22 @@ function Chip({ label, active, onPress }) {
       style={[
         s.chip, 
         active && s.chipActive,
-        hovered && s.btnInteractiveHover
+        hovered && s.btnInteractiveHover,
+        { flexDirection: 'row', alignItems: 'center', gap: 6 }
       ]}
     >
-      <Text style={[s.chipText, active && s.chipTextActive]}>{active ? '✓ ' : ''}{label}</Text>
+      <Feather name={getIconForAmenity(label)} size={14} color={active ? T.bg : T.gold} />
+      <Text style={[s.chipText, active && s.chipTextActive]}>{label}</Text>
     </Pressable>
   );
 }
 
 function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
+  const { t } = useTranslation();
   const containerId = useRef(`map-${Math.random().toString(36).slice(2)}`);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const [showBadge, setShowBadge] = useState(true);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -194,38 +221,65 @@ function WebMapContainer({ lat, lng, confirmed, onChange, onConfirm }) {
 
   return (
     <View style={{ position: 'relative', marginTop: 12 }}>
-      <View nativeID={containerId.current} style={[s.webMapFrame, { borderColor: confirmed ? T.gold : 'rgba(220,80,80,0.5)' }]} />
-      <View style={s.mapOverlayBadge}>
-        <Text style={{ color: confirmed ? T.gold : '#e08a8a', fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>{confirmed ? '✓ UBICACIÓN CONFIRMADA' : '📍 SELECCIONA EN EL MAPA / ARRASTRA EL PIN'}</Text>
-      </View>
+      <View nativeID={containerId.current} style={[s.webMapFrame, { borderColor: confirmed ? T.gold : 'rgba(255,255,255,0.15)' }]} />
+      {showBadge && (
+        <View style={[s.mapOverlayBadge, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+          {confirmed ? (
+            <>
+              <Feather name="check" size={12} color={T.gold} />
+              <Text style={{ color: T.gold, fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>UBICACIÓN CONFIRMADA</Text>
+            </>
+          ) : (
+            <>
+              <Feather name="map-pin" size={12} color={T.gold} />
+              <Text style={{ color: T.text, fontSize: 10, fontFamily: T.sans, letterSpacing: 1 }}>{t('selecciona_mapa', {defaultValue: 'SELECCIONA EN EL MAPA / ARRASTRA EL PIN'})}</Text>
+            </>
+          )}
+          <Pressable onPress={() => setShowBadge(false)} style={{ padding: 4, marginLeft: 4 }}>
+            <Feather name="x" size={14} color={T.muted} />
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
 
-export default function Vendedor({ onVolver, propiedadParaEditar }) {
+function FadeInView({ children, style }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start(); }, []);
+  return <Animated.View style={[style, { opacity: fadeAnim }]}>{children}</Animated.View>;
+}
+
+export default function Vendedor({ onVolver, propiedadParaEditar, onVerPropiedadPublicada }) {
   const { t } = useTranslation(); const { user } = useAuth(); const { width } = useWindowDimensions(); const isWide = width > 1024;
-  const WIZARD_STEPS = [{ n: 1, label: 'Ubicación' }, { n: 2, label: 'Detalles' }, { n: 3, label: 'Amenidades' }, { n: 4, label: 'Servicios' }];
+  const WIZARD_STEPS = [{ n: 1, label: t('ubicacion', {defaultValue: 'Ubicación'}) }, { n: 2, label: t('detalles', {defaultValue: 'Detalles'}) }, { n: 3, label: t('amenidades', {defaultValue: 'Amenidades'}) }, { n: 4, label: t('servicios', {defaultValue: 'Servicios'}) }];
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     tipo: '', operacion: '', busqueda: '', calle: '', colonia: '', ciudad: '', estado: '', cp: '', pais: 'México',
     lat: '', lng: '', recamaras: 1, banos: 1, estacionamientos: 0, antiguedad: '',
     titulo: '', precio: '', superficie: '', descripcion: '', amenidades: [], servicios: [], nombre: '', telefono: '',
-    divisa: 'MXN', lada: '+52'
+    divisa: 'MXN', lada: '+52', remateBancario: null
   });
 
   const [fotos, setFotos] = useState([]); const [enviado, setEnviado] = useState(false); const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState(''); const [progresoSubida, setProgresoSubida] = useState('');
   const [mapaPinConfirmado, setMapaPinConfirmado] = useState(false); const [expandedServices, setExpandedServices] = useState([]);
+  const [draggedIdx, setDraggedIdx] = useState(null);
 
-  // Hovers para control del Wizard y Navegación principal
   const [hoverNext, setHoverNext] = useState(false);
-  const [hoverPrev, setHoverCE, setHoverPrevState] = useState(false);
+  const [hoverPrev, setHoverPrev] = useState(false);
   const [hoverBack, setHoverBack] = useState(false);
+  const [hoverBtnSuccess, setHoverBtnSuccess] = useState(false);
+  const [hoverBtnSuccess2, setHoverBtnSuccess2] = useState(false);
+  const [propiedadPublicadaId, setPropiedadPublicadaId] = useState(null);
+  const [hoveredStep, setHoveredStep] = useState(null);
+  const [hoveredAntiguedad, setHoveredAntiguedad] = useState(null);
   const [hoveredMiniInc, setHoveredMiniInc] = useState(null);
 
-  // 🎬 INSTANCIAS DE ANIMACIÓN PARA EL SMOOTH CROSS-FADE DE IMÁGENES
+  // 🎬 INSTANCIAS DE ANIMACIÓN PARA EL SMOOTH CROSS-FADE Y ZOOM DE IMÁGENES
   const heroFade = useRef(new Animated.Value(1)).current;
+  const heroScale = useRef(new Animated.Value(1)).current;
   const [heroImgIdx, setHeroImgIdx] = useState(0);
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -252,12 +306,13 @@ export default function Vendedor({ onVolver, propiedadParaEditar }) {
         banos: propiedadParaEditar.banos || 1,
         estacionamientos: propiedadParaEditar.estacionamientos || 0,
         antiguedad: propiedadParaEditar.antiguedad || '',
-        titulo: propiedadParaEditar.titulo || '',
+        titulo: propiedadParaEditar.titulo?.replace(/\[REMATE BANCARIO\]\s*/i, '') || '',
         precio: propiedadParaEditar.precio ? String(propiedadParaEditar.precio) : '',
         superficie: propiedadParaEditar.m2 ? String(propiedadParaEditar.m2) : '',
         descripcion: propiedadParaEditar.descripcion || '',
         amenidades: propiedadParaEditar.amenidades || [],
         servicios: propiedadParaEditar.servicios_solicitados || [],
+        remateBancario: propiedadParaEditar.remate_bancario ?? (propiedadParaEditar.titulo?.toLowerCase().includes('remate bancario') || null),
         nombre: propiedadParaEditar.nombre_contacto || '',
         telefono: telefonoPart,
         divisa: 'MXN',
@@ -289,28 +344,42 @@ export default function Vendedor({ onVolver, propiedadParaEditar }) {
     }
   }, [user, propiedadParaEditar]);
 
-  // 🔄 LOOP AUTOMÁTICO DE DESVANECIMIENTO CRUZADO (CADA 2.5 SEGUNDOS)
+  // 🔄 LOOP AUTOMÁTICO DE DESVANECIMIENTO CRUZADO (CADA 10 SEGUNDOS) CON ZOOM (KEN BURNS)
   useEffect(() => {
+    Animated.timing(heroScale, { toValue: 1.05, duration: 10000, useNativeDriver: Platform.OS !== 'web' }).start();
+
     const interval = setInterval(() => {
-      Animated.timing(heroFade, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+      Animated.timing(heroFade, { toValue: 0, duration: 600, useNativeDriver: Platform.OS !== 'web' }).start(() => {
         setHeroImgIdx((prev) => (prev + 1) % HERO_GALLERY.length);
-        Animated.timing(heroFade, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }).start();
+        heroScale.setValue(1); // Reset zoom para la nueva imagen
+        Animated.parallel([
+          Animated.timing(heroFade, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(heroScale, { toValue: 1.05, duration: 10000, useNativeDriver: Platform.OS !== 'web' })
+        ]).start();
       });
-    }, 2500);
+    }, 10000);
     return () => clearInterval(interval);
-  }, [heroFade]);
+  }, [heroFade, heroScale]);
 
   const tituloLetras = form.titulo ? form.titulo.length : 0;
   const descLetras = form.descripcion ? form.descripcion.length : 0;
   const tituloCumple = tituloLetras >= 10; const descCumple = descLetras >= 20;
 
-  const canNext = () => {
-    if (step === 1) {
+  const isStepValid = (n) => {
+    if (n === 1) {
       const baseOk = form.tipo && form.operacion && form.antiguedad;
       return Platform.OS === 'web' ? baseOk && mapaPinConfirmado : baseOk && form.ciudad.trim();
     }
-    if (step === 2) return tituloCumple && form.precio.trim() && descCumple && fotos.length >= 3;
-    return true;
+    if (n === 2) return tituloCumple && form.precio.trim() && descCumple && fotos.length >= 3;
+    if (n === 3) return form.amenidades && form.amenidades.length > 0;
+    if (n === 4) return form.servicios && form.servicios.length > 0;
+    return false;
+  };
+
+  const canNext = () => {
+    if (step === 1) return isStepValid(1);
+    if (step === 2) return isStepValid(2);
+    return true; // 3 y 4 son opcionales para avanzar, pero su validez visual requiere elementos
   };
 
   const formatearPrecio = (texto) => {
@@ -324,6 +393,32 @@ export default function Vendedor({ onVolver, propiedadParaEditar }) {
   const moverFoto = (index, direccion) => {
     const target = direccion === 'left' ? index - 1 : index + 1; if (target < 0 || target >= fotos.length) return;
     const arr = [...fotos]; const temp = arr[index]; arr[index] = arr[target]; arr[target] = temp; setFotos(arr);
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIdx(index);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/html", e.target);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    if (draggedIdx !== null && draggedIdx !== dropIndex) {
+      setFotos(prev => {
+        const arr = [...prev];
+        const [moved] = arr.splice(draggedIdx, 1);
+        arr.splice(dropIndex, 0, moved);
+        return arr;
+      });
+    }
+    setDraggedIdx(null);
   };
 
   const toggleAccordionView = (key) => {
@@ -343,7 +438,21 @@ export default function Vendedor({ onVolver, propiedadParaEditar }) {
   const toggleServicioSeleccion = (key) => setForm(prev => ({ ...prev, servicios: prev.servicios.includes(key) ? prev.servicios.filter(s => s !== key) : [...prev.servicios, key] }));
 
   const handleSubmit = async () => {
-    if (step < 4) { if (canNext()) setStep(sVal => sVal + 1); return; }
+    if (step < 4) { 
+      if (canNext()) setStep(sVal => sVal + 1);
+      return; 
+    }
+    if (!isStepValid(1)) { 
+      if (Platform.OS === 'web') alert(t('error_paso_1', {defaultValue: 'Faltan campos en el Paso 1. Asegúrate de llenar Tipo, Operación y confirmar tu ubicación en el mapa interactivo haciendo clic o arrastrando el pin.'}));
+      setStep(1); 
+      return; 
+    }
+    if (!isStepValid(2)) { 
+      if (Platform.OS === 'web') alert(t('error_paso_2', {defaultValue: 'Faltan campos en el Paso 2. Revisa el Título (mín. 10 letras), Descripción (mín. 20 letras), Precio y asegúrate de subir al menos 3 fotos.'}));
+      setStep(2); 
+      return; 
+    }
+
     setErrorEnvio(''); setEnviando(true);
     try {
       const ubicacion = [form.colonia, form.ciudad, form.estado].filter(Boolean).join(', ') || form.busqueda || form.calle;
@@ -376,19 +485,31 @@ export default function Vendedor({ onVolver, propiedadParaEditar }) {
         const emailContactoFinal = isAdmin ? (propiedadParaEditar.email_contacto || null) : (user?.email || null);
         const avatarContactoFinal = isAdmin ? (propiedadParaEditar.avatar_url_contacto || null) : (user?.user_metadata?.avatar_url || null);
 
+        let finalTitulo = form.titulo;
+        if (form.remateBancario && !finalTitulo.toLowerCase().includes('remate bancario')) {
+          finalTitulo = `[REMATE BANCARIO] ${finalTitulo}`;
+        }
+
         const { error: updateError } = await supabase.from('propiedades').update({
-          titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
+          titulo: finalTitulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
           tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
-          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: fullTelefonoContacto, email_contacto: emailContactoFinal, avatar_url_contacto: avatarContactoFinal
-        }).eq('id', propiedadParaEditar.id);
+          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: fullTelefonoContacto, email_contacto: emailContactoFinal, avatar_url_contacto: avatarContactoFinal, remate_bancario: form.remateBancario === true
+        }).eq('id', propiedadParaEditar.id).select();
         if (updateError) throw updateError;
+        if (data && data.length > 0) setPropiedadPublicadaId(data[0].id);
       } else {
+        let finalTitulo = form.titulo;
+        if (form.remateBancario && !finalTitulo.toLowerCase().includes('remate bancario')) {
+          finalTitulo = `[REMATE BANCARIO] ${finalTitulo}`;
+        }
+
         const { error: insertError } = await supabase.from('propiedades').insert([{
-          user_id: user?.id || null, propietario_id: user?.id || null, titulo: form.titulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
+          user_id: user?.id || null, propietario_id: user?.id || null, titulo: finalTitulo, tipo_transaccion: form.operacion === 'Renta' ? 'Renta' : 'Venta', operacion: form.operacion,
           tipo_inmueble: form.tipo, precio: parseFloat(String(form.precio).replace(/[^\d.]/g, '')) || 0, ubicacion, calle: form.calle, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, cp: form.cp, pais: form.pais,
-          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: fullTelefonoContacto, email_contacto: user?.email || null, avatar_url_contacto: user?.user_metadata?.avatar_url || null, estatus: 'pendiente'
-        }]);
+          lat: form.lat ? parseFloat(form.lat) : null, lng: form.lng ? parseFloat(form.lng) : null, habitaciones: form.recamaras, banos: form.banos, estacionamientos: form.estacionamientos, antiguedad: form.antiguedad, m2: form.superficie ? parseFloat(form.superficie) : null, descripcion: form.descripcion, amenidades: form.amenidades, servicios_solicitados: form.servicios, imagenes: urlsImagenes, nombre_contacto: form.nombre, telefono_contacto: fullTelefonoContacto, email_contacto: user?.email || null, avatar_url_contacto: user?.user_metadata?.avatar_url || null, estatus: 'pendiente', remate_bancario: form.remateBancario === true
+        }]).select();
         if (insertError) throw insertError;
+        if (data && data.length > 0) setPropiedadPublicadaId(data[0].id);
       }
 
       // ✉️ Enviar correo de notificación por EmailJS en el frontend
@@ -458,21 +579,6 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
     } catch (err) { console.error(err); setErrorEnvio(err.message || 'Error al guardar la propiedad.'); } finally { setEnviando(false); setProgresoSubida(''); }
   };
 
-  if (enviado) {
-    return (
-      <View style={s.successWrap}>
-        <Text style={s.successCheckMark}>✓</Text><Text style={s.successTitle}>¡Propiedad publicada con éxito!</Text>
-        <Text style={s.successSub}>Tu registro ha sido enviado correctamente para validación patrimonial.</Text>
-        {form.servicios.length > 0 && (
-          <View style={s.successServiceBadgeBox}>
-            <Text style={s.successServiceBadgeText}>✨ **Atención Logística:** Hemos registrado los servicios opcionales solicitados. Un asesor patrimonial de INMOVIRAL te contactará de forma directa a la brevedad utilizando tu teléfono y LADA para coordinar la agenda de campo.</Text>
-          </View>
-        )}
-        <Pressable onPress={onVolver} style={s.btnSuccessBack}><Text style={s.btnPrimaryText}>VOLVER AL INICIO</Text></Pressable>
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={T.bg} />
@@ -480,28 +586,45 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
         <View style={[s.layoutContainer, isWide && s.layoutContainerWide]}>
           {isWide && (
             <View style={s.leftHeroColumn}>
-              {/* 🎬 NODO ASOCIADO AL CAROUSEL DINÁMICO CON CROSS-FADE DE SERVICIOS VIRALES */}
-              <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: heroFade }]}>
+              {/* 🎬 NODO ASOCIADO AL CAROUSEL DINÁMICO CON CROSS-FADE DE SERVICIOS VIRALES Y ZOOM */}
+              <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: heroFade, transform: [{ scale: heroScale }] }]}>
                 <Image source={{ uri: HERO_GALLERY[heroImgIdx] }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
               </Animated.View>
-              <View style={s.heroDarkOverlay} /><View style={s.heroContentSticky}><View style={s.heroAccentLineRow}><View style={s.heroAccentLine} /><Text style={s.heroEyebrow}>PUBLICAR PROPIEDAD</Text></View><Text style={s.heroTitleText}>Publica tu{'\n'}propiedad <Text style={s.heroTitleItalic}>premium</Text></Text><Text style={s.heroDescText}>Llega de forma directa y exclusiva a miles de compradores e inversionistas calificados de alto valor.</Text></View>
+              {/* Degradado tipo viñeta premium integrado perfectamente con el navbar transparente */}
+              <LinearGradient colors={['#060606', 'rgba(6,6,6,0.3)', 'transparent']} style={[StyleSheet.absoluteFillObject, { height: '35%', top: 0 }]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
+              <LinearGradient colors={['transparent', 'rgba(10,10,10,0.20)', 'rgba(10,10,10,0.98)']} style={[StyleSheet.absoluteFillObject, { top: '50%' }]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
+              <LinearGradient colors={['transparent', 'rgba(10,10,10,0.6)', 'rgba(10,10,10,1)']} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} />
+              
+              <View style={s.heroContentSticky}><View style={s.heroAccentLineRow}><View style={s.heroAccentLine} /><Text style={s.heroEyebrow}>{t('vender_rentar_hero', {defaultValue: 'VENDER O RENTAR'})}</Text></View><Text style={s.heroTitleText}>{t('haz_tu_prop', {defaultValue: 'Haz que tu\npropiedad se vuelva'})} <Text style={s.heroTitleItalic}>{t('viral_italic', {defaultValue: 'viral'})}</Text></Text><Text style={s.heroDescText}>{t('hero_desc_ventas', {defaultValue: 'Publica de forma rápida y segura. Conecta directamente con miles de prospectos, compradores y arrendatarios potenciales.'})}</Text></View>
             </View>
           )}
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={[s.rightFormColumn, isWide && s.rightFormColumnWide, width <= 768 && { paddingTop: 20 }]} showsVerticalScrollIndicator={false}>
             <View style={s.wizardFormCard}>
-              <Text style={s.formMainHeading}>Alta de Inmueble</Text><Text style={s.formStepSubTitle}>{`Paso ${step} de 4`}</Text>
+              <Text style={s.formMainHeading}>{t('alta_inmueble', {defaultValue: 'Alta de Inmueble'})}</Text><Text style={s.formStepSubTitle}>{t('paso_x_de_4', {defaultValue: 'Paso {{step}} de 4', step})}</Text>
               
               <View style={s.progressRow}>
-                {WIZARD_STEPS.map((sItem, idx) => (
+                {WIZARD_STEPS.map((sItem, idx) => {
+                  const isHovered = hoveredStep === sItem.n;
+                  const canNavigate = true;
+                  const isValid = isStepValid(sItem.n);
+                  const isDoneOrActive = step === sItem.n || isValid;
+                  return (
                   <React.Fragment key={sItem.n}>
-                    <View style={s.progressStepUnit}>
-                      <View style={[s.progressCircle, step === sItem.n && s.progressCircleActive, step > sItem.n && s.progressCircleDone]}><Text style={[s.progressCircleText, step === sItem.n && s.progressCircleTextActive, step > sItem.n && s.progressCircleTextDone]}>{step > sItem.n ? '✓' : sItem.n}</Text></View>
-                      <Text style={[s.progressStepLabel, step >= sItem.n && s.progressStepLabelActive]}>{sItem.label}</Text>
-                    </View>
-                    {idx < WIZARD_STEPS.length - 1 && <View style={[s.progressLine, step > sItem.n && s.progressLineActive]} />}
+                    <Pressable 
+                      style={[s.progressStepUnit, isHovered && canNavigate && { transform: [{ scale: 1.05 }] }]}
+                      onPress={() => setStep(sItem.n)}
+                      onMouseEnter={() => Platform.OS === 'web' && setHoveredStep(sItem.n)}
+                      onMouseLeave={() => Platform.OS === 'web' && setHoveredStep(null)}
+                    >
+                      <View style={[s.progressCircle, step === sItem.n && s.progressCircleActive, isDoneOrActive && step !== sItem.n && s.progressCircleDone, isHovered && { borderColor: T.goldLight }]}>
+                        <Text style={[s.progressCircleText, step === sItem.n && s.progressCircleTextActive, isDoneOrActive && step !== sItem.n && s.progressCircleTextDone, isHovered && { color: T.goldLight }]}>{isValid && step !== sItem.n ? '✓' : sItem.n}</Text>
+                      </View>
+                      <Text style={[s.progressStepLabel, isDoneOrActive && s.progressStepLabelActive, isHovered && { color: T.goldLight }]}>{sItem.label}</Text>
+                    </Pressable>
+                    {idx < WIZARD_STEPS.length - 1 && <View style={[s.progressLine, isValid && s.progressLineActive]} />}
                   </React.Fragment>
-                ))}
+                )})}
               </View>
 
               {step === 1 && (
@@ -516,16 +639,26 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                     <WebMapContainer lat={form.lat ? parseFloat(form.lat) : null} lng={form.lng ? parseFloat(form.lng) : null} confirmed={mapaPinConfirmado} onChange={(la, ln) => setForm(prev => ({ ...prev, lat: String(la), lng: String(ln) }))} onConfirm={(la, ln, addr) => { setForm(prev => ({ ...prev, lat: String(la), lng: String(ln), ...addr })); setMapaPinConfirmado(true); }} />
                   )}
                   <View style={{ marginTop: 14 }}>
-                    <Counter label="RECÁMARAS" value={form.recamaras} onChange={v => set('recamaras', v)} min={1} />
-                    <Counter label="BAÑOS COMPLETOS" value={form.banos} onChange={v => set('banos', v)} min={1} />
-                    <Counter label="CAJONES DE ESTACIONAMIENTO" value={form.estacionamientos} onChange={v => set('estacionamientos', v)} min={0} />
+                    <Counter label={t('recamaras_label', {defaultValue: 'RECÁMARAS'})} value={form.recamaras} onChange={v => set('recamaras', v)} min={1} />
+                    <Counter label={t('banos_label', {defaultValue: 'BAÑOS COMPLETOS'})} value={form.banos} onChange={v => set('banos', v)} min={1} />
+                    <Counter label={t('estacionamientos_label', {defaultValue: 'CAJONES DE ESTACIONAMIENTO'})} value={form.estacionamientos} onChange={v => set('estacionamientos', v)} min={0} />
                   </View>
                   <View style={s.fieldGroup}>
-                    <Text style={s.fieldLabel}>ANTIGÜEDAD</Text>
+                    <Text style={s.fieldLabel}>{t('antiguedad_label', {defaultValue: 'ANTIGÜEDAD'})}</Text>
                     <View style={{ gap: 6 }}>
-                      {ANTIGUEDAD_OPTIONS.map(o => (
-                        <Pressable key={o.value} onPress={() => set('antiguedad', o.value)} style={[s.optionBtn, { width: '100%' }, form.antiguedad === o.value && s.optionBtnActive]}><Text style={[s.optionText, form.antiguedad === o.value && s.optionTextActive]}>{o.label}</Text></Pressable>
-                      ))}
+                      {ANTIGUEDAD_OPTIONS.map(o => {
+                        const isHovered = hoveredAntiguedad === o.value;
+                        return (
+                        <Pressable 
+                          key={o.value} 
+                          onPress={() => set('antiguedad', o.value)} 
+                          onMouseEnter={() => Platform.OS === 'web' && setHoveredAntiguedad(o.value)}
+                          onMouseLeave={() => Platform.OS === 'web' && setHoveredAntiguedad(null)}
+                          style={[s.optionBtn, { width: '100%' }, form.antiguedad === o.value && s.optionBtnActive, isHovered && s.btnInteractiveHover]}
+                        >
+                          <Text style={[s.optionText, form.antiguedad === o.value && s.optionTextActive]}>{o.label}</Text>
+                        </Pressable>
+                      )})}
                     </View>
                   </View>
                 </View>
@@ -533,9 +666,28 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
 
               {step === 2 && (
                 <View style={s.animatedStepContainer}>
-                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>TÍTULO EXCLUSIVO</Text><Text style={[s.liveCounterText, tituloCumple && s.liveCounterTextValid]}>{tituloLetras}/10</Text></View>
-                  <TextInput style={s.luxuryInput} placeholder="Ej. Bonita casa en el Reliz con bonita vista" placeholderTextColor={T.muted} value={form.titulo} onChangeText={v => set('titulo', v)} />
-                  <Text style={s.fieldLabel}>PRECIO EVALUADO ($)</Text>
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>{t('titulo_pub_label', {defaultValue: 'TÍTULO DE LA PUBLICACIÓN'})}</Text><Text style={[s.liveCounterText, tituloCumple && s.liveCounterTextValid]}>{tituloLetras}/10</Text></View>
+                  <TextInput style={s.luxuryInput} placeholder={t('ej_titulo', {defaultValue: 'Ej. Bonita casa en el Reliz con bonita vista'})} placeholderTextColor={T.muted} value={form.titulo} onChangeText={v => set('titulo', v)} />
+                  
+                  <View style={[s.fieldGroup, { marginTop: 4, marginBottom: 20 }]}>
+                    <Text style={s.fieldLabel}>{t('remate_bancario_q', {defaultValue: '¿ESTE INMUEBLE ESTÁ EN REMATE BANCARIO?'})}</Text>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <Pressable 
+                        onPress={() => set('remateBancario', false)}
+                        style={[s.optionBtn, form.remateBancario === false && s.optionBtnActive, { flex: 1 }]}
+                      >
+                        <Text style={[s.optionText, form.remateBancario === false && s.optionTextActive]}>{t('no_remate', {defaultValue: 'NO'})}</Text>
+                      </Pressable>
+                      <Pressable 
+                        onPress={() => set('remateBancario', true)}
+                        style={[s.optionBtn, form.remateBancario === true && s.optionBtnActive, { flex: 1 }]}
+                      >
+                        <Text style={[s.optionText, form.remateBancario === true && s.optionTextActive]}>{t('si_remate', {defaultValue: 'SÍ, ES REMATE'})}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <Text style={s.fieldLabel}>{t('precio_label', {defaultValue: 'PRECIO EVALUADO ($)'})}</Text>
                   <View style={s.hybridInputSelectorBox}>
                     <TextInput style={[s.luxuryInput, { flex: 1, marginBottom: 0 }]} placeholder="0,000,000" placeholderTextColor={T.muted} value={form.precio} onChangeText={formatearPrecio} keyboardType="numeric" maxLength={15} />
                     <View style={s.currencyToggleWrapper}>
@@ -544,15 +696,25 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                       ))}
                     </View>
                   </View>
-                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>SUPERFICIE TOTAL M²</Text><Text style={s.liveCounterText}>Max. 9,999 m²</Text></View>
-                  <TextInput style={s.luxuryInput} placeholder="Ej. 150" placeholderTextColor={T.muted} value={form.superficie} onChangeText={procesarSuperficie} keyboardType="numeric" maxLength={4} />
-                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>DESCRIPCIÓN EDITORIAL COMPLETA</Text><Text style={[s.liveCounterText, descCumple && s.liveCounterTextValid]}>{descLetras}/20</Text></View>
-                  <TextInput style={[s.luxuryInput, s.luxuryTextArea]} placeholder="Ej. Bonita casa en el Reliz con bonita vista, amplios espacios modernos, seguridad las 24 horas y acabados de lujo." placeholderTextColor={T.muted} value={form.descripcion} onChangeText={v => set('descripcion', v)} multiline numberOfLines={4} />
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>{t('superficie_label', {defaultValue: 'SUPERFICIE TOTAL M²'})}</Text><Text style={s.liveCounterText}>{t('max_m2', {defaultValue: 'Max. 9,999 m²'})}</Text></View>
+                  <TextInput style={s.luxuryInput} placeholder={t('ej_superficie', {defaultValue: 'Ej. 150'})} placeholderTextColor={T.muted} value={form.superficie} onChangeText={procesarSuperficie} keyboardType="numeric" maxLength={4} />
+                  <View style={s.labelRowBetween}><Text style={s.fieldLabel}>{t('descripcion_label', {defaultValue: 'DESCRIPCIÓN EDITORIAL COMPLETA'})}</Text><Text style={[s.liveCounterText, descCumple && s.liveCounterTextValid]}>{descLetras}/20</Text></View>
+                  <TextInput style={[s.luxuryInput, s.luxuryTextArea]} placeholder={t('ej_desc', {defaultValue: 'Ej. Bonita casa en el Reliz con bonita vista, amplios espacios modernos, seguridad las 24 horas y acabados de lujo.'})} placeholderTextColor={T.muted} value={form.descripcion} onChangeText={v => set('descripcion', v)} multiline numberOfLines={4} />
                   <View style={s.fieldGroup}>
-                    <Text style={s.fieldLabel}>GALERÍA DE IMÁGENES PRESTIGE</Text>
+                    <Text style={s.fieldLabel}>{t('galeria_label', {defaultValue: 'GALERÍA DE IMÁGENES PRESTIGE'})}</Text>
                     <View style={s.fotosFlexGrid}>
                       {fotos.map((f, i) => (
-                        <View key={f.id} style={s.fotoPreviewBox}>
+                        <View 
+                          key={f.id} 
+                          style={[s.fotoPreviewBox, draggedIdx === i && { opacity: 0.4, transform: [{ scale: 0.95 }] }]}
+                          {...(Platform.OS === 'web' ? {
+                            draggable: true,
+                            onDragStart: (e) => handleDragStart(e, i),
+                            onDragOver: handleDragOver,
+                            onDrop: (e) => handleDrop(e, i),
+                            onDragEnd: () => setDraggedIdx(null)
+                          } : {})}
+                        >
                           <Image source={{ uri: f.uri }} style={s.fotoImg} />{i === 0 && <Text style={s.coverBadge}>PORTADA</Text>}
                           
                           <View style={s.photoSorterOverlayRow}>
@@ -582,14 +744,17 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
 
               {step === 4 && (
                 <View style={s.animatedStepContainer}>
-                  <Text style={s.fieldLabel}>CAMPOS DIGITALES VIRALES SOLICITADOS</Text>
+                  <Text style={s.fieldLabel}>{t('servicios_virales_label', {defaultValue: 'SERVICIOS VIRALES'})}</Text>
                   <View style={{ gap: 10, marginBottom: 20 }}>
                     {SERVICIOS_VIRALES.map(sv => {
                       const isSelected = form.servicios.includes(sv.key); const isExpanded = expandedServices.includes(sv.key);
                       return (
                         <View key={sv.key} style={[s.accordionCardContainer, isSelected && s.accordionCardContainerActive]}>
                           <Pressable onPress={() => toggleAccordionView(sv.key)} style={s.accordionHeaderRow}>
-                            <View style={s.accordionLeftInfo}><Text style={s.accordionIconText}>{sv.icon}</Text><Text style={s.accordionTitleText}>{sv.titulo}</Text></View>
+                            <View style={s.accordionLeftInfo}>
+                              <Feather name={sv.icon} size={20} color={T.gold} style={{marginRight: 12}} />
+                              <Text style={s.accordionTitleText}>{sv.titulo}</Text>
+                            </View>
                             <View style={s.accordionRightControls}>
                               
                               {/* BADGE DE ACCIÓN INTERACTIVO "+ INCLUIR" CON ESCALADO EN HOVER */}
@@ -612,7 +777,7 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                             </View>
                           </Pressable>
                           {isExpanded && (
-                            <View style={s.accordionBodyContent}>
+                            <FadeInView style={s.accordionBodyContent}>
                               <View style={s.accordionDividerLine} /><Text style={s.accordionDescText}>{sv.desc}</Text>
                               <View style={s.accordionPriceRow}>
                                 <Text style={s.accordionPriceLabel}>INVERSIÓN ESTIMADA:</Text>
@@ -621,7 +786,7 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                                   {sv.key === 'asesor' ? 'GRATIS' : 'Nos comunicaremos contigo dependiendo de los requerimientos y el tamaño de la propiedad.'}
                                 </Text>
                               </View>
-                            </View>
+                            </FadeInView>
                           )}
                         </View>
                       );
@@ -642,11 +807,11 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                 {step > 1 && !enviando && (
                   <Pressable 
                     onPress={() => setStep(sVal => sVal - 1)} 
-                    onMouseEnter={() => Platform.OS === 'web' && setHoverPrevState(true)}
-                    onMouseLeave={() => Platform.OS === 'web' && setHoverPrevState(false)}
+                    onMouseEnter={() => Platform.OS === 'web' && setHoverPrev(true)}
+                    onMouseLeave={() => Platform.OS === 'web' && setHoverPrev(false)}
                     style={[s.btnSecondary, hoverPrev && s.btnInteractiveHover]}
                   >
-                    <Text style={s.btnSecondaryText}>Atrás</Text>
+                    <Text style={s.btnSecondaryText}>{t('atras_btn', {defaultValue: 'Atrás'})}</Text>
                   </Pressable>
                 )}
                 
@@ -679,6 +844,47 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      
+      {enviado && (
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 9999, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          {Platform.OS === 'web' && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backdropFilter: 'blur(10px)' }} />}
+          <View style={{ backgroundColor: '#111110', padding: 40, borderRadius: 16, width: '90%', maxWidth: 450, borderWidth: 1, borderColor: T.gold, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 }}>
+            <Feather name="check-circle" size={48} color={T.gold} style={{ marginBottom: 20 }} />
+            <Text style={{ color: T.text, fontSize: 24, fontFamily: T.sans, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
+              {t('prop_publicada_exito', {defaultValue: '¡PROPIEDAD PUBLICADA CON ÉXITO!'})}
+            </Text>
+            <Text style={{ color: '#aaa', fontSize: 14, fontFamily: T.sans, textAlign: 'center', marginBottom: 30, lineHeight: 22 }}>
+              {t('prop_publicada_desc', {defaultValue: 'Tu inmueble ha sido integrado a la red InmoViral con altos estándares de calidad. Pronto será visible para prospectos en todo el país.'})}
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 15, width: '100%' }}>
+              <Pressable
+                onPress={() => {
+                  if (onVerPropiedadPublicada && propiedadPublicadaId) {
+                    onVerPropiedadPublicada(propiedadPublicadaId);
+                  } else {
+                    onVolver();
+                  }
+                }} 
+                onMouseEnter={() => Platform.OS === 'web' && setHoverBtnSuccess(true)}
+                onMouseLeave={() => Platform.OS === 'web' && setHoverBtnSuccess(false)}
+                style={[{ flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: T.gold }, hoverBtnSuccess && { backgroundColor: 'rgba(160, 120, 64, 0.1)' }]}
+              >
+                <Text style={{ color: T.gold, fontSize: 13, fontFamily: T.sans, fontWeight: 'bold' }}>VER PUBLICACIÓN</Text>
+              </Pressable>
+              
+              <Pressable
+                onPress={() => { setEnviado(false); }} 
+                onMouseEnter={() => Platform.OS === 'web' && setHoverBtnSuccess2(true)}
+                onMouseLeave={() => Platform.OS === 'web' && setHoverBtnSuccess2(false)}
+                style={[{ flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center', backgroundColor: T.gold }, hoverBtnSuccess2 && { backgroundColor: T.goldHover }]}
+              >
+                <Text style={{ color: '#fff', fontSize: 13, fontFamily: T.sans, fontWeight: 'bold' }}>EDITAR PROPIEDAD</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -687,8 +893,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   layoutContainer: { flex: 1, flexDirection: 'column' },
   layoutContainerWide: { flexDirection: 'row' },
-  leftHeroColumn: { flex: 1, position: 'relative', justifyContent: 'center', padding: 56 },
-  heroDarkOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,16,10,0.82)' },
+  leftHeroColumn: { flex: 1, position: 'relative', justifyContent: 'center', padding: 56, overflow: 'hidden' },
   heroContentSticky: { zIndex: 10, maxWidth: 450 },
   heroAccentLineRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
   heroAccentLine: { width: 40, height: 1, backgroundColor: T.gold },
@@ -802,5 +1007,19 @@ const s = StyleSheet.create({
   btnSuccessBack: { width: '100%', maxWidth: 260, paddingVertical: 14, backgroundColor: T.gold, justifyContent: 'center', alignItems: 'center', minHeight: 48, borderRadius: 0 },
   successServiceBadgeBox: { padding: 18, backgroundColor: 'rgba(160,120,64,0.06)', borderWidth: 1, borderColor: T.gold, maxWidth: 460, marginBottom: 28 },
   successServiceBadgeText: { color: T.text, fontSize: 12, lineHeight: 20, fontFamily: T.sans, textAlign: 'center', fontWeight: '300' },
-  webMapFrame: { width: '100%', height: 280, borderWidth: 1, backgroundColor: '#141412', overflow: 'hidden' }
+  webMapFrame: { width: '100%', height: 280, borderWidth: 1, backgroundColor: '#141412', overflow: 'hidden' },
+  mapOverlayBadge: {
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(10, 10, 10, 0.9)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(160, 120, 64, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  }
 });

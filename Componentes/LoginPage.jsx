@@ -118,6 +118,14 @@ export default function LoginPage({ onVolver }) {
               : 'Please enter your email address.'
           );
         }
+        if (!email.includes('@')) {
+          setFieldErrors({ email: true });
+          throw new Error(
+            esES
+              ? 'Por favor, ingresa un correo electrónico válido.'
+              : 'Please enter a valid email address.'
+          );
+        }
         const redirectUrl = Platform.OS === 'web' ? window.location.origin : undefined;
         const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
@@ -135,6 +143,14 @@ export default function LoginPage({ onVolver }) {
         if (Object.keys(errs).length) {
           setFieldErrors(errs);
           throw new Error(esES ? 'Completa todos los campos.' : 'Please fill in all fields.');
+        }
+        if (!email.includes('@')) {
+          setFieldErrors({ email: true });
+          throw new Error(
+            esES
+              ? 'Por favor, ingresa un correo electrónico válido.'
+              : 'Please enter a valid email address.'
+          );
         }
         const { error: err } = await signIn(email, password);
         if (err) throw err;
@@ -154,6 +170,14 @@ export default function LoginPage({ onVolver }) {
             esES
               ? 'Por favor completa todos los campos y acepta los términos.'
               : 'Please complete all fields and accept the terms.'
+          );
+        }
+        if (!email.includes('@')) {
+          setFieldErrors({ email: true });
+          throw new Error(
+            esES
+              ? 'Por favor, ingresa un correo electrónico válido.'
+              : 'Please enter a valid email address.'
           );
         }
         const { error: err } = await supabase.auth.signUp({

@@ -80,11 +80,26 @@
   "process": {
     "label": "CÓMO TRABAJAMOS",
     "title": "NUESTRO PROCESO",
-    "consulta": { "t": "Consulta", "d": "Analizamos tus objetivos, evaluamos tu presupuesto y comprendemos tu visión." },
-    "busqueda": { "t": "Búsqueda de Propiedad", "d": "Curamos una selección personalizada de propiedades que coinciden con tus criterios." },
-    "diligence": { "t": "Due Diligence", "d": "Realizamos un análisis exacto y verificación de cada propiedad." },
-    "negociacion": { "t": "Negociación", "d": "Negociación profesional y cierre sin contratiempos por parte de nuestro equipo experto." },
-    "soporte": { "t": "Soporte Post-Venta", "d": "5 años de soporte continuo y orientación después de cada transacción." }
+    "consulta": {
+      "t": "Consulta",
+      "d": "Analizamos tus objetivos, evaluamos tu presupuesto y comprendemos tu visión."
+    },
+    "busqueda": {
+      "t": "Búsqueda de Propiedad",
+      "d": "Curamos una selección personalizada de propiedades que coinciden con tus criterios."
+    },
+    "diligence": {
+      "t": "Due Diligence",
+      "d": "Realizamos un análisis exacto y verificación de cada propiedad."
+    },
+    "negociacion": {
+      "t": "Negociación",
+      "d": "Negociación profesional y cierre sin contratiempos por parte de nuestro equipo experto."
+    },
+    "soporte": {
+      "t": "Soporte Post-Venta",
+      "d": "5 años de soporte continuo y orientación después de cada transacción."
+    }
   },
   "testimonials": {
     "label": "RESEÑAS DE CLIENTES",
@@ -150,7 +165,6 @@
   "register_caption": "\"Cada propiedad es una solución a medida, diseñada en torno a la visión del cliente.\"",
   "login_success_msg": "¡Sesión iniciada correctamente!",
   "register_success_msg": "¡Cuenta creada exitosamente! Revisa tu lista de usuarios.",
-  
   "vd_back": "VOLVER AL INICIO",
   "props_renta_eyebrow": "COLECCIÓN EXCLUSIVA",
   "props_renta_title_1": "Propiedades",
@@ -249,7 +263,6 @@
   "vp_click_zoom": "AGRANDAR FOTO",
   "vp_area": "Superficie",
   "vp_years": "Años",
-
   "reviews": {
     "page_label": "RESEÑAS DE CLIENTES",
     "page_title": "LA OPINIÓN DE NUESTROS CLIENTES",
@@ -273,7 +286,6 @@
     "success_deleted": "Reseña eliminada.",
     "error_generic": "Ocurrió un error. Intenta de nuevo."
   },
-
   "chat": {
     "title": "Mensajes",
     "no_conversations": "No tienes conversaciones aún.",
@@ -291,7 +303,6 @@
     "no_messages": "Envía un mensaje para comenzar la conversación.",
     "chat_created": "Conversación iniciada."
   },
-
   "profile": {
     "page_title": "Mi Perfil",
     "section_personal": "Datos Personales",
@@ -311,7 +322,6 @@
     "delete_confirm": "¿Estás seguro? Esta acción no se puede deshacer.",
     "delete_btn": "ELIMINAR MI CUENTA"
   },
-
   "settings": {
     "page_title": "Configuración",
     "section_language": "Idioma",
@@ -330,7 +340,62 @@
     "app_name": "INMOVIRAL App",
     "save_btn": "GUARDAR CONFIGURACIÓN",
     "save_success": "Configuración guardada."
-  }
+  },
+  "ubicacion": "Ubicación",
+  "detalles": "Detalles",
+  "amenidades": "Amenidades",
+  "servicios": "Servicios",
+  "alta_inmueble": "Alta de Inmueble",
+  "paso_x_de_4": "Paso {{step}} de 4",
+  "tipo_propiedad_label": "TIPO DE PROPIEDAD",
+  "operacion_label": "OPERACIÓN",
+  "ubicacion_aprox_label": "UBICACIÓN APROXIMADA (ZONA O CIUDAD)",
+  "ej_reliz": "Ej. El Reliz, Chihuahua",
+  "calle_numero_label": "CALLE Y NÚMERO (Opcional)",
+  "ej_calle": "Ej. Av. Teófilo Borunda 1204",
+  "colonia_label": "COLONIA / SECTOR (Opcional)",
+  "ej_colonia": "Ej. Diamante Reliz",
+  "cp_label": "CÓDIGO POSTAL (Opcional)",
+  "ej_cp": "Ej. 31203",
+  "selecciona_mapa": "SELECCIONA EN EL MAPA / ARRASTRA EL PIN",
+  "confirma_mapa": "Confirma la ubicación arrastrando el pin hasta el punto exacto. (Solo Web)",
+  "recamaras_label": "RECÁMARAS",
+  "banos_label": "BAÑOS COMPLETOS",
+  "estacionamientos_label": "CAJONES DE ESTACIONAMIENTO",
+  "antiguedad_label": "ANTIGÜEDAD",
+  "titulo_pub_label": "TÍTULO DE LA PUBLICACIÓN",
+  "ej_titulo": "Ej. Bonita casa en el Reliz con bonita vista",
+  "remate_bancario_q": "¿ESTE INMUEBLE ESTÁ EN REMATE BANCARIO?",
+  "si_remate": "SÍ, ES REMATE",
+  "no_remate": "NO",
+  "precio_label": "PRECIO EVALUADO ($)",
+  "superficie_label": "SUPERFICIE TOTAL M²",
+  "max_m2": "Max. 9,999 m²",
+  "ej_superficie": "Ej. 150",
+  "descripcion_label": "DESCRIPCIÓN EDITORIAL COMPLETA",
+  "ej_desc": "Ej. Bonita casa en el Reliz con bonita vista, amplios espacios modernos, seguridad las 24 horas y acabados de lujo.",
+  "galeria_label": "GALERÍA DE IMÁGENES PRESTIGE",
+  "arrastra_reordenar": "Arrastra para reordenar",
+  "seleccionar_fotos": "Seleccionar fotos premium...",
+  "max_15_img": "Máximo 15 imágenes.",
+  "primera_portada": "(La primera imagen será la portada)",
+  "amenidades_incluidas_label": "AMENIDADES INCLUIDAS",
+  "servicios_virales_label": "SERVICIOS VIRALES OPCIONALES",
+  "datos_propietario_label": "DATOS DEL PROPIETARIO O REPRESENTANTE",
+  "nombre_completo_label": "NOMBRE COMPLETO",
+  "ej_nombre": "Ej. Roberto García",
+  "tel_contacto_label": "TELÉFONO DE CONTACTO (PÚBLICO)",
+  "ej_telefono": "Ej. 614 123 4567",
+  "siguiente_btn": "SIGUIENTE",
+  "atras_btn": "ATRÁS",
+  "publicar_prop_btn": "PUBLICAR PROPIEDAD",
+  "guardar_cambios_btn": "GUARDAR CAMBIOS",
+  "publicando_btn": "Publicando...",
+  "volver_inicio_btn": "VOLVER AL INICIO",
+  "prop_publicada_exito": "¡PROPIEDAD PUBLICADA CON ÉXITO!",
+  "prop_publicada_desc": "Tu inmueble ha sido integrado a la red InmoViral con altos estándares de calidad. Pronto será visible para prospectos en todo el país.",
+  "vender_rentar_hero": "VENDER O RENTAR",
+  "haz_tu_prop": "Haz que tu\npropiedad se vuelva",
+  "viral_italic": "viral",
+  "hero_desc_ventas": "Publica de forma rápida y segura. Conecta directamente con miles de prospectos, compradores y arrendatarios potenciales."
 }
-
-

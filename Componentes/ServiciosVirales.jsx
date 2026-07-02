@@ -477,11 +477,11 @@ export default function ServiciosVirales({ onIrLogin, onVolver }) {
         {onVolver && (
           <Pressable 
             onPress={onVolver}
-            onHoverIn={() => Platform.OS === 'web' && setHoveredBack(true)}
-            onHoverOut={() => Platform.OS === 'web' && setHoveredBack(false)}
-            style={[styles.luxeBackButton, hoveredBack && { borderColor: C.gold }]}
+            onMouseEnter={() => Platform.OS === 'web' && setHoveredBack(true)}
+            onMouseLeave={() => Platform.OS === 'web' && setHoveredBack(false)}
+            style={[styles.luxeBackButton, hoveredBack && { borderColor: C.gold, backgroundColor: 'rgba(160,120,64,0.15)', transform: [{ scale: 1.02 }] }]}
           >
-            <Text style={[styles.luxeBackButtonText, hoveredBack && { color: C.gold }]}>← {t('vd_back')}</Text>
+            <Text style={[styles.luxeBackButtonText, hoveredBack && { color: C.gold }]}>← {t('vd_back', { defaultValue: 'VOLVER AL MENÚ DE INICIO' })}</Text>
           </Pressable>
         )}
 
