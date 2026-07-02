@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -80,7 +81,7 @@ function DrawerSection({ label, children }) {
 /* ─────────────────────────────────────────────
    COMPONENTE: BOTÓN DE CERRAR "X"
    ───────────────────────────────────────────── */
-function CloseButton({ onPress }) {
+function CloseButton({ onPress, isMobile }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -88,9 +89,17 @@ function CloseButton({ onPress }) {
       onPress={onPress}
       onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
       onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
-      style={[S.closeButton, hovered && { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+      style={[
+        S.closeButton,
+        hovered && { backgroundColor: 'rgba(255,255,255,0.05)' },
+        isMobile ? {
+          position: 'absolute',
+          top: (Platform.OS === 'web' ? 24 : 24 + (Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24))) + 2,
+          right: 38,
+        } : {}
+      ]}
     >
-      <Feather name="x" size={20} color={hovered ? T.text : T.textMuted} />
+      <Feather name="x" size={24} color={hovered ? T.text : T.textMuted} />
     </Pressable>
   );
 }
@@ -237,12 +246,12 @@ export default function UserMenu({
                 <Text style={S.avatarText}>{obtenerIniciales()}</Text>
               )}
             </View>
-            <View style={S.userInfo}>
+            <View style={[S.userInfo, !isWide && { marginRight: 36 }]}>
               <Text style={S.userName} numberOfLines={1}>{obtenerNombreUsuario()}</Text>
               <Text style={S.userRole} numberOfLines={1}>{user?.email || ''}</Text>
             </View>
           </View>
-          <CloseButton onPress={onClose} />
+          <CloseButton onPress={onClose} isMobile={!isWide} />
         </View>
 
         {/* CONTENIDO SCROLLABLE */}
@@ -407,7 +416,8 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingTop: Platform.OS === 'web' ? 24 : 24 + (Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24)),
+    paddingBottom: 24,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
@@ -456,9 +466,9 @@ const S = StyleSheet.create({
     fontFamily: T.sans,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',

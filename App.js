@@ -132,6 +132,18 @@ const TICKER_PHRASES = [
   'CONFIDENTIAL NEGOTIATIONS',
 ];
 
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24);
+const safeTopPadding = Platform.OS === 'web' ? 0 : STATUS_BAR_HEIGHT;
+
+const formatPrecioHome = (num) => {
+  if (num === null || num === undefined) return '0';
+  const val = Number(num);
+  if (isNaN(val)) return '0';
+  if (val >= 1e12) {
+    return val.toExponential(2);
+  }
+  return val.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+};
 
 /* ─────────────────────────────────────────────
    COMPONENTE DE APLICACIÓN PRINCIPAL
@@ -201,7 +213,7 @@ function MainApp() {
 
   const navPaddingTop = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [20, 14],
+    outputRange: [20 + safeTopPadding, 14 + safeTopPadding],
     extrapolate: 'clamp',
   });
 
@@ -211,11 +223,21 @@ function MainApp() {
     extrapolate: 'clamp',
   });
 
-  const animatedNavBarStyle = {
+  const animatedNavBarStyle = esPantallaGrande ? {
     backgroundColor: vista === 'home' ? navBgColor : '#0C0C0C',
     borderBottomColor: vista === 'home' ? navBorderColor : 'rgba(160, 120, 64, 0.15)',
-    paddingTop: vista === 'home' ? navPaddingTop : 14,
+    paddingTop: vista === 'home' ? navPaddingTop : 14 + safeTopPadding,
     paddingBottom: vista === 'home' ? navPaddingBottom : 14,
+  } : {
+    position: 'relative',
+    top: undefined,
+    left: undefined,
+    right: undefined,
+    width: '100%',
+    backgroundColor: '#0C0C0C',
+    borderBottomColor: 'rgba(160, 120, 64, 0.15)',
+    paddingTop: 8,
+    paddingBottom: 8,
   };
 
   const handleScroll = Animated.event(
@@ -264,6 +286,12 @@ function MainApp() {
   }, [vista]);
 
   useEffect(() => {
+    if (user && vista === 'login') {
+      setVista('home');
+    }
+  }, [user, vista]);
+
+  useEffect(() => {
     const loopAnimation = () => {
       tickerValue.setValue(0);
       Animated.timing(tickerValue, { toValue: -1200, duration: 32000, easing: Easing.linear, useNativeDriver: Platform.OS !== 'web' }).start(() => loopAnimation());
@@ -291,8 +319,10 @@ function MainApp() {
   }, []);
 
   const renderNavbar = () => (
-    <Animated.View style={[styles.navBar, animatedNavBarStyle]}>
-      <TouchableOpacity onPress={() => setVista('home')}><Text style={styles.logoText}>INMOVIRAL</Text></TouchableOpacity>
+    <Animated.View style={[styles.navBar, animatedNavBarStyle, !esPantallaGrande && { paddingHorizontal: 12 }]}>
+      <TouchableOpacity onPress={() => setVista('home')}>
+        <Text style={[styles.logoText, !esPantallaGrande && { fontSize: 16, letterSpacing: 3 }]}>INMOVIRAL</Text>
+      </TouchableOpacity>
 
       {esPantallaGrande && (
         <View style={styles.navLinksRow}>
@@ -311,16 +341,16 @@ function MainApp() {
         </View>
       )}
 
-      <View style={styles.navActions}>
+      <View style={[styles.navActions, !esPantallaGrande && { gap: 8 }]}>
         {user ? (
-          <View style={styles.navAuthenticatedRow}>
-
+          <View style={[styles.navAuthenticatedRow, !esPantallaGrande && { gap: 8 }]}>
             {/* 🚀 BOTÓN AL LADO DEL AVATAR CON CAMBIO A GRIS AUTOMÁTICO */}
             <TouchableOpacity
               style={[
                 styles.navPublishBtn,
                 hoveredPublishNav && styles.navPublishBtnHover,
-                vista === 'vendedor' && styles.navPublishBtnActive
+                vista === 'vendedor' && styles.navPublishBtnActive,
+                !esPantallaGrande && { paddingHorizontal: 8, marginRight: 0 }
               ]}
               disabled={vista === 'vendedor'}
               onPress={() => setVista('vendedor')}
@@ -331,17 +361,19 @@ function MainApp() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Feather
                   name="plus"
-                  size={11}
+                  size={12}
                   color={vista === 'vendedor' ? '#525252' : hoveredPublishNav ? '#C39B5F' : '#A07840'}
-                  style={{ marginRight: 5 }}
                 />
-                <Text style={[
-                  styles.navPublishBtnText,
-                  hoveredPublishNav && styles.navPublishBtnTextHover,
-                  vista === 'vendedor' && styles.navPublishBtnTextActive
-                ]}>
-                  {idiomaActual.startsWith('es') ? 'PUBLICAR' : 'PUBLISH'}
-                </Text>
+                {esPantallaGrande && (
+                  <Text style={[
+                    styles.navPublishBtnText,
+                    hoveredPublishNav && styles.navPublishBtnTextHover,
+                    vista === 'vendedor' && styles.navPublishBtnTextActive,
+                    { marginLeft: 5 }
+                  ]}>
+                    {idiomaActual.startsWith('es') ? 'PUBLICAR' : 'PUBLISH'}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
 
@@ -352,7 +384,7 @@ function MainApp() {
                 <Text style={styles.navAvatarText}>{obtenerIniciales()}</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.hamMenuButtonAuthenticated} onPress={() => setUserMenuAbierto(true)}>
+            <TouchableOpacity style={styles.hamMenuButtonAuthenticated} onPress={() => esPantallaGrande ? setUserMenuAbierto(true) : setMobileNavAbierto(true)}>
               <Text style={styles.hamMenuButtonIcon}>☰</Text>
             </TouchableOpacity>
           </View>
@@ -362,9 +394,14 @@ function MainApp() {
               <Text style={[styles.btnCtaText, hoveredLogin && styles.btnCtaHoverText]}>{t('navbar.login')}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.hamMenuButton} onPress={() => setMobileNavAbierto(true)}>
-              <Text style={styles.hamMenuButtonIcon}>☰</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity style={styles.btnCtaMobile} onPress={() => setVista('login')}>
+                <Text style={styles.btnCtaMobileText}>{t('navbar.login')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.hamMenuButton} onPress={() => setMobileNavAbierto(true)}>
+                <Text style={styles.hamMenuButtonIcon}>☰</Text>
+              </TouchableOpacity>
+            </View>
           )
         )}
 
@@ -379,7 +416,7 @@ function MainApp() {
   // La función renderUserMenuDrawer() ha sido eliminada y modularizada en el componente UserMenu.jsx
 
   const renderLuxuryMobileMenu = () => {
-    if (!mobileNavAbierto) return null;
+    if (!mobileNavAbierto || esPantallaGrande) return null;
     return (
       <View style={styles.luxuryOverlayMenu}>
         <SafeAreaView style={{ flex: 1 }}>
@@ -398,6 +435,7 @@ function MainApp() {
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('renta')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>02</Text><Text style={[styles.luxuryMenuLinkText, vista === 'renta' && styles.luxuryActiveLink]}>{t('navbar.rent')}</Text></View></TouchableOpacity>
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('servicios')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>03</Text><Text style={[styles.luxuryMenuLinkText, vista === 'servicios' && styles.luxuryActiveLink]}>{t('navbar.services')}</Text></View></TouchableOpacity>
             <TouchableOpacity style={styles.luxuryMenuLinkWrap} onPress={() => navegacionMovil('nosotros')}><View style={styles.luxuryMenuFlexRow}><Text style={styles.luxuryMenuIndex}>04</Text><Text style={[styles.luxuryMenuLinkText, vista === 'nosotros' && styles.luxuryActiveLink]}>{t('navbar.about')}</Text></View></TouchableOpacity>
+
           </View>
         </SafeAreaView>
       </View>
@@ -545,27 +583,62 @@ function MainApp() {
       >
 
         {/* ══ 1. HERO ══ */}
-        <View style={styles.heroSection}>
+        <View style={[styles.heroSection, width <= 768 && { height: undefined, minHeight: 650, paddingVertical: 100 }]}>
           <Image source={{ uri: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1800&q=85" }} style={styles.heroBg} />
           <View style={styles.heroOverlay} />
           <View style={styles.heroBody}>
             <Text style={styles.heroTag}>{t('hero.tag')}</Text>
-            <Text style={styles.heroTitle}>
+            <Text style={[styles.heroTitle, { fontSize: width > 768 ? 56 : 28, lineHeight: width > 768 ? 72 : 42 }]}>
               {t('hero.title_part1')}{'\n'}
               <Text style={styles.heroTitleItalic}>{t('hero.title_italic')}</Text> {'\n'}
               {t('hero.title_part2')}
             </Text>
             <Text style={styles.heroDesc}>{t('hero.description')}</Text>
-            <View style={styles.heroActionsRow}>
-              <TouchableOpacity style={[styles.btnPrimary, hoveredHeroBtn && styles.btnPrimaryHovered]} onPress={() => setVista('venta')} onMouseEnter={() => setHoveredHeroBtn(true)} onMouseLeave={() => setHoveredHeroBtn(false)}>
-                <Text style={styles.btnTextBlack}>{t('hero.cta_portfolio')}</Text>
+            <View style={[
+              styles.heroActionsRow,
+              !esPantallaGrande && {
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                gap: 12,
+                width: '100%'
+              }
+            ]}>
+              <TouchableOpacity
+                style={[
+                  styles.btnPrimary,
+                  hoveredHeroBtn && styles.btnPrimaryHovered,
+                  !esPantallaGrande && { width: '100%', alignItems: 'center', paddingVertical: 14 }
+                ]}
+                onPress={() => setVista('venta')}
+                onMouseEnter={() => setHoveredHeroBtn(true)}
+                onMouseLeave={() => setHoveredHeroBtn(false)}
+              >
+                <Text style={[styles.btnTextBlack, { textAlign: 'center' }]}>{t('hero.cta_portfolio')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.btnGhost} onPress={() => setVista('servicios')}>
-                <Text style={styles.btnTextWhite}>{t('hero.cta_clients')}</Text>
+              <TouchableOpacity
+                style={[
+                  styles.btnGhost,
+                  !esPantallaGrande && { width: '100%', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', paddingVertical: 14 }
+                ]}
+                onPress={() => setVista('servicios')}
+              >
+                <Text style={[styles.btnTextWhite, { textAlign: 'center' }]}>{t('hero.cta_clients')}</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.heroCounterBar}>
+          <View style={[
+            styles.heroCounterBar,
+            width <= 768 && {
+              position: 'relative',
+              bottom: undefined,
+              left: undefined,
+              right: undefined,
+              marginTop: 40,
+              flexDirection: 'row',
+              justifyContent: 'space-around',
+              gap: 16
+            }
+          ]}>
             <View style={styles.hcItem}><Text style={styles.hcNum}>0{countYears}</Text><Text style={styles.hcLabel}>{t('hero.counter_years')}</Text></View>
             <View style={styles.hcItem}><Text style={styles.hcNum}>{countProps}+</Text><Text style={styles.hcLabel}>{t('hero.counter_sold')}</Text></View>
             <View style={styles.hcItem}><Text style={styles.hcNum}>5</Text><Text style={styles.hcLabel}>{t('hero.counter_satisfied')}</Text></View>
@@ -593,7 +666,7 @@ function MainApp() {
               { id: 3, json_base: 'features.investment', svg: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /> },
               { id: 4, json_base: 'features.advisory', svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /> }
             ].map((feat, idx) => (
-              <View key={feat.id} style={[styles.featureItem, hoveredFeatureIdx === idx && styles.featureItemHovered]} onMouseEnter={() => setHoveredFeatureIdx(idx)} onMouseLeave={() => setHoveredFeatureIdx(null)}>
+              <View key={feat.id} style={[styles.featureItem, { width: width > 1024 ? '23%' : width > 640 ? '47%' : '100%' }, hoveredFeatureIdx === idx && styles.featureItemHovered]} onMouseEnter={() => setHoveredFeatureIdx(idx)} onMouseLeave={() => setHoveredFeatureIdx(null)}>
                 <Text style={styles.featureNum}>0{feat.id}</Text>
                 <View style={styles.featureIconWrap}>
                   {Platform.OS === 'web' ? (
@@ -624,7 +697,7 @@ function MainApp() {
               return (
                 <TouchableOpacity
                   key={prop.id}
-                  style={styles.propCardItem}
+                  style={[styles.propCardItem, { width: width > 1024 ? '31%' : width > 640 ? '47%' : '100%' }]}
                   onPress={() => irAPropiedad(prop.id)}
                   onMouseEnter={() => Platform.OS === 'web' && setHoveredPropertyId(prop.id)}
                   onMouseLeave={() => Platform.OS === 'web' && setHoveredPropertyId(null)}
@@ -651,7 +724,7 @@ function MainApp() {
                       {prop.titulo}
                     </Text>
                     <Text style={styles.propCardPrice}>
-                      ${parseFloat(prop.price || prop.precio || 0).toLocaleString()} MXN
+                      ${formatPrecioHome(prop.price || prop.precio)} MXN
                     </Text>
                     <Text style={styles.propCardLocation} numberOfLines={1}>
                       📍 {prop.ubicacion}
@@ -827,6 +900,20 @@ const styles = StyleSheet.create({
   btnCtaHover: { backgroundColor: '#A07840', borderColor: '#A07840' },
   btnCtaText: { color: '#A07840', fontSize: 11, fontWeight: '400', letterSpacing: 2 },
   btnCtaHoverText: { color: '#000000', fontWeight: '700' },
+  btnCtaMobile: {
+    borderWidth: 1,
+    borderColor: 'rgba(160,120,64,0.6)',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 1,
+  },
+  btnCtaMobileText: {
+    color: '#A07840',
+    fontSize: 9,
+    fontWeight: '400',
+    letterSpacing: 1.5,
+    fontFamily: SANS_FONT,
+  },
   langContainer: { flexDirection: 'row', backgroundColor: '#111', borderRadius: 1, alignItems: 'center' },
   langBtn: { paddingVertical: 5, paddingHorizontal: 10 },
   langBtnActive: { backgroundColor: '#A07840' },
@@ -937,7 +1024,7 @@ const styles = StyleSheet.create({
   tickerSeparator: { fontSize: 8, color: '#ffffff', opacity: 0.6, marginLeft: 48 },
   featuresSection: { paddingVertical: 100, paddingHorizontal: 24, backgroundColor: '#ffffff' },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 30, justifyContent: 'center' },
-  featureItem: { width: Platform.OS === 'web' ? '23%' : '100%', minWidth: 260, padding: 35, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
+  featureItem: { minWidth: 260, padding: 35, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
   featureItemHovered: { backgroundColor: '#efede7' },
   featureNum: { fontSize: 12, color: '#A07840', fontWeight: '600', marginBottom: 25 },
   featureIconWrap: { marginBottom: 20 },
@@ -1075,7 +1162,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   propCardItem: {
-    width: Platform.select({ web: '31%', default: '100%' }),
     minWidth: 280,
     backgroundColor: '#111110',
     borderWidth: 1,

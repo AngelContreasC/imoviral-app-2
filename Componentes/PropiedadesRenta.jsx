@@ -18,6 +18,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext.js';
+import { submitRequest } from './systemSync';
 
 // ─────────────────────────────────────────────
 // TOKENS DE DISEÑO OFICIALES (INMOVIRAL MATCHED)
@@ -136,49 +137,73 @@ function SocialBadge({ net }) {
 
 function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, updateUserMetadata } = useAuth();
   const [hovered, setHovered] = useState(false);
   const [isFavorito, setIsFavorito] = useState(false);
 
   useEffect(() => {
     if (user) {
-      if (Platform.OS === 'web') {
-        const saved = localStorage.getItem(`favoritos_${user.id}`);
-        if (saved) {
-          const list = JSON.parse(saved);
-          setIsFavorito(list.includes(p.id));
+      let isFav = false;
+      const cloudFavs = user.user_metadata?.favoritos || [];
+      isFav = cloudFavs.includes(p.id);
+      
+      if (!isFav && Platform.OS === 'web') {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            const list = JSON.parse(saved);
+            isFav = list.includes(p.id);
+          }
+        } catch (e) {
+          console.error(e);
         }
       }
+      setIsFavorito(isFav);
     }
   }, [user, p.id]);
 
-  const handleToggleFavorito = () => {
+  const handleToggleFavorito = async () => {
     if (!user) {
       alert(t('props_fav_login_alert', { defaultValue: 'Debes iniciar sesión para guardar favoritos.' }));
       return;
     }
     try {
-      let list = [];
+      let list = user.user_metadata?.favoritos || [];
+      if (Platform.OS === 'web' && list.length === 0) {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            list = JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (list.includes(p.id)) {
+        list = list.filter(id => id !== p.id);
+        setIsFavorito(false);
+      } else {
+        list = [...list, p.id];
+        setIsFavorito(true);
+      }
+
+      await updateUserMetadata({ favoritos: list });
+
       if (Platform.OS === 'web') {
-        const saved = localStorage.getItem(`favoritos_${user.id}`);
-        if (saved) {
-          list = JSON.parse(saved);
+        try {
+          localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
+        } catch (e) {
+          console.error(e);
         }
-        if (list.includes(p.id)) {
-          list = list.filter(id => id !== p.id);
-          setIsFavorito(false);
-        } else {
-          list.push(p.id);
-          setIsFavorito(true);
-        }
-        localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const favRight = user?.isAdmin ? 130 : 24;
+  const isModOrAdmin = user?.isAdmin || user?.isModerator;
+  const favRight = isModOrAdmin ? 130 : 24;
 
   return (
     <View style={[s.cardGridCell, { width: cardWidth }]}>
@@ -246,9 +271,9 @@ function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
         <FontAwesome name={isFavorito ? 'heart' : 'heart-o'} size={14} color={isFavorito ? '#A07840' : '#FFF'} />
       </Pressable>
 
-      {user?.isAdmin && (
+      {isModOrAdmin && (
         <Pressable
-          onPress={() => onEliminar && onEliminar(p.id)}
+          onPress={() => onEliminar && onEliminar(p)}
           style={s.deleteButtonAbsolute}
         >
           <Text style={s.deleteButtonText}>🗑️ ELIMINAR</Text>
@@ -273,20 +298,89 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
   const [orden, setOrden] = useState('reciente');
   const [inputFocused, setInputFocused] = useState(false);
 
-  const handleEliminar = async (id) => {
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin || user?.id === 'admin-id-0000';
+  const isModerator = user?.isModerator || false;
+  const esES = i18n.language?.startsWith('es') || true;
+
+  const [reqTargetProp, setReqTargetProp] = useState(null);
+  const [reqReason, setReqReason] = useState('');
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+
+  const [adminDeleteProp, setAdminDeleteProp] = useState(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminPwdModalVisible, setAdminPwdModalVisible] = useState(false);
+
+  const handleEliminar = async (prop) => {
+    if (isModerator && !isAdmin) {
+      setReqTargetProp(prop);
+      setReqReason('');
+      setApprovalModalVisible(true);
+      return;
+    }
+
+    if (isAdmin) {
+      setAdminDeleteProp(prop);
+      setAdminPasswordInput('');
+      setAdminPwdModalVisible(true);
+      return;
+    }
+
     const confirmed = Platform.OS === 'web' 
       ? window.confirm('¿Seguro que deseas eliminar esta publicación?') 
       : true;
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase.from('propiedades').delete().eq('id', id);
+      const { error } = await supabase.from('propiedades').delete().eq('id', prop.id);
       if (error) throw error;
-      setPropiedades(prev => prev.filter(p => p.id !== id));
+      setPropiedades(prev => prev.filter(p => p.id !== prop.id));
       if (Platform.OS === 'web') alert('Propiedad eliminada con éxito.');
     } catch (e) {
       console.error(e);
       if (Platform.OS === 'web') alert('Error al eliminar: ' + e.message);
+    }
+  };
+
+  const handleSendApprovalRequest = async () => {
+    if (!reqReason.trim()) {
+      alert(esES ? 'Por favor ingresa una razón.' : 'Please enter a reason.');
+      return;
+    }
+    try {
+      await submitRequest({
+        id: 'req-' + Date.now(),
+        moderatorId: user.id,
+        action: 'delete_property',
+        targetId: reqTargetProp.id,
+        targetName: reqTargetProp.titulo,
+        message: reqReason,
+        status: 'pending'
+      });
+      setApprovalModalVisible(false);
+      setReqTargetProp(null);
+      alert(esES ? 'Solicitud de eliminación enviada al administrador.' : 'Delete request submitted to administrator.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al enviar la solicitud.');
+    }
+  };
+
+  const handleConfirmAdminDelete = async () => {
+    if (adminPasswordInput !== 'admin') {
+      alert(esES ? 'Contraseña incorrecta.' : 'Incorrect password.');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('propiedades').delete().eq('id', adminDeleteProp.id);
+      if (error) throw error;
+      setPropiedades(prev => prev.filter(p => p.id !== adminDeleteProp.id));
+      setAdminPwdModalVisible(false);
+      setAdminDeleteProp(null);
+      alert(esES ? 'Propiedad eliminada con éxito.' : 'Property deleted successfully.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al eliminar la propiedad.');
     }
   };
 
@@ -417,6 +511,67 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad }) {
           <Pressable onPress={onVolver} style={s.luxeBackButton}>
             <Text style={s.luxeBackButtonText}>← {t('vd_back', { defaultValue: 'VOLVER AL INICIO' })}</Text>
           </Pressable>
+        )}
+
+        {/* Approval request modal for moderator */}
+        {approvalModalVisible && (
+          <View style={s.modalOverlay}>
+            <View style={s.modalContent}>
+              <Text style={s.modalTitle}>{esES ? 'Solicitud de Moderación' : 'Moderation Request'}</Text>
+              <Text style={s.modalText}>
+                {esES 
+                  ? 'Como moderador, necesitas aprobación del administrador para eliminar esta propiedad. Ingresa el motivo:' 
+                  : 'As a moderator, you need admin approval to delete this property. Enter the reason:'}
+              </Text>
+              <TextInput
+                style={s.modalInput}
+                value={reqReason}
+                onChangeText={setReqReason}
+                placeholder={esES ? 'Motivo de la solicitud' : 'Reason for request'}
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                multiline
+                numberOfLines={3}
+              />
+              <View style={s.modalButtons}>
+                <Pressable style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setApprovalModalVisible(false)}>
+                  <Text style={s.modalBtnCancelText}>{t('reviews.form_cancel', { defaultValue: 'Cancelar' })}</Text>
+                </Pressable>
+                <Pressable style={[s.modalBtn, s.modalBtnConfirm]} onPress={handleSendApprovalRequest}>
+                  <Text style={s.modalBtnConfirmText}>{esES ? 'Enviar' : 'Send'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Password verification modal for admin */}
+        {adminPwdModalVisible && (
+          <View style={s.modalOverlay}>
+            <View style={s.modalContent}>
+              <Text style={s.modalTitle}>{esES ? 'Confirmación de Seguridad' : 'Security Confirmation'}</Text>
+              <Text style={s.modalText}>
+                {esES 
+                  ? 'Ingresa la contraseña de administrador para realizar esta acción:' 
+                  : 'Enter the admin password to perform this action:'}
+              </Text>
+              <TextInput
+                style={s.modalInput}
+                value={adminPasswordInput}
+                onChangeText={setAdminPasswordInput}
+                secureTextEntry
+                placeholder={esES ? 'Contraseña' : 'Password'}
+                placeholderTextColor="rgba(255,255,255,0.3)"
+              />
+              <View style={s.modalButtons}>
+                <Pressable style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setAdminPwdModalVisible(false)}>
+                  <Text style={s.modalBtnCancelText}>{t('reviews.form_cancel', { defaultValue: 'Cancelar' })}</Text>
+                </Pressable>
+                <Pressable style={[s.modalBtn, s.modalBtnConfirm]} onPress={handleConfirmAdminDelete}>
+                  <Text style={s.modalBtnConfirmText}>{esES ? 'Confirmar' : 'Confirm'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
         )}
 
         {/* ─── FOOTER OFICIAL CON HOVERS COMPLETOS ─── */}
@@ -595,5 +750,76 @@ const s = StyleSheet.create({
     letterSpacing: 1.5,
     fontWeight: '700',
     fontFamily: T.sans,
-  }
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: '#111110',
+    borderWidth: 1,
+    borderColor: '#A07840',
+    padding: 24,
+    borderRadius: 4,
+  },
+  modalTitle: {
+    color: '#A07840',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    marginBottom: 12,
+    fontFamily: T.sans,
+    textTransform: 'uppercase',
+  },
+  modalText: {
+    color: '#8A8A84',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+    fontFamily: T.sans,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(160,120,64,0.3)',
+    color: '#F5F5F0',
+    padding: 12,
+    marginBottom: 18,
+    fontSize: 13,
+    fontFamily: T.sans,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 2,
+  },
+  modalBtnCancel: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalBtnCancelText: {
+    color: '#8A8A84',
+    fontSize: 11.5,
+    fontFamily: T.sans,
+    fontWeight: '600',
+  },
+  modalBtnConfirm: {
+    backgroundColor: '#A07840',
+  },
+  modalBtnConfirmText: {
+    color: '#000',
+    fontSize: 11.5,
+    fontFamily: T.sans,
+    fontWeight: '600',
+  },
 });

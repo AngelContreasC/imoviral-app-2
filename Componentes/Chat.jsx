@@ -15,6 +15,7 @@ import {
 import { FontAwesome, Feather } from '@expo/vector-icons';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext.js';
+import { submitRequest } from './systemSync';
 
 const ADMIN_ID = 'admin-id-0000';
 const ADMIN_NAME = 'Administrador INMOVIRAL';
@@ -59,7 +60,7 @@ function formatRoomDate(dateStr) {
   }
 }
 
-function RoomItem({ room, isActive, onPress, currentUserId }) {
+function RoomItem({ room, isActive, onPress, currentUserId, isAdmin, onDelete }) {
   const [hovered, setHovered] = useState(false);
   const otherName = currentUserId === room.comprador_id ? room.vendedor_nombre : room.comprador_nombre;
 
@@ -72,6 +73,7 @@ function RoomItem({ room, isActive, onPress, currentUserId }) {
         s.roomItem,
         isActive && s.roomItemActive,
         hovered && !isActive && s.roomItemHover,
+        { flexDirection: 'row', alignItems: 'center' }
       ]}
     >
       {room.propiedad_imagen ? (
@@ -81,23 +83,51 @@ function RoomItem({ room, isActive, onPress, currentUserId }) {
           <Feather name="home" size={18} color={T.gold} />
         </View>
       )}
-      <View style={s.roomInfo}>
+      <View style={[s.roomInfo, { flex: 1 }]}>
         <Text style={s.roomName} numberOfLines={1}>{otherName || 'Chat'}</Text>
         <Text style={s.roomPropTitle} numberOfLines={1}>{room.propiedad_titulo || ''}</Text>
         <Text style={s.roomLastMsg} numberOfLines={1}>{room.ultimo_mensaje || ''}</Text>
       </View>
-      <Text style={s.roomDate}>{formatRoomDate(room.ultimo_mensaje_at)}</Text>
+      <View style={{ alignItems: 'flex-end', justifyContent: 'center', gap: 6, paddingRight: 8 }}>
+        <Text style={s.roomDate}>{formatRoomDate(room.ultimo_mensaje_at)}</Text>
+        {isAdmin && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete(room);
+            }}
+            style={{ padding: 4 }}
+          >
+            <Feather name="trash-2" size={14} color="#C05050" />
+          </Pressable>
+        )}
+      </View>
     </Pressable>
   );
 }
 
-function MessageBubble({ msg, isOwn }) {
+function MessageBubble({ msg, isOwn, canDelete, onDelete }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <View style={[s.msgRow, isOwn && s.msgRowOwn]}>
+    <View
+      style={[s.msgRow, isOwn && s.msgRowOwn]}
+      onMouseEnter={() => Platform.OS === 'web' && setHovered(true)}
+      onMouseLeave={() => Platform.OS === 'web' && setHovered(false)}
+    >
       <View style={[s.msgBubble, isOwn ? s.msgBubbleOwn : s.msgBubbleOther]}>
         {!isOwn && <Text style={s.msgSenderName}>{msg.sender_name}</Text>}
         <Text style={s.msgText}>{msg.mensaje}</Text>
-        <Text style={s.msgTime}>{formatMsgTime(msg.created_at)}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+          <Text style={s.msgTime}>{formatMsgTime(msg.created_at)}</Text>
+          {canDelete && hovered && (
+            <Pressable
+              onPress={() => onDelete(msg)}
+              style={{ marginLeft: 10, padding: 3, opacity: 0.7 }}
+            >
+              <Feather name="trash-2" size={11} color="#DC2626" />
+            </Pressable>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -109,6 +139,7 @@ export default function Chat({ initialRoomId, onVolver }) {
   const { width } = useWindowDimensions();
   const isWide = width > 768;
   const isAdmin = user?.isAdmin || user?.id === ADMIN_ID;
+  const isModerator = user?.isModerator || false;
   const scrollRef = useRef(null);
 
   const [rooms, setRooms] = useState([]);
@@ -119,6 +150,125 @@ export default function Chat({ initialRoomId, onVolver }) {
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [showList, setShowList] = useState(true);
+
+  // Admin delete (with password)
+  const [roomToDelete, setRoomToDelete] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+
+  // Moderator request modal (reason field)
+  const [modReqVisible, setModReqVisible] = useState(false);
+  const [modReqReason, setModReqReason] = useState('');
+  const [modReqTarget, setModReqTarget] = useState(null); // { type: 'room'|'message', data: {...} }
+
+  // ── Admin delete (password confirmed) ────────────────────────────────────
+  const initiateDeleteRoom = (room) => {
+    if (isModerator && !isAdmin) {
+      // Moderator → reason modal
+      setModReqTarget({ type: 'room', data: room });
+      setModReqReason('');
+      setModReqVisible(true);
+      return;
+    }
+    setRoomToDelete(room);
+    setShowPasswordModal(true);
+    setAdminPasswordInput('');
+  };
+
+  const confirmDeleteRoom = async () => {
+    if (adminPasswordInput !== 'admin') {
+      alert(t('chat.invalid_password', { defaultValue: 'Contraseña incorrecta.' }));
+      return;
+    }
+    if (!roomToDelete) return;
+    try {
+      await supabase.from('chat_messages').delete().eq('room_id', roomToDelete.id);
+      await supabase.from('chat_rooms').delete().eq('id', roomToDelete.id);
+      setRooms(prev => prev.filter(r => r.id !== roomToDelete.id));
+      if (activeRoom?.id === roomToDelete.id) {
+        setActiveRoom(null);
+        setMessages([]);
+      }
+      setShowPasswordModal(false);
+      setRoomToDelete(null);
+    } catch (e) {
+      console.error(e);
+      alert('Error al eliminar la conversación.');
+    }
+  };
+
+  // ── Individual message delete ─────────────────────────────────────────────
+  const initiateDeleteMessage = (msg) => {
+    if (isModerator && !isAdmin) {
+      setModReqTarget({ type: 'message', data: msg });
+      setModReqReason('');
+      setModReqVisible(true);
+      return;
+    }
+    // Admin → direct delete with password (reuse password modal)
+    setRoomToDelete({ _msgDelete: true, msg });
+    setShowPasswordModal(true);
+    setAdminPasswordInput('');
+  };
+
+  // Repurpose confirmDeleteRoom for single messages too
+  const confirmAdminAction = async () => {
+    if (adminPasswordInput !== 'admin') {
+      alert(t('chat.invalid_password', { defaultValue: 'Contraseña incorrecta.' }));
+      return;
+    }
+    if (!roomToDelete) return;
+    try {
+      if (roomToDelete._msgDelete) {
+        // Delete single message
+        const { error } = await supabase
+          .from('chat_messages').delete().eq('id', roomToDelete.msg.id);
+        if (error) throw error;
+        setMessages(prev => prev.filter(m => m.id !== roomToDelete.msg.id));
+      } else {
+        // Delete whole room
+        await supabase.from('chat_messages').delete().eq('room_id', roomToDelete.id);
+        await supabase.from('chat_rooms').delete().eq('id', roomToDelete.id);
+        setRooms(prev => prev.filter(r => r.id !== roomToDelete.id));
+        if (activeRoom?.id === roomToDelete.id) {
+          setActiveRoom(null); setMessages([]);
+        }
+      }
+      setShowPasswordModal(false);
+      setRoomToDelete(null);
+    } catch (e) {
+      console.error(e);
+      alert('Error al eliminar.');
+    }
+  };
+
+  // ── Moderator: send request to admin ─────────────────────────────────────
+  const handleModSubmitRequest = async () => {
+    if (!modReqReason.trim()) {
+      alert('Por favor ingresa el motivo de la solicitud.');
+      return;
+    }
+    try {
+      const isRoom = modReqTarget?.type === 'room';
+      await submitRequest({
+        id: 'req-' + Date.now(),
+        moderatorId: user.id,
+        action: isRoom ? 'delete_chat_room' : 'delete_chat_message',
+        targetId: isRoom ? modReqTarget.data.id : modReqTarget.data.id,
+        targetName: isRoom
+          ? `Chat: ${modReqTarget.data.propiedad_titulo || modReqTarget.data.id}`
+          : `Mensaje: "${(modReqTarget.data.mensaje || '').substring(0, 60)}"`,
+        message: modReqReason,
+        status: 'pending',
+      });
+      setModReqVisible(false);
+      setModReqTarget(null);
+      alert('Solicitud enviada al administrador para su aprobación.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al enviar la solicitud.');
+    }
+  };
 
   const cargarRooms = useCallback(async () => {
     if (!user) return;
@@ -259,7 +409,7 @@ export default function Chat({ initialRoomId, onVolver }) {
 
   const renderRoomsList = () => (
     <View style={[s.listPanel, isWide && { width: 360, borderRightWidth: 1, borderRightColor: T.border }]}>
-      <View style={s.listHeader}>
+      <View style={[s.listHeader, !isWide && { paddingTop: 20 }]}>
         <Text style={s.listTitle}>{t('chat.title')}</Text>
       </View>
       {loadingRooms ? (
@@ -284,6 +434,8 @@ export default function Chat({ initialRoomId, onVolver }) {
               isActive={activeRoom?.id === room.id}
               onPress={() => openRoom(room)}
               currentUserId={user.id}
+              isAdmin={isAdmin}
+              onDelete={initiateDeleteRoom}
             />
           ))}
         </ScrollView>
@@ -294,7 +446,7 @@ export default function Chat({ initialRoomId, onVolver }) {
   const renderChatArea = () => (
     <View style={s.chatPanel}>
       {/* Chat Header */}
-      <View style={s.chatHeader}>
+      <View style={[s.chatHeader, !isWide && { paddingTop: 20 }]}>
         {!isWide && (
           <Pressable onPress={goBackToList} style={s.chatBackBtn}>
             <Feather name="arrow-left" size={20} color={T.gold} />
@@ -331,7 +483,13 @@ export default function Chat({ initialRoomId, onVolver }) {
             </View>
           )}
           {messages.map(msg => (
-            <MessageBubble key={msg.id} msg={msg} isOwn={msg.sender_id === user.id} />
+            <MessageBubble
+              key={msg.id}
+              msg={msg}
+              isOwn={msg.sender_id === user.id}
+              canDelete={isAdmin || isModerator}
+              onDelete={initiateDeleteMessage}
+            />
           ))}
         </ScrollView>
       )}
@@ -368,18 +526,82 @@ export default function Chat({ initialRoomId, onVolver }) {
   );
 
   // Responsive layout
-  if (isWide) {
-    return (
-      <View style={s.splitLayout}>
-        {renderRoomsList()}
-        {renderChatArea()}
-      </View>
-    );
-  }
-
   return (
-    <View style={s.splitLayout}>
-      {showList ? renderRoomsList() : renderChatArea()}
+    <View style={{ flex: 1 }}>
+      {isWide ? (
+        <View style={s.splitLayout}>
+          {renderRoomsList()}
+          {renderChatArea()}
+        </View>
+      ) : (
+        <View style={s.splitLayout}>
+          {showList ? renderRoomsList() : renderChatArea()}
+        </View>
+      )}
+
+      {showPasswordModal && (
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <Text style={s.modalTitle}>{t('chat.security_confirmation', { defaultValue: 'CONFIRMACIÓN DE SEGURIDAD' })}</Text>
+            <Text style={s.modalText}>{t('chat.enter_password', { defaultValue: 'Ingresa la contraseña de administrador para realizar esta acción:' })}</Text>
+            <TextInput
+              style={s.modalInput}
+              value={adminPasswordInput}
+              onChangeText={setAdminPasswordInput}
+              secureTextEntry
+              placeholder={t('chat.password_placeholder', { defaultValue: 'Contraseña' })}
+              placeholderTextColor="rgba(255,255,255,0.3)"
+            />
+            <View style={s.modalButtons}>
+              <Pressable style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setShowPasswordModal(false)}>
+                <Text style={s.modalBtnCancelText}>{t('reviews.form_cancel', { defaultValue: 'Cancelar' })}</Text>
+              </Pressable>
+              <Pressable style={[s.modalBtn, s.modalBtnConfirm]} onPress={confirmAdminAction}>
+                <Text style={s.modalBtnConfirmText}>{t('chat.confirm_btn', { defaultValue: 'Confirmar' })}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Moderator reason modal */}
+      {modReqVisible && (
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <Text style={s.modalTitle}>SOLICITUD DE MODERACIÓN</Text>
+            <Text style={s.modalText}>
+              {modReqTarget?.type === 'room'
+                ? 'Como moderador, necesitas aprobación del administrador para eliminar esta conversación. Ingresa el motivo:'
+                : 'Como moderador, necesitas aprobación del administrador para eliminar este mensaje. Ingresa el motivo:'}
+            </Text>
+            {modReqTarget?.type === 'message' && (
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, marginBottom: 10, borderLeftWidth: 2, borderLeftColor: T.gold }}>
+                <Text style={{ color: T.textSub, fontSize: 12, fontFamily: T.sans, fontStyle: 'italic' }}>
+                  "{(modReqTarget?.data?.mensaje || '').substring(0, 100)}"
+                </Text>
+              </View>
+            )}
+            <TextInput
+              style={s.modalInput}
+              value={modReqReason}
+              onChangeText={setModReqReason}
+              placeholder="Motivo de la solicitud..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <View style={s.modalButtons}>
+              <Pressable style={[s.modalBtn, s.modalBtnCancel]} onPress={() => { setModReqVisible(false); setModReqTarget(null); }}>
+                <Text style={s.modalBtnCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable style={[s.modalBtn, s.modalBtnConfirm]} onPress={handleModSubmitRequest}>
+                <Text style={s.modalBtnConfirmText}>ENVIAR SOLICITUD</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -533,5 +755,76 @@ const s = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '600',
     letterSpacing: 1.5,
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: '#111110',
+    borderWidth: 1,
+    borderColor: '#A07840',
+    padding: 24,
+    borderRadius: 4,
+  },
+  modalTitle: {
+    color: '#A07840',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    marginBottom: 12,
+    fontFamily: T.sans,
+    textTransform: 'uppercase',
+  },
+  modalText: {
+    color: '#8A8A84',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+    fontFamily: T.sans,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(160,120,64,0.3)',
+    color: '#F5F5F0',
+    padding: 12,
+    marginBottom: 18,
+    fontSize: 13,
+    fontFamily: T.sans,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 2,
+  },
+  modalBtnCancel: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalBtnCancelText: {
+    color: '#8A8A84',
+    fontSize: 11.5,
+    fontFamily: T.sans,
+    fontWeight: '600',
+  },
+  modalBtnConfirm: {
+    backgroundColor: '#A07840',
+  },
+  modalBtnConfirmText: {
+    color: '#000',
+    fontSize: 11.5,
+    fontFamily: T.sans,
+    fontWeight: '600',
   },
 });

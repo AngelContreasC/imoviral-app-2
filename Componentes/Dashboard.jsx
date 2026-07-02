@@ -31,7 +31,7 @@ const T = {
 
 export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEditarPropiedad, onVolver }) {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, updateUserMetadata } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width > 1024;
   const esES = i18n.language.startsWith('es');
@@ -67,16 +67,20 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
     }
   };
 
-  // Cargar propiedades favoritas (desde localStorage/persistencia local)
+  // Cargar propiedades favoritas (desde user_metadata/localStorage)
   const cargarFavoritos = async () => {
     if (!user) return;
     setLoadingFavs(true);
     try {
-      let favIds = [];
-      if (Platform.OS === 'web') {
-        const saved = localStorage.getItem(`favoritos_${user.id}`);
-        if (saved) {
-          favIds = JSON.parse(saved);
+      let favIds = user.user_metadata?.favoritos || [];
+      if (Platform.OS === 'web' && favIds.length === 0) {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            favIds = JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error(e);
         }
       }
       
@@ -152,18 +156,31 @@ export default function Dashboard({ activeTab, setActiveTab, onPublicar, onEdita
     }
   };
 
-  // Quitar favorito de la lista local
-  const removerFavoritoLocal = (id) => {
+  // Quitar favorito de la lista local y de user_metadata
+  const removerFavoritoLocal = async (id) => {
     if (!user) return;
     try {
-      let favIds = [];
-      if (Platform.OS === 'web') {
-        const saved = localStorage.getItem(`favoritos_${user.id}`);
-        if (saved) {
-          favIds = JSON.parse(saved);
+      let favIds = user.user_metadata?.favoritos || [];
+      if (Platform.OS === 'web' && favIds.length === 0) {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            favIds = JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error(e);
         }
-        const updated = favIds.filter(favId => favId !== id);
-        localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(updated));
+      }
+      const updated = favIds.filter(favId => favId !== id);
+      
+      await updateUserMetadata({ favoritos: updated });
+
+      if (Platform.OS === 'web') {
+        try {
+          localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(updated));
+        } catch (e) {
+          console.error(e);
+        }
       }
       setFavoritos(prev => prev.filter(f => f.id !== id));
     } catch (e) {

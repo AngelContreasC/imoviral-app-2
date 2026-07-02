@@ -312,24 +312,10 @@ export default function LoginPage({ onVolver }) {
       style={{ flex: 1 }}
     >
       <ScrollView
-        contentContainerStyle={[S.formScroll, isWide && S.formScrollWide]}
+        contentContainerStyle={[S.formScroll, isWide && S.formScrollWide, width <= 768 && { paddingTop: 20 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Switcher de idioma ── */}
-        <View style={S.langSwitcher}>
-          {['es', 'en'].map((lang) => (
-            <Pressable
-              key={lang}
-              onPress={() => cambiarIdioma(lang)}
-              style={[S.langBtn, i18n.language.startsWith(lang) && S.langBtnActive]}
-            >
-              <Text style={[S.langBtnText, i18n.language.startsWith(lang) && S.langBtnTextActive]}>
-                {lang.toUpperCase()}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
 
         {/* ── Encabezado ── */}
         <Text style={S.overline}>
@@ -685,7 +671,15 @@ const S = StyleSheet.create({
   captionLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 3, textTransform: 'uppercase', color: '#C39B5F', marginBottom: 16, fontFamily: T.sans },
   captionQuote: { fontFamily: T.serif, fontSize: 36, lineHeight: Platform.select({ web: undefined, default: 42 }), fontWeight: '300', color: T.text, maxWidth: 520, marginBottom: 24 },
   formSide: { flex: 1, backgroundColor: T.bg },
-  formScroll: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 40 },
+  formScroll: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: Platform.select({
+      web: 40,
+      default: 80 + (Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24))
+    }),
+    paddingBottom: 40
+  },
   formScrollWide: { paddingHorizontal: 96, justifyContent: 'center', minHeight: '100%', maxWidth: 612, alignSelf: 'center', width: '100%' },
   langSwitcher: { flexDirection: 'row', alignSelf: 'flex-end', marginBottom: 32, gap: 8 },
   langBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'transparent' },

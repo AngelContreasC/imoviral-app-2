@@ -11,11 +11,13 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   Linking,
-  Modal
+  Modal,
+  StatusBar
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabaseClient';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../AuthContext.js';
+import PropertyMap from './PropertyMap';
 import { FontAwesome } from '@expo/vector-icons';
 import Chat from './Chat.jsx';
 
@@ -38,7 +40,12 @@ const T = {
 
 const formatPrecio = (num) => {
   if (num === null || num === undefined) return '0';
-  return Number(num).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+  const val = Number(num);
+  if (isNaN(val)) return '0';
+  if (val >= 1e12) {
+    return val.toExponential(2);
+  }
+  return val.toLocaleString('es-MX', { maximumFractionDigits: 0 });
 };
 
 const formatTelefonoRender = (tel) => {
@@ -52,7 +59,7 @@ const formatTelefonoRender = (tel) => {
 export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEditarPropiedad }) {
   const { t, i18n } = useTranslation();
   const { width, height } = useWindowDimensions();
-  const { user } = useAuth();
+  const { user, updateUserMetadata } = useAuth();
   const scrollViewRef = useRef(null);
 
   const [propiedad, setPropiedad] = useState(null);
@@ -84,19 +91,22 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEdi
 
   useEffect(() => {
     if (user && propiedadId) {
-      if (Platform.OS === 'web') {
+      let isFav = false;
+      const cloudFavs = user.user_metadata?.favoritos || [];
+      isFav = cloudFavs.includes(propiedadId);
+      
+      if (!isFav && Platform.OS === 'web') {
         try {
           const saved = localStorage.getItem(`favoritos_${user.id}`);
           if (saved) {
             const list = JSON.parse(saved);
-            setFavorito(list.includes(propiedadId));
-          } else {
-            setFavorito(false);
+            isFav = list.includes(propiedadId);
           }
         } catch (e) {
           console.error(e);
         }
       }
+      setFavorito(isFav);
     } else {
       setFavorito(false);
     }
@@ -117,26 +127,40 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEdi
     }
   };
 
-  const handleToggleFavorito = () => {
+  const handleToggleFavorito = async () => {
     if (!user) {
       alert(t('props_fav_login_alert', { defaultValue: 'Debes iniciar sesión para guardar favoritos.' }));
       return;
     }
     try {
-      let list = [];
+      let list = user.user_metadata?.favoritos || [];
+      if (Platform.OS === 'web' && list.length === 0) {
+        try {
+          const saved = localStorage.getItem(`favoritos_${user.id}`);
+          if (saved) {
+            list = JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (list.includes(propiedadId)) {
+        list = list.filter(id => id !== propiedadId);
+        setFavorito(false);
+      } else {
+        list = [...list, propiedadId];
+        setFavorito(true);
+      }
+
+      await updateUserMetadata({ favoritos: list });
+
       if (Platform.OS === 'web') {
-        const saved = localStorage.getItem(`favoritos_${user.id}`);
-        if (saved) {
-          list = JSON.parse(saved);
+        try {
+          localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
+        } catch (e) {
+          console.error(e);
         }
-        if (list.includes(propiedadId)) {
-          list = list.filter(id => id !== propiedadId);
-          setFavorito(false);
-        } else {
-          list.push(propiedadId);
-          setFavorito(true);
-        }
-        localStorage.setItem(`favoritos_${user.id}`, JSON.stringify(list));
       }
     } catch (e) {
       console.error(e);
@@ -361,7 +385,17 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEdi
   const areaLabel = propiedad.m2 ? `${propiedad.m2} M²` : 'N/A';
   const recLabel = propiedad.habitaciones ? String(propiedad.habitaciones) : '0';
   const banLabel = propiedad.banos ? String(propiedad.banos) : '0';
-  const lotLabel = propiedad.antiguedad ? `${propiedad.antiguedad} ${t('vp_years', { defaultValue: 'Años' })}` : 'N/A';
+  
+  const getAntiguedadLabel = (val) => {
+    if (!val) return 'N/A';
+    if (val === 'nueva') return esES ? 'A Estrenar' : 'Brand New';
+    if (val === 'lt5') return esES ? 'Menos de 5 años' : 'Under 5 years';
+    if (val === '5-10') return esES ? '5 a 10 años' : '5 to 10 years';
+    if (val === '10-20') return esES ? '10 a 20 años' : '10 to 20 years';
+    if (val === 'gt20') return esES ? 'Más de 20 años' : 'Over 20 years';
+    return `${val} ${t('vp_years', { defaultValue: 'Años' })}`;
+  };
+  const lotLabel = getAntiguedadLabel(propiedad.antiguedad);
 
   return (
     <View style={{ flex: 1 }}>
@@ -447,11 +481,11 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEdi
       >
 
         {/* ══ PROPERTY HEADER (HERO) ══ */}
-        <View style={[s.propHeader, { height: esPantallaGrande ? 460 : 380 }]}>
+        <View style={[s.propHeader, { minHeight: esPantallaGrande ? 460 : 340, height: 'auto' }]}>
           <Image source={{ uri: imagenes[imagenActiva] }} style={s.propBgImage} resizeMode="cover" />
           <View style={s.propOverlay} />
 
-          <View style={[s.propHeaderBody, { paddingHorizontal: padHoriz }]}>
+          <View style={[s.propHeaderBody, { paddingHorizontal: padHoriz }, !esPantallaGrande && { paddingTop: 20 }]}>
             {/* Breadcrumb */}
             <View style={s.breadcrumb}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -741,30 +775,7 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onEdi
 
                     {/* Map Frame */}
                     <View style={s.mapFrame}>
-                      {Platform.OS === 'web' ? (
-                        <iframe
-                          src={`https://maps.google.com/maps?q=${encodeURIComponent(propiedad.lat && propiedad.lng ? `${propiedad.lat},${propiedad.lng}` : propiedad.ubicacion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                          width="100%"
-                          height="280"
-                          style={{ border: 0, backgroundColor: T.bgCard }}
-                          allowFullScreen=""
-                          loading="lazy"
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          activeOpacity={0.8}
-                          onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(propiedad.ubicacion)}`)}
-                          style={s.mapPlaceholder}
-                        >
-                          <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1494522358652-f30e61a60313?w=800' }}
-                            style={s.mapPlaceholderImage}
-                          />
-                          <View style={s.mapLink}>
-                            <Text style={s.mapLinkLabel}>{t('vp_open_maps', { defaultValue: 'VER EN GOOGLE MAPS →' })}</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
+                      <PropertyMap lat={propiedad.lat} lng={propiedad.lng} titulo={propiedad.titulo} ubicacion={propiedad.ubicacion} />
                     </View>
                   </>
                 ) : (
@@ -1151,7 +1162,10 @@ const s = StyleSheet.create({
     position: 'relative',
     zIndex: 5,
     paddingBottom: 40,
-    paddingTop: 110,
+    paddingTop: Platform.select({
+      web: 110,
+      default: 110 + (Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24))
+    }),
   },
   breadcrumb: {
     flexDirection: 'row',

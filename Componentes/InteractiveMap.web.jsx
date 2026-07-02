@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { FontAwesome, Feather } from '@expo/vector-icons';
 import { supabase } from '../supabaseClient';
+import { submitRequest } from './systemSync';
 
 const T = {
   gold: '#A07840',
@@ -34,6 +35,44 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
   const { width } = useWindowDimensions();
 
   const isAdmin = user?.isAdmin || user?.email === 'admin@inmoviral.com' || user?.id === 'admin-id-0000';
+  const isModerator = user?.isModerator || false;
+  const isModOrAdmin = isAdmin || isModerator;
+
+  const [reqReason, setReqReason] = useState('');
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+
+  const handleDeleteClick = () => {
+    if (isModerator && !isAdmin) {
+      setReqReason('');
+      setApprovalModalVisible(true);
+    } else {
+      setShowPasswordModal(true);
+    }
+  };
+
+  const handleSendApprovalRequest = async () => {
+    if (!reqReason.trim()) {
+      alert('Por favor ingresa una razón.');
+      return;
+    }
+    try {
+      await submitRequest({
+        id: 'req-' + Date.now(),
+        moderatorId: user.id,
+        action: 'delete_property',
+        targetId: selectedProp.id,
+        targetName: selectedProp.titulo,
+        message: reqReason,
+        status: 'pending'
+      });
+      setApprovalModalVisible(false);
+      setSelectedProp(null);
+      alert('Solicitud de eliminación enviada al administrador.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al enviar la solicitud.');
+    }
+  };
 
   const confirmDeletion = async () => {
     if (adminPasswordInput !== 'admin') {
@@ -92,23 +131,10 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
         mapInstanceRef.current = null;
       }
 
-      // 4. Centrar en la propiedad más reciente para evitar desvíos y mostrar el mapa correctamente
-      let centerLat = 28.6353;
-      let centerLng = -106.0889;
-      let zoomLevel = 6;
-
-      if (activeProperties.length > 0) {
-        // Centrar exactamente en la propiedad más reciente (la primera de la lista)
-        centerLat = parseFloat(activeProperties[0].lat);
-        centerLng = parseFloat(activeProperties[0].lng);
-        // Si hay solo una propiedad, hacemos más zoom, de lo contrario mostramos el contexto amplio
-        zoomLevel = activeProperties.length === 1 ? 12 : 6;
-      } else {
-        // Apuntar a todo México por defecto si no hay propiedades con coordenadas
-        centerLat = 23.6345;
-        centerLng = -102.5528;
-        zoomLevel = 5;
-      }
+      // 4. Centrar en todo el mundo (centrado en América)
+      let centerLat = 23.6345;
+      let centerLng = -102.5528;
+      let zoomLevel = 3;
 
       // 5. Inicializar mapa con interacciones desactivadas por defecto
       const mapContainer = document.getElementById(containerId.current);
@@ -289,10 +315,10 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
                     <Feather name="arrow-right" size={12} color={T.black} style={{ marginLeft: 6 }} />
                   </TouchableOpacity>
                   
-                  {isAdmin && (
+                  {isModOrAdmin && (
                     <TouchableOpacity 
                       style={[s.ctaBtn, { backgroundColor: '#c93b3b' }]} 
-                      onPress={() => setShowPasswordModal(true)}
+                      onPress={handleDeleteClick}
                       activeOpacity={0.8}
                     >
                       <Feather name="trash-2" size={12} color={T.white} />
@@ -347,6 +373,33 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
                 onPress={confirmDeletion}
               >
                 <Text style={s.modalBtnConfirmText}>ELIMINAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+      {approvalModalVisible && (
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <Text style={s.modalTitle}>SOLICITUD DE MODERACIÓN</Text>
+            <Text style={s.modalText}>
+              Como moderador, necesitas aprobación del administrador para eliminar esta propiedad del mapa. Ingresa el motivo:
+            </Text>
+            <TextInput
+              style={s.modalInput}
+              value={reqReason}
+              onChangeText={setReqReason}
+              placeholder="Motivo de la solicitud"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              multiline
+              numberOfLines={3}
+            />
+            <View style={s.modalBtnRow}>
+              <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setApprovalModalVisible(false)}>
+                <Text style={s.modalBtnCancelText}>CANCELAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalBtn, s.modalBtnConfirm]} onPress={handleSendApprovalRequest}>
+                <Text style={s.modalBtnConfirmText}>ENVIAR</Text>
               </TouchableOpacity>
             </View>
           </View>

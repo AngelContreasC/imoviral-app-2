@@ -126,7 +126,7 @@ export default function Configuracion({ onVolver }) {
 
   return (
     <ScrollView style={s.page} contentContainerStyle={s.pageContent}>
-      <View style={s.pageHeader}>
+      <View style={[s.pageHeader, !isWide && { paddingTop: 20 }]}>
         <Text style={s.pageTitle}>{t('settings.page_title')}</Text>
       </View>
 

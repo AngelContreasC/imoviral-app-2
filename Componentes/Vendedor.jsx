@@ -488,7 +488,7 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
             </View>
           )}
 
-          <ScrollView contentContainerStyle={[s.rightFormColumn, isWide && s.rightFormColumnWide]} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={[s.rightFormColumn, isWide && s.rightFormColumnWide, width <= 768 && { paddingTop: 20 }]} showsVerticalScrollIndicator={false}>
             <View style={s.wizardFormCard}>
               <Text style={s.formMainHeading}>Alta de Inmueble</Text><Text style={s.formStepSubTitle}>{`Paso ${step} de 4`}</Text>
               
@@ -537,7 +537,7 @@ Contacto: ${form.nombre} (${form.lada} ${form.telefono})`
                   <TextInput style={s.luxuryInput} placeholder="Ej. Bonita casa en el Reliz con bonita vista" placeholderTextColor={T.muted} value={form.titulo} onChangeText={v => set('titulo', v)} />
                   <Text style={s.fieldLabel}>PRECIO EVALUADO ($)</Text>
                   <View style={s.hybridInputSelectorBox}>
-                    <TextInput style={[s.luxuryInput, { flex: 1, marginBottom: 0 }]} placeholder="0,000,000" placeholderTextColor={T.muted} value={form.precio} onChangeText={formatearPrecio} keyboardType="numeric" />
+                    <TextInput style={[s.luxuryInput, { flex: 1, marginBottom: 0 }]} placeholder="0,000,000" placeholderTextColor={T.muted} value={form.precio} onChangeText={formatearPrecio} keyboardType="numeric" maxLength={15} />
                     <View style={s.currencyToggleWrapper}>
                       {['MXN', 'USD'].map(moneda => (
                         <Pressable key={moneda} onPress={() => set('divisa', moneda)} style={[s.currencyMiniBtn, form.divisa === moneda && s.currencyMiniBtnActive]}><Text style={[s.currencyMiniText, form.divisa === moneda && s.currencyMiniTextActive]}>{moneda}</Text></Pressable>
@@ -696,7 +696,7 @@ const s = StyleSheet.create({
   heroTitleText: { fontFamily: T.serif, fontSize: 48, color: T.text, lineHeight: 56, fontWeight: '300', marginBottom: 20 },
   heroTitleItalic: { fontStyle: 'italic', color: T.gold },
   heroDescText: { fontSize: 13, lineHeight: 24, color: T.text, opacity: 0.75, fontFamily: T.sans, fontWeight: '300' },
-  rightFormColumn: { flex: 1, backgroundColor: '#0A100A', paddingTop: Platform.OS === 'web' ? 100 : 20 },
+  rightFormColumn: { backgroundColor: '#0A100A', paddingTop: Platform.select({ web: 100, default: 80 + (Platform.OS === 'ios' ? 47 : (StatusBar.currentHeight || 24)) }) },
   rightFormColumnWide: { borderLeftWidth: 1, borderColor: T.border },
   wizardFormCard: { padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center', marginVertical: 20 },
   formMainHeading: { fontFamily: T.serif, fontSize: 26, color: T.text, marginBottom: 6 },
