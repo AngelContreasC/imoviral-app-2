@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { FontAwesome, Feather } from '@expo/vector-icons';
 
+const logoHorizontal = require('./assets/logo-horizontal.png');
+
 // ══ 💎 CONFIGURACIÓN BILINGÜE NATIVA ══
 import './config/i18n';
 import { useTranslation } from 'react-i18next';
@@ -765,6 +767,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   logoText: { fontFamily: LUXURY_FONT, fontSize: 24, fontWeight: '400', color: '#fff', letterSpacing: 7.5, textTransform: 'uppercase' },
+  logoImage: { height: 36, width: 160 },
   navLinksRow: { flexDirection: 'row', gap: 28 },
   navLink: { color: '#a3a3a3', fontSize: 11, fontWeight: '700', letterSpacing: 2 },
   navLinkItemHovered: { transform: [{ scale: 1.04 }] },

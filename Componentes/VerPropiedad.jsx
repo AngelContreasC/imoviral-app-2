@@ -90,7 +90,8 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onNav
   const translateYAnim = useRef(new Animated.Value(20)).current;
   const galleryFadeAnim = useRef(new Animated.Value(1)).current;
 
-  const esAdmin = user?.isAdmin || user?.isModerator || user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'moderator' || user?.email === 'ventas@inmoviral.com.mx';
+  // Solo visible para admin y moderadores (NO para usuarios regulares ni propietarios)
+  const esAdminOMod = !!(user?.isAdmin || user?.isModerator || user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'moderator' || user?.email === 'ventas@inmoviral.com.mx');
   const esPropietario = user && propiedad && (user.id === propiedad.user_id || user.id === propiedad.propietario_id || user.id === propiedad.usuario_id);
 
   useEffect(() => {
@@ -345,7 +346,7 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onNav
             <View style={s.sidebarColumn}>
               <View style={s.sidebarCard}>
                 
-                {(esPropietario || esAdmin) && (
+                {(esPropietario || esAdminOMod) && (
                   <View style={s.ownerStatusContainer}>
                     <Text style={s.ownerStatusTitle}>{esES ? 'ESTATUS DE LA PROPIEDAD' : 'PROPERTY STATUS'}</Text>
                     <View style={s.ownerStatusRow}>
@@ -368,7 +369,7 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onNav
                   </View>
                 </View>
 
-                {esAdmin && (
+                {esAdminOMod && (
                   <View style={s.agentContacts}>
                     {propiedad.telefono_contacto && <Text style={s.agentContactText}>Tel: {formatTelefonoRender(propiedad.telefono_contacto)}</Text>}
                     <Text style={s.agentContactText}>Email: {propiedad.email_contacto || 'No disponible'}</Text>
@@ -398,7 +399,8 @@ export default function VerPropiedad({ propiedadId, onVolver, onStartChat, onNav
                   </TouchableOpacity>
                 </View>
 
-                {esAdmin && (
+                {/* ID de propiedad — SOLO visible para Admin y Moderadores */}
+                {esAdminOMod && (
                   <View style={s.quickFacts}>
                     <View style={s.sidebarDivider} />
                     <View style={s.factRow}>
