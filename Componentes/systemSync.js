@@ -1,17 +1,18 @@
 import { Platform } from 'react-native';
 import { supabase } from '../supabaseClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// SYSTEM SYNC  — localStorage-first, Supabase as async backup
+// SYSTEM SYNC  — storage-first, Supabase as async backup
 //
-// Why localStorage-first?
+// Why storage-first?
 //   The admin is a mock user (admin-id-0000) with no real Supabase session.
-//   Supabase RLS blocks writes without auth, so saveModerators() was silently
-//   failing and data was lost on every reload.
+//   Native APKs do not have localStorage, so we persist with AsyncStorage
+//   and still mirror to Supabase when possible.
 //
 // Strategy:
-//   READ  → localStorage first, fall back to Supabase if localStorage is empty
-//   WRITE → always write localStorage immediately + attempt Supabase in background
+//   READ  → app storage first, fall back to Supabase if app storage is empty
+//   WRITE → always write app storage immediately + attempt Supabase in background
 // ──────────────────────────────────────────────────────────────────────────────
 
 const LS_KEYS = {
@@ -20,23 +21,30 @@ const LS_KEYS = {
   users:      '__sys_users__',
 };
 
-// ── localStorage helpers ──────────────────────────────────────────────────────
-function lsGet(key, defaultValue = []) {
-  if (Platform.OS !== 'web') return defaultValue;
+// ── Persistent storage helpers ────────────────────────────────────────────────
+async function storageGet(key, defaultValue = []) {
   try {
-    const raw = localStorage.getItem(key);
+    if (Platform.OS === 'web') {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : defaultValue;
+    }
+    const raw = await AsyncStorage.getItem(key);
     return raw ? JSON.parse(raw) : defaultValue;
   } catch {
     return defaultValue;
   }
 }
 
-function lsSet(key, value) {
-  if (Platform.OS !== 'web') return;
+async function storageSet(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, serialized);
+      return;
+    }
+    await AsyncStorage.setItem(key, serialized);
   } catch (e) {
-    console.warn('localStorage write failed:', e);
+    console.warn('persistent storage write failed:', e);
   }
 }
 
@@ -86,19 +94,19 @@ async function sbWrite(title, payload) {
 
 // ── Generic read: localStorage → Supabase fallback ───────────────────────────
 async function readSystem(lsKey, sbTitle, defaultData = []) {
-  const cached = lsGet(lsKey, null);
+  const cached = await storageGet(lsKey, null);
   if (cached !== null) return cached;
 
-  // Cache miss → try Supabase, then populate localStorage
+  // Cache miss → try Supabase, then populate persistent storage
   const fromSb = await sbRead(sbTitle, defaultData);
   const result = fromSb ?? defaultData;
-  lsSet(lsKey, result);
+  await storageSet(lsKey, result);
   return result;
 }
 
 // ── Generic write: localStorage immediately + Supabase in background ──────────
 async function writeSystem(lsKey, sbTitle, payload) {
-  lsSet(lsKey, payload);
+  await storageSet(lsKey, payload);
   // Fire-and-forget Supabase sync (don't await — never blocks UI)
   sbWrite(sbTitle, payload).catch(() => {});
 }
@@ -157,8 +165,8 @@ export async function forceSyncFromSupabase() {
     sbRead('__system_requests__',   []),
     sbRead('__system_users__',      []),
   ]);
-  if (mods  !== null) lsSet(LS_KEYS.moderators, mods);
-  if (reqs  !== null) lsSet(LS_KEYS.requests,   reqs);
-  if (users !== null) lsSet(LS_KEYS.users,       users);
+  if (mods  !== null) await storageSet(LS_KEYS.moderators, mods);
+  if (reqs  !== null) await storageSet(LS_KEYS.requests,   reqs);
+  if (users !== null) await storageSet(LS_KEYS.users,       users);
   return { mods: mods ?? [], reqs: reqs ?? [], users: users ?? [] };
 }

@@ -37,6 +37,11 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
   const isModerator = user?.isModerator || false;
   const isModOrAdmin = isAdmin || isModerator;
 
+  const parseCoordinate = (value) => {
+    const parsed = typeof value === 'number' ? value : parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const [reqReason, setReqReason] = useState('');
   const [approvalModalVisible, setApprovalModalVisible] = useState(false);
 
@@ -96,8 +101,14 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
     }
   };
 
-  // Filtrar propiedades con coordenadas válidas (de todo el mundo, para permitir ubicar propiedades en China o India)
-  const activeProperties = propiedades.filter(p => p.lat && p.lng);
+  // Filtrar propiedades con coordenadas válidas antes de pintar marcadores nativos.
+  const activeProperties = propiedades
+    .map((prop) => {
+      const latitude = parseCoordinate(prop.lat);
+      const longitude = parseCoordinate(prop.lng);
+      return latitude !== null && longitude !== null ? { ...prop, latitude, longitude } : null;
+    })
+    .filter(Boolean);
 
   // Calcular región inicial para mostrar todo el mundo (centrado en América)
   const getInitialRegion = () => {
@@ -111,10 +122,10 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
 
   const handleMarkerPress = (prop) => {
     setSelectedProp(prop);
-    if (mapRef.current && prop.lat && prop.lng) {
+    if (mapRef.current && Number.isFinite(prop.latitude) && Number.isFinite(prop.longitude)) {
       mapRef.current.animateToRegion({
-        latitude: parseFloat(prop.lat),
-        longitude: parseFloat(prop.lng),
+        latitude: prop.latitude,
+        longitude: prop.longitude,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
       }, 350);
@@ -155,8 +166,8 @@ export default function InteractiveMap({ propiedades = [], onSelectProperty, use
           <Marker
             key={prop.id}
             coordinate={{
-              latitude: parseFloat(prop.lat),
-              longitude: parseFloat(prop.lng)
+              latitude: prop.latitude,
+              longitude: prop.longitude
             }}
             onPress={(e) => {
               // Prevenir que el evento bubblee y deseleccione la propiedad inmediatamente

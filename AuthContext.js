@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from './supabaseClient';
 import { fetchModerators, upsertUser } from './Componentes/systemSync';
+
+WebBrowser.maybeCompleteAuthSession();
 
 // Creación del contexto de autenticación
 const AuthContext = createContext({});
@@ -23,16 +27,24 @@ function extractUserRecord(u) {
   };
 }
 
+function normalizeAuthUser(u) {
+  if (!u) return null;
+  const meta = u.user_metadata || {};
+  const isVentas = u.email === 'ventas@inmoviral.com.mx';
+  return {
+    ...u,
+    user_metadata: meta,
+    app_metadata: u.app_metadata || {},
+    isAdmin: isVentas,
+  };
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const handleSetUser = (u) => {
-    if (u) {
-      const isVentas = u.email === 'ventas@inmoviral.com.mx';
-      u.isAdmin = isVentas;
-    }
-    setUser(u);
+    setUser(normalizeAuthUser(u));
   };
 
   useEffect(() => {
@@ -86,6 +98,50 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  const signInWithGoogle = async () => {
+    const redirectTo = Platform.OS === 'web'
+      ? `${window.location.origin}/auth/callback`
+      : AuthSession.makeRedirectUri({ scheme: 'imoviralapp2', path: 'auth/callback' });
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: Platform.OS !== 'web',
+      },
+    });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (Platform.OS === 'web') {
+      return { data, error: null };
+    }
+
+    if (!data?.url) {
+      return { data: null, error: new Error('No se pudo abrir Google para iniciar sesión.') };
+    }
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success' || !result.url) {
+      return { data: null, error: new Error('Inicio con Google cancelado o incompleto.') };
+    }
+
+    const url = new URL(result.url);
+    const code = url.searchParams.get('code');
+    if (!code) {
+      return { data: null, error: new Error('No se recibió código de autorización.') };
+    }
+
+    const exchange = await supabase.auth.exchangeCodeForSession(code);
+    if (!exchange.error && exchange.data?.user) {
+      handleSetUser(exchange.data.user);
+      upsertUser(extractUserRecord(exchange.data.user)).catch(() => {});
+    }
+    return exchange;
+  };
+
   const signOut = async () => {
     try {
       handleSetUser(null);
@@ -106,7 +162,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, updateUserMetadata, loading }}>
+    <AuthContext.Provider value={{ user, signIn, signInWithGoogle, signOut, updateUserMetadata, loading }}>
       {children}
     </AuthContext.Provider>
   );

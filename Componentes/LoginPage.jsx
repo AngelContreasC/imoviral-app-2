@@ -63,7 +63,7 @@ function useHover() {
 export default function LoginPage({ onVolver }) {
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const isWide = width > 1024;
 
   // ── Estados comunes
@@ -231,7 +231,17 @@ export default function LoginPage({ onVolver }) {
   };
 
   const handleGoogle = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google' });
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) throw error;
+    } catch (err) {
+      setError(err.message || 'No se pudo iniciar sesión con Google.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const CAROUSEL_IMAGES = [

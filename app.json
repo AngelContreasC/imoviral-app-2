@@ -3,6 +3,7 @@
     "name": "INMOVIRAL",
     "slug": "imoviral-app-2",
     "version": "1.0.0",
+    "scheme": "imoviralapp2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -35,6 +36,9 @@
         "projectId": "2d23cc55-b178-4e6c-8010-542dc80632e4"
       }
     },
-    "owner": "inmoviral"
+    "owner": "inmoviral",
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

@@ -18,7 +18,7 @@ import Footer from './Footer';
 // ══ 📸 IMPORTACIÓN NATIVA DE TUS FOTONAS REALES ══
 import imgJavier from '../assets/javier.jpg';       
 import imgLuisa  from '../assets/luisa.png';       
-import imgAngel  from '../assets/angel.png';       
+import imgAngel  from '../assets/angel.jpg';       
 import imgJamin  from '../assets/jamin.png';       
 import imgCarlos from '../assets/carlos.png';      
 
