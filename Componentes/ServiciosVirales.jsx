@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import Footer from './Footer';
 import { upsertUser, submitRequest } from './systemSync';
 
@@ -139,57 +139,108 @@ function SocialBadge({ net }) {
   );
 }
 
-function ServiceCard({ item, isOpen, onToggle, onMail, onWa, cardWidth }) {
+function ServiceCard({ item, isOpen, onToggle, onMail, onWa, isLarge }) {
   const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
+  const hoverAnim = useRef(new Animated.Value(0)).current;
+
+  // Animación suave de apertura del panel
+  const [showPanel, setShowPanel] = useState(isOpen);
+  const openAnim = useRef(new Animated.Value(isOpen ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowPanel(true);
+      Animated.timing(openAnim, { toValue: 1, duration: 400, useNativeDriver: false }).start();
+    } else {
+      Animated.timing(openAnim, { toValue: 0, duration: 300, useNativeDriver: false }).start(() => {
+        setShowPanel(false);
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    Animated.timing(hoverAnim, {
+      toValue: hovered ? 1 : 0,
+      duration: 350,
+      useNativeDriver: false
+    }).start();
+  }, [hovered]);
+
+  const bgTint = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: ['transparent', 'rgba(160,120,64,0.06)'] });
+  const titleColor = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: ['#F2EDE5', '#A07840'] }); 
+  const numColor = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: ['rgba(160,120,64,0.12)', 'rgba(160,120,64,0.4)'] });
+  const linkColor = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [C.gold, C.goldDeep] });
+  const lineWidth = hoverAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 28] });
 
   return (
-    <View style={[styles.serviceCardWrapper, { width: cardWidth }]}>
+    <Animated.View style={{ width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', backgroundColor: bgTint }}>
       <Pressable
         onPress={onToggle}
         onHoverIn={() => Platform.OS === 'web' && setHovered(true)}
         onHoverOut={() => Platform.OS === 'web' && setHovered(false)}
-        style={[styles.serviceCard, hovered && styles.serviceCardHovered]}
+        style={{ flexDirection: isLarge ? 'row' : 'column', width: '100%', alignItems: 'flex-start', paddingVertical: isLarge ? 48 : 32, paddingHorizontal: 16 }}
       >
-        <View style={[styles.serviceCardBar, hovered && { backgroundColor: C.goldDeep, height: 3 }]} />
-        <Text style={[styles.serviceNum, hovered && { color: 'rgba(160,120,64,0.35)' }]}>{item.num}</Text>
-        <Text style={styles.serviceTag}>{t(item.tagKey, { defaultValue: item.tag })}</Text>
-        <Text style={styles.serviceTitle}>
-          {t(item.titleKey, { defaultValue: item.titulo })}{'\n'}
-          <Text style={styles.serviceTitleEm}>{t(item.emKey, { defaultValue: item.tituloEm })}</Text>
-        </Text>
-        <Text style={styles.serviceDesc}>{t(item.descKey, { defaultValue: item.desc })}</Text>
-
-        <View style={styles.featuresList}>
-          {item.features.map((f, i) => (
-            <View key={i} style={styles.featureRow}>
-              <View style={[styles.featureLine, hovered && { backgroundColor: C.goldDeep, width: 24 }]} />
-              <Text style={styles.featureText}>{f}</Text>
-            </View>
-          ))}
+        {/* Número y Título */}
+        <View style={{ width: isLarge ? '35%' : '100%', paddingRight: isLarge ? 40 : 0, marginBottom: isLarge ? 0 : 24 }}>
+          <Animated.Text style={[styles.serviceNum, { fontSize: 42, lineHeight: 42, marginBottom: 12, color: numColor }]}>{item.num}</Animated.Text>
+          <Text style={styles.serviceTag}>{t(item.tagKey, { defaultValue: item.tag })}</Text>
+          <Animated.Text style={[styles.serviceTitle, { fontSize: 24, lineHeight: 30, color: titleColor }]}>
+            {t(item.titleKey, { defaultValue: item.titulo })}{'\n'}
+            <Animated.Text style={[styles.serviceTitleEm, { color: titleColor }]}>{t(item.emKey, { defaultValue: item.tituloEm })}</Animated.Text>
+          </Animated.Text>
         </View>
 
-        <View style={styles.serviceLink}>
-          <Text style={[styles.serviceLinkText, hovered && { color: C.goldDeep }]}>
-            {t(item.ctaKey, { defaultValue: item.cta })}  →
-          </Text>
+        {/* Descripción */}
+        <View style={{ width: isLarge ? '35%' : '100%', paddingRight: isLarge ? 40 : 0, marginBottom: isLarge ? 0 : 24 }}>
+          <Text style={[styles.serviceDesc, { fontSize: 13, lineHeight: 22 }]}>{t(item.descKey, { defaultValue: item.desc })}</Text>
         </View>
 
-        {isOpen && (
-          <View style={styles.contactPanel}>
-            <Text style={styles.contactLabel}>{t('sv_panel_call', { defaultValue: 'Un asesor exclusivo se pondrá en contacto a la brevedad.' })}</Text>
-            <View style={styles.contactRow}>
-              <Pressable onPress={onMail} style={({ pressed }) => [styles.contactBtn, pressed && { opacity: 0.7 }]}>
-                <Text style={styles.contactBtnText}>✉️ {t('footer.contact_t', { defaultValue: 'Mandar Correo' })}</Text>
-              </Pressable>
-              <Pressable onPress={onWa} style={({ pressed }) => [styles.contactBtn, styles.contactBtnWa, pressed && { opacity: 0.7 }]}>
-                <Text style={[styles.contactBtnText, styles.contactBtnTextWa]}>💬 WhatsApp</Text>
-              </Pressable>
-            </View>
+        {/* Features & CTA */}
+        <View style={{ width: isLarge ? '30%' : '100%' }}>
+          <View style={styles.featuresList}>
+            {item.features.map((f, i) => (
+              <View key={i} style={styles.featureRow}>
+                <Animated.View style={[styles.featureLine, { width: lineWidth }, hovered && { backgroundColor: C.goldDeep }]} />
+                <Text style={styles.featureText}>{f}</Text>
+              </View>
+            ))}
           </View>
-        )}
+          <View style={[styles.serviceLink, { borderTopWidth: 0, marginTop: 16, paddingTop: 0, flexDirection: 'row', alignItems: 'center' }]}>
+            <Animated.Text style={[styles.serviceLinkText, { color: linkColor }]}>
+              {t(item.ctaKey, { defaultValue: item.cta })}
+            </Animated.Text>
+            <Animated.Text style={[styles.serviceLinkText, { marginLeft: 8, color: linkColor }]}>
+              →
+            </Animated.Text>
+          </View>
+        </View>
       </Pressable>
-    </View>
+
+      <Animated.View style={{ position: 'absolute', right: 16, top: isLarge ? 48 : 32, transform: [{ rotate: openAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
+        <FontAwesome5 name="chevron-down" size={16} color={C.gold} />
+      </Animated.View>
+
+      {showPanel && (
+        <Animated.View style={[styles.contactPanel, { 
+          marginTop: 32, backgroundColor: 'rgba(255,255,255,0.02)', padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+          opacity: openAnim,
+          transform: [{ translateY: openAnim.interpolate({ inputRange: [0, 1], outputRange: [-15, 0] }) }]
+        }]}>
+          <Text style={styles.contactLabel}>{t('sv_panel_call', { defaultValue: 'Un asesor exclusivo se pondrá en contacto a la brevedad.' })}</Text>
+          <View style={styles.contactRow}>
+            <Pressable onPress={onMail} style={({ pressed }) => [styles.contactBtn, pressed && { opacity: 0.7 }, { flexDirection: 'row', alignItems: 'center' }]}>
+              <FontAwesome5 name="envelope" size={12} color={C.gold} style={{ marginRight: 8 }} />
+              <Text style={styles.contactBtnText}>{t('footer.contact_t', { defaultValue: 'Mandar Correo' })}</Text>
+            </Pressable>
+            <Pressable onPress={onWa} style={({ pressed }) => [styles.contactBtn, styles.contactBtnWa, pressed && { opacity: 0.7 }, { flexDirection: 'row', alignItems: 'center' }]}>
+              <FontAwesome5 name="whatsapp" size={14} color={C.gold} style={{ marginRight: 8 }} />
+              <Text style={[styles.contactBtnText, styles.contactBtnTextWa]}>WhatsApp</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }
 
@@ -224,16 +275,26 @@ function PlanCard({ plan, onPress, cardWidth }) {
         </View>
 
         <Pressable
-          onPress={onPress}
+          onPress={plan.disabled ? null : onPress}
+          disabled={plan.disabled}
           style={[
             styles.planBtn,
-            plan.featured && styles.planBtnFeatured,
-            hovered && !plan.featured && { backgroundColor: 'rgba(160,120,64,0.1)', borderColor: C.gold }
+            plan.featured && !plan.disabled && styles.planBtnFeatured,
+            hovered && !plan.featured && !plan.disabled && { backgroundColor: 'rgba(160,120,64,0.1)', borderColor: C.gold },
+            plan.disabled && { backgroundColor: 'transparent', borderColor: 'rgba(160,120,64,0.3)' }
           ]}
         >
-          <Text style={[styles.planBtnText, plan.featured && styles.planBtnTextFeatured, hovered && !plan.featured && { color: C.gold }]}>
-            {plan.cta}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            {plan.disabled && <FontAwesome5 name="crown" size={10} color={C.gold} style={{ marginRight: 8 }} />}
+            <Text style={[
+              styles.planBtnText,
+              plan.featured && !plan.disabled && styles.planBtnTextFeatured,
+              hovered && !plan.featured && !plan.disabled && { color: C.gold },
+              plan.disabled && { color: C.gold }
+            ]}>
+              {plan.cta}
+            </Text>
+          </View>
         </Pressable>
       </Pressable>
     </View>
@@ -243,7 +304,7 @@ function PlanCard({ plan, onPress, cardWidth }) {
 // ─────────────────────────────────────────────
 // COMPONENTE PRINCIPAL INTEGRADO
 // ─────────────────────────────────────────────
-export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user }) {
+export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user, onScroll, isUserPlus }) {
   const { t, i18n }    = useTranslation();
   const idiomaActual   = i18n.language || 'es';
   const { width }      = useWindowDimensions();
@@ -252,22 +313,19 @@ export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const carouselFade = useRef(new Animated.Value(1)).current;
 
-  const [cardActiva, setCardActiva] = useState(null);
+  const [cardsActivas, setCardsActivas] = useState({});
   const [hoveredBack, setHoveredBack] = useState(false);
   const [hoveredAboutImg, setHoveredAboutImg] = useState(false);
-  const [hoveredGarantiaIdx, setHoveredGarantiaIdx] = useState(null);
-
+  const isLarge = width > 900;
+  
   const [servicioActivoTab, setServicioActivoTab] = useState('mudanza');
   const [imagenActivaIdx, setImagenActivaIdx] = useState(0);
 
   const [showPurchaseConfirm, setShowPurchaseConfirm] = useState(false);
   const [purchaseStatus, setPurchaseStatus] = useState(null); // 'success' | 'loading' | null
-
-  // Layout responsivo adaptado para 5 elementos sin dejar huecos negros
-  const isLarge = width > 1024;
-  const gridWidth = isLarge ? '33.33%' : width > 640 ? '50%' : '100%';
   const planWidth = '100%'; // Full width or single card display
-  const isWideFooter = width > 768;
+
+
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }).start();
@@ -399,7 +457,8 @@ export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user
         'Maximum commercial exposure for VIP buyers & investors.'
       ],
       featured: true, 
-      cta: es ? 'Adquirir InmoViral Plus' : 'Get InmoViral Plus'
+      cta: isUserPlus ? (es ? 'SUSCRIPCIÓN ACTIVA' : 'ACTIVE SUBSCRIPTION') : (es ? 'Adquirir InmoViral Plus' : 'Get InmoViral Plus'),
+      disabled: isUserPlus
     }
   ];
 
@@ -407,7 +466,13 @@ export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
         
         {/* ════ HERO ════ */}
         <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
@@ -445,25 +510,25 @@ export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user
           </View>
         </View>
 
-        {/* ════ PORTAFOLIO DE 5 SERVICIOS CORE CON ESPACIOS ARREGLADOS (MOVIDO ABAJO) ════ */}
-        <View style={styles.section}>
+        {/* ════ PORTAFOLIO DE 5 SERVICIOS CORE CON LISTA ACORDEÓN ELEGANTE ════ */}
+        <View style={[styles.section, { maxWidth: 1200 }]}>
           <Text style={styles.sectionLabel}>{t('sv_services_label', { defaultValue: 'PORTAFOLIO DE SERVICIOS' })}</Text>
-          <Text style={styles.sectionTitle}>
-            {t('sv_services_t1', { defaultValue: 'Todo lo que necesitas en un' })}{'\n'}
-            {t('sv_services_t2', { defaultValue: 'solo ' })}
-            <Text style={styles.sectionEmphasis}>{t('sv_services_em', { defaultValue: 'lugar' })}</Text>
+          <Text style={[styles.sectionTitle, { marginBottom: 60 }]}>
+            {t('sv_services_t1', { defaultValue: 'Servicios exclusivos para' })}{'\n'}
+            {t('sv_services_t2', { defaultValue: 'resultados ' })}
+            <Text style={styles.sectionEmphasis}>{t('sv_services_em', { defaultValue: 'extraordinarios' })}</Text>
           </Text>
 
-          <View style={styles.flexGridWrapper}>
-            {serviciosData.map((item) => (
+          <View style={{ flexDirection: 'column', width: '100%' }}>
+            {serviciosData.map((item, idx) => (
               <ServiceCard
                 key={item.id}
                 item={item}
-                isOpen={cardActiva === item.id}
-                onToggle={() => setCardActiva(cardActiva === item.id ? null : item.id)}
+                isOpen={!!cardsActivas[item.id]}
+                onToggle={() => setCardsActivas(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
                 onMail={mandarCorreoOficial}
                 onWa={() => abrirUrl(CONTACT_WA)}
-                cardWidth={gridWidth}
+                isLarge={isLarge}
               />
             ))}
           </View>
@@ -580,66 +645,71 @@ export default function ServiciosVirales({ onIrLogin, onVolver, onNavigate, user
           </Pressable>
         )}
 
-        {/* ════ MODAL DE CONFIRMACIÓN DE COMPRA ════ */}
-        {showPurchaseConfirm && (
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {purchaseStatus === 'success' ? (
-                <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                  <Text style={styles.successIcon}>✨</Text>
-                  <Text style={styles.modalTitle}>{es ? '¡Suscripción Habilitada!' : 'Subscription Enabled!'}</Text>
-                  <Text style={styles.modalText}>
-                    {es
-                      ? 'Tu suscripción InmoViral Plus ha sido activada con éxito. Ahora tu publicación aparecerá en destacadas y en el mapa.'
-                      : 'Your InmoViral Plus subscription is now active. Your listing will appear in featured lists and map.'}
-                  </Text>
-                  <Pressable
-                    style={[styles.modalBtn, styles.modalBtnOk]}
-                    onPress={() => {
-                      setShowPurchaseConfirm(false);
-                      setPurchaseStatus(null);
-                    }}
-                  >
-                    <Text style={styles.modalBtnText}>{es ? 'ENTENDIDO' : 'GOT IT'}</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <View>
-                  <Text style={styles.modalTitle}>InmoViral Plus</Text>
-                  <Text style={styles.modalSubTitle}>{es ? 'Activar Suscripción Premium' : 'Activate Premium Subscription'}</Text>
-                  <Text style={styles.modalText}>
-                    {es
-                      ? 'Al confirmar, se activará la suscripción InmoViral Plus por $150 MXN mensuales para tu cuenta. Tu publicación ganará visibilidad destacada inmediata.'
-                      : 'By confirming, InmoViral Plus subscription for $150 MXN monthly will be activated. Your listings will gain immediate priority.'}
-                  </Text>
-                  <View style={styles.modalBtnRow}>
-                    <Pressable
-                      style={[styles.modalBtn, styles.modalBtnCancel]}
-                      onPress={() => setShowPurchaseConfirm(false)}
-                      disabled={purchaseStatus === 'loading'}
-                    >
-                      <Text style={[styles.modalBtnText, { color: C.textSub }]}>{es ? 'CANCELAR' : 'CANCEL'}</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.modalBtn, styles.modalBtnConfirm]}
-                      onPress={executePurchase}
-                      disabled={purchaseStatus === 'loading'}
-                    >
-                      <Text style={styles.modalBtnText}>
-                        {purchaseStatus === 'loading' ? (es ? 'PROCESANDO...' : 'PROCESSING...') : (es ? 'CONFIRMAR COMPRA' : 'CONFIRM PURCHASE')}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
         {/* ─── FOOTER OFICIAL REUTILIZABLE ─── */}
         <Footer onNavigate={onNavigate} />
 
       </ScrollView>
+
+      {/* ════ MODAL DE CONFIRMACIÓN DE COMPRA ════
+           Fuera del ScrollView para que se centre en pantalla */}
+      {showPurchaseConfirm && (
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPurchaseConfirm(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation?.()}
+            // Evita que el tap en el card cierre el modal
+          >
+            {purchaseStatus === 'success' ? (
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                {/* Ícono dorado premium en lugar de emoji */}
+                <View style={styles.successIconWrap}>
+                  <FontAwesome name="check" size={28} color={C.gold} />
+                </View>
+                <Text style={styles.modalTitle}>{es ? '¡Suscripción Activada!' : 'Subscription Activated!'}</Text>
+                <Text style={styles.modalSubTitle}>INMOVIRAL PLUS</Text>
+                <Text style={styles.modalText}>
+                  {es
+                    ? 'Tu suscripción InmoViral Plus ha sido activada con éxito. Ahora tu publicación aparecerá en destacadas y en el mapa.\n\nRecuerda que tienes soporte 24/7 — escríbenos en cualquier momento y con gusto te atendemos.'
+                    : 'Your InmoViral Plus subscription is now active. Your listing will appear in featured lists and map.\n\nRemember you have 24/7 support — reach out anytime and we\'ll be happy to assist.'}
+                </Text>
+                <Pressable
+                  style={[styles.modalBtn, styles.modalBtnOk]}
+                  onPress={() => { setShowPurchaseConfirm(false); setPurchaseStatus(null); }}
+                >
+                  <Text style={styles.modalBtnText}>{es ? 'ENTENDIDO' : 'GOT IT'}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.modalTitle}>InmoViral Plus</Text>
+                <Text style={styles.modalSubTitle}>{es ? 'Activar Suscripción Premium' : 'Activate Premium Subscription'}</Text>
+                <Text style={styles.modalText}>
+                  {es
+                    ? 'Al confirmar, se activará la suscripción InmoViral Plus por $150 MXN mensuales para tu cuenta. Tu publicación ganará visibilidad destacada inmediata.'
+                    : 'By confirming, InmoViral Plus subscription for $150 MXN monthly will be activated. Your listings will gain immediate priority.'}
+                </Text>
+                <View style={styles.modalBtnRow}>
+                  <Pressable
+                    style={[styles.modalBtn, styles.modalBtnCancel]}
+                    onPress={() => setShowPurchaseConfirm(false)}
+                    disabled={purchaseStatus === 'loading'}
+                  >
+                    <Text style={[styles.modalBtnText, { color: C.textSub }]}>{es ? 'CANCELAR' : 'CANCEL'}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modalBtn, styles.modalBtnConfirm]}
+                    onPress={executePurchase}
+                    disabled={purchaseStatus === 'loading'}
+                  >
+                    <Text style={styles.modalBtnText}>
+                      {purchaseStatus === 'loading' ? (es ? 'PROCESANDO...' : 'PROCESSING...') : (es ? 'CONFIRMAR COMPRA' : 'CONFIRM PURCHASE')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      )}
+
     </SafeAreaView>
   );
 }
@@ -655,7 +725,7 @@ const styles = StyleSheet.create({
   // Hero
   hero: { minHeight: 440, justifyContent: 'flex-end', backgroundColor: C.bg, overflow: 'hidden', position: 'relative' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,8,0.78)' },
-  heroContent: { paddingHorizontal: 32, paddingTop: 60, paddingBottom: 48, maxWidth: 800 },
+  heroContent: { paddingHorizontal: 32, paddingTop: 110, paddingBottom: 48, maxWidth: 800 },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   eyebrowLine: { width: 32, height: 1, backgroundColor: C.gold, marginRight: 12 },
   eyebrow: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 3, textTransform: 'uppercase', fontWeight: '500' },
@@ -673,7 +743,7 @@ const styles = StyleSheet.create({
   serviceCardWrapper: { padding: 8 },
 
   // Tarjetas de Servicios
-  serviceCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 24, position: 'relative', overflow: 'hidden', height: '100%' },
+  serviceCard: { flex: 1, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 32, position: 'relative', overflow: 'hidden' },
   serviceCardHovered: { backgroundColor: '#171512', borderColor: 'rgba(160,120,64,0.35)' },
   serviceCardBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: 'transparent' },
   serviceNum: { color: 'rgba(160,120,64,0.12)', fontSize: 52, fontFamily: C.serif, fontWeight: '300', lineHeight: 52, marginBottom: 4 },
@@ -685,7 +755,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'center' },
   featureLine: { width: 14, height: 1, backgroundColor: C.gold, marginRight: 10 },
   featureText: { color: C.textSub, fontSize: 12, fontFamily: C.sans, fontWeight: '300' },
-  serviceLink: { marginTop: 'auto', paddingTop: 4 },
+  serviceLink: { paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.03)', marginTop: 12 },
   serviceLinkText: { color: C.gold, fontSize: 10, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '500' },
 
   // Panel de Contacto Expandible
@@ -763,8 +833,23 @@ const styles = StyleSheet.create({
   copyText: { fontFamily: C.sans, fontSize: 11, color: 'rgba(252,237,225,0.3)', fontWeight: '300' },
   legalLinksRow: { flexDirection: 'row', gap: 24 },
 
-  // Modal de compra premium
-  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  // Modal de compra premium — fuera del ScrollView, centrado en pantalla
+  modalOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+    // Blur glassmorphism en web
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        backgroundColor: 'rgba(6,5,4,0.55)',
+      },
+      default: { backgroundColor: 'rgba(6,5,4,0.82)' },
+    }),
+  },
   modalContent: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, padding: 32, width: '90%', maxWidth: 460, borderRadius: 2 },
   modalTitle: { color: C.text, fontSize: 24, fontFamily: C.serif, fontWeight: '300', marginBottom: 6, textAlign: 'center' },
   modalSubTitle: { color: C.gold, fontSize: 11, fontFamily: C.sans, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, textAlign: 'center' },

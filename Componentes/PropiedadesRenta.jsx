@@ -287,7 +287,7 @@ function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
 // ─────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────
-export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate }) {
+export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate, onScroll }) {
   const { t, i18n } = useTranslation(); // ◄ Agrega ", i18n" aquí
   const { width } = useWindowDimensions();
   const idiomaActual = i18n.language || 'es'; // ◄ Inyecta esta línea mágica
@@ -435,7 +435,13 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate 
     <SafeAreaView style={s.pageWrapper}>
       <StatusBar barStyle="light-content" backgroundColor={T.bgPage} />
       
-      <ScrollView style={s.mainScroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+          style={s.mainScroll}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
         
         {/* HERO */}
         <View style={s.heroFrame}>
@@ -594,7 +600,7 @@ const s = StyleSheet.create({
   // Hero
   heroFrame: { minHeight: 480, height: '70vh', justifyContent: 'flex-end', backgroundColor: T.bgPage, overflow: 'hidden', position: 'relative' },
   heroGradientOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,13,10,0.65)' },
-  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, maxWidth: 640 },
+  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, paddingTop: 80, maxWidth: 640 },
   heroEyebrow: { fontFamily: T.sans, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: T.gold, marginBottom: 16, fontWeight: '400' },
   heroMainHeading: { fontFamily: T.serif, fontSize: 56, color: T.textMain, lineHeight: 62, fontWeight: '300', marginBottom: 16 },
   heroHeadingItalic: { fontStyle: 'italic', color: T.goldDeep },

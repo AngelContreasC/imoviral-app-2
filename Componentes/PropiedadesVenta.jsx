@@ -290,7 +290,7 @@ function PropCard({ item: p, onVerPropiedad, cardWidth, onEliminar }) {
 // ─────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────
-export default function PropiedadesVenta({ onVolver, onVerPropiedad, soloRemates = false, onNavigate }) {
+export default function PropiedadesVenta({ onVolver, onVerPropiedad, soloRemates = false, onNavigate, onScroll }) {
   const { t, i18n } = useTranslation(); // ◄ Agrega ", i18n" aquí
   const { width } = useWindowDimensions();
   const idiomaActual = i18n.language || 'es'; // ◄ Inyecta esta línea mágica
@@ -449,7 +449,13 @@ export default function PropiedadesVenta({ onVolver, onVerPropiedad, soloRemates
     <SafeAreaView style={s.pageWrapper}>
       <StatusBar barStyle="light-content" backgroundColor={T.bgPage} />
       
-      <ScrollView style={s.mainScroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+          style={s.mainScroll}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
         
         {/* HERO CINEMÁTICO DE VENTA (70vh / 480px) */}
         <View style={s.heroFrame}>
@@ -624,7 +630,7 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
     backgroundImage: 'linear-gradient(to top, #0F0D0A 0%, rgba(15,13,10,0.35) 60%, rgba(15,13,10,0.55) 100%)' 
   },
-  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, maxWidth: 640 },
+  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, paddingTop: 80, maxWidth: 640 },
   heroEyebrow: { fontFamily: T.sans, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: T.gold, marginBottom: 16, fontWeight: '400' },
   heroMainHeading: { fontFamily: T.serif, fontSize: 56, color: T.textMain, lineHeight: 62, fontWeight: '300', marginBottom: 16 },
   heroHeadingItalic: { fontStyle: 'italic', color: T.goldDeep },

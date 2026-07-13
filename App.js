@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
   Linking
 } from 'react-native';
-import { FontAwesome, Feather } from '@expo/vector-icons';
+import { FontAwesome, Feather, FontAwesome5 } from '@expo/vector-icons';
 
 const logoHorizontal = require('./assets/logo-horizontal.png');
 
@@ -98,6 +98,7 @@ function MainApp() {
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
   const [chatRoomId, setChatRoomId] = useState(null);
   const [paginaActual, setPaginaActual] = useState(1);
+  const [navScrolled, setNavScrolled] = useState(false); // Estado del navbar (transparent vs solid)
   const mainScrollRef = useRef(null);
 
   useEffect(() => {
@@ -113,6 +114,9 @@ function MainApp() {
   }, [vista]);
 
   const navegarA = (targetVista, section = null) => {
+    // Resetea el estado de scroll para que el navbar empiece transparente
+    scrollY.setValue(0);
+    setNavScrolled(false);
     setVista(targetVista);
     setSobreNosotrosSection(section);
   };
@@ -124,6 +128,9 @@ function MainApp() {
     if (mainScrollRef.current) {
       mainScrollRef.current.scrollTo({ y: 0, animated: false });
     }
+    // Resetea el navbar al transparente en cada cambio de página
+    setNavScrolled(false);
+    scrollY.setValue(0);
   }, [vista, propiedadSeleccionada]);
 
   const propiedadesPorPagina = 6;
@@ -160,39 +167,76 @@ function MainApp() {
   const [hoveredFeatureIdx, setHoveredFeatureIdx] = useState(null);
   const [hoveredCtaBtn, setHoveredCtaBtn] = useState(false);
   const [hoveredPublishNav, setHoveredPublishNav] = useState(false);
+  const [langDropdownAbierto, setLangDropdownAbierto] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const langAnim = useRef(new Animated.Value(0)).current;
+
+  const [notifDropdownAbierto, setNotifDropdownAbierto] = useState(false);
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const notifAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (notifDropdownAbierto) {
+      setShowNotifMenu(true);
+      Animated.timing(notifAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+    } else {
+      Animated.timing(notifAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => setShowNotifMenu(false));
+    }
+  }, [notifDropdownAbierto]);
+
+  useEffect(() => {
+    if (langDropdownAbierto) {
+      setShowLangMenu(true);
+      Animated.timing(langAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+    } else {
+      Animated.timing(langAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => setShowLangMenu(false));
+    }
+  }, [langDropdownAbierto]);
 
   const tickerValue = useRef(new Animated.Value(0)).current;
 
-  // Interpolación de fondo y bordes para el Navbar premium
-  const navBgColor = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: ['rgba(6, 6, 6, 0)', '#0C0C0C'],
-    extrapolate: 'clamp',
-  });
+  const TRANSPARENT_VIEWS = ['home', 'propiedad', 'venta', 'renta', 'remates', 'servicios', 'nosotros'];
+  const isTransparentView = TRANSPARENT_VIEWS.includes(vista);
 
-  const navBorderColor = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: ['rgba(160, 120, 64, 0)', 'rgba(160, 120, 64, 0.15)'],
-    extrapolate: 'clamp',
-  });
+  // ─── HANDLER UNIVERSAL DE SCROLL ────────────────────────────────────────
+  // En Expo Web el Animated.ScrollView hace scroll del document/window,
+  // no de un div interno, por eso onScroll del componente nunca dispara.
+  // Usamos window.addEventListener como fuente principal en web.
+  const handleScrollUniversal = (event) => {
+    // Para ScrollViews nativos (iOS/Android) y sub-páginas en web
+    const y = event?.nativeEvent?.contentOffset?.y
+      ?? event?.nativeEvent?.target?.scrollTop
+      ?? 0;
+    setNavScrolled(y > 80);
+  };
 
-  const navPaddingTop = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [20 + safeTopPadding, 14 + safeTopPadding],
-    extrapolate: 'clamp',
-  });
+  // Handler para el Animated.ScrollView de la home — ya no usa Animated.event
+  // porque en web el listener no se dispara; usamos función directa
+  const handleScroll = (event) => {
+    const y = event?.nativeEvent?.contentOffset?.y
+      ?? event?.nativeEvent?.target?.scrollTop
+      ?? 0;
+    scrollY.setValue(y);
+    setNavScrolled(y > 80);
+  };
 
-  const navPaddingBottom = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [20, 14],
-    extrapolate: 'clamp',
-  });
+  // Handler para ScrollViews de sub-páginas
+  const handleScrollPages = handleScrollUniversal;
+
+  // Colores del navbar según estado
+  const _navbarTransparent = isTransparentView && !navScrolled;
+  const navbarBg      = _navbarTransparent ? 'rgba(6,6,6,0)'         : '#0C0C0C';
+  const navbarBorder  = _navbarTransparent ? 'rgba(160,120,64,0)'    : 'rgba(160,120,64,0.15)';
+  const navbarPadTop  = _navbarTransparent ? 20 + safeTopPadding     : 14 + safeTopPadding;
+  const navbarPadBot  = _navbarTransparent ? 20                      : 14;
 
   const animatedNavBarStyle = esPantallaGrande ? {
-    backgroundColor: (vista === 'home' || vista === 'propiedad') ? navBgColor : '#0C0C0C',
-    borderBottomColor: (vista === 'home' || vista === 'propiedad') ? navBorderColor : 'rgba(160, 120, 64, 0.15)',
-    paddingTop: (vista === 'home' || vista === 'propiedad') ? navPaddingTop : 14 + safeTopPadding,
-    paddingBottom: (vista === 'home' || vista === 'propiedad') ? navPaddingBottom : 14,
+    backgroundColor: navbarBg,
+    borderBottomColor: navbarBorder,
+    paddingTop: navbarPadTop,
+    paddingBottom: navbarPadBot,
+    // Transición suave en web
+    ...(Platform.OS === 'web' ? { transition: 'background-color 0.3s ease, border-color 0.3s ease, padding 0.3s ease' } : {}),
   } : {
     position: 'relative',
     top: undefined,
@@ -205,11 +249,6 @@ function MainApp() {
     paddingBottom: 8,
   };
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
   const obtenerIniciales = () => {
     if (!user) return 'GR';
     if (user.user_metadata?.full_name) {
@@ -219,6 +258,8 @@ function MainApp() {
     }
     return user.email ? user.email.substring(0, 2).toUpperCase() : 'US';
   };
+
+  const isUserPlus = user ? usersRegistry.some(u => u.id === user.id && u.inmoviralPlus) : false;
 
   const cambiarIdioma = (idioma) => i18n.changeLanguage(idioma);
   const irAPropiedad = (id) => { setPropiedadSeleccionada(id); setVista('propiedad'); setMobileNavAbierto(false); };
@@ -277,6 +318,20 @@ function MainApp() {
     return () => styleTag.remove();
   }, []);
 
+  // ─── LISTENER DE SCROLL NATIVO DEL NAVEGADOR (web solamente) ───────────
+  // En Expo Web, el ScrollView principal hace scroll del document completo.
+  // El onScroll del componente NO dispara en ese caso.
+  // Este listener captura el scroll del window y actualiza navScrolled.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onWindowScroll = () => {
+      const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      setNavScrolled(y > 80);
+    };
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onWindowScroll);
+  }, []);
+
   const renderNavbar = () => (
     <Animated.View style={[styles.navBar, animatedNavBarStyle, !esPantallaGrande && { paddingHorizontal: 12 }]}>
       <TouchableOpacity onPress={() => setVista('home')}>
@@ -304,6 +359,64 @@ function MainApp() {
       )}
 
       <View style={[styles.navActions, !esPantallaGrande && { gap: 8 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 8 }}>
+          {/* Campana de Notificaciones (Solo si hay sesión) */}
+          {user && (
+            <View style={{ position: 'relative', zIndex: 100 }}>
+              <TouchableOpacity onPress={() => setNotifDropdownAbierto(!notifDropdownAbierto)} style={{ position: 'relative', padding: 4 }}>
+                <FontAwesome5 name="bell" size={16} color={_navbarTransparent ? '#fff' : '#A07840'} />
+                <View style={{ position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1, borderColor: _navbarTransparent ? 'transparent' : '#060606' }} />
+              </TouchableOpacity>
+              
+              {showNotifMenu && (
+                <Animated.View style={{ 
+                  position: 'absolute', top: 32, right: -10, backgroundColor: '#111', borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)', borderRadius: 4, width: 240, overflow: 'hidden',
+                  opacity: notifAnim,
+                  transform: [{ translateY: notifAnim.interpolate({ inputRange: [0, 1], outputRange: [-5, 0] }) }]
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    {idiomaActual.startsWith('es') ? 'Notificaciones' : 'Notifications'}
+                  </Text>
+                  <TouchableOpacity style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(160,120,64,0.05)' }}>
+                    <Text style={{ color: '#A07840', fontSize: 10, fontWeight: '700', marginBottom: 2 }}>{idiomaActual.startsWith('es') ? '¡Bienvenido a Inmoviral!' : 'Welcome to Inmoviral!'}</Text>
+                    <Text style={{ color: '#aaa', fontSize: 10, lineHeight: 14 }}>{idiomaActual.startsWith('es') ? 'Completa tu perfil para aprovechar al máximo las herramientas.' : 'Complete your profile to get the most out of our tools.'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{ padding: 12 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginBottom: 2 }}>{idiomaActual.startsWith('es') ? 'Nueva actualización' : 'New Update'}</Text>
+                    <Text style={{ color: '#aaa', fontSize: 10, lineHeight: 14 }}>{idiomaActual.startsWith('es') ? 'Ya puedes publicar propiedades en el mapa interactivo y ganar visibilidad.' : 'You can now publish properties on the interactive map for more visibility.'}</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </View>
+          )}
+
+          {/* Listbox de Idioma */}
+          <View style={{ position: 'relative', zIndex: 100 }}>
+            <TouchableOpacity 
+              onPress={() => setLangDropdownAbierto(!langDropdownAbierto)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 4, borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)' }}
+            >
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{idiomaActual.substring(0, 2).toUpperCase()}</Text>
+              <FontAwesome5 name="chevron-down" size={10} color="#A07840" />
+            </TouchableOpacity>
+
+            {showLangMenu && (
+              <Animated.View style={{ 
+                position: 'absolute', top: 32, right: 0, backgroundColor: '#111', borderWidth: 1, borderColor: 'rgba(160,120,64,0.3)', borderRadius: 4, width: 60, overflow: 'hidden',
+                opacity: langAnim,
+                transform: [{ translateY: langAnim.interpolate({ inputRange: [0, 1], outputRange: [-5, 0] }) }]
+              }}>
+                <TouchableOpacity onPress={() => { cambiarIdioma('es'); setLangDropdownAbierto(false); }} style={{ paddingVertical: 8, backgroundColor: idiomaActual.startsWith('es') ? '#A07840' : 'transparent' }}>
+                  <Text style={{ color: '#fff', fontSize: 10, textAlign: 'center', fontWeight: idiomaActual.startsWith('es') ? '700' : '400' }}>ES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { cambiarIdioma('en'); setLangDropdownAbierto(false); }} style={{ paddingVertical: 8, backgroundColor: idiomaActual.startsWith('en') ? '#A07840' : 'transparent' }}>
+                  <Text style={{ color: '#fff', fontSize: 10, textAlign: 'center', fontWeight: idiomaActual.startsWith('en') ? '700' : '400' }}>EN</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
+        </View>
+
         {user ? (
           <View style={[styles.navAuthenticatedRow, !esPantallaGrande && { gap: 8 }]}>
             <TouchableOpacity
@@ -344,6 +457,11 @@ function MainApp() {
               ) : (
                 <Text style={styles.navAvatarText}>{obtenerIniciales()}</Text>
               )}
+              {isUserPlus && (
+                <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#0C0C0C', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: '#A07840', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 2 }}>
+                  <FontAwesome5 name="crown" size={8} color="#A07840" />
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.hamMenuButtonAuthenticated} onPress={() => esPantallaGrande ? setUserMenuAbierto(true) : setMobileNavAbierto(true)}>
               <Text style={styles.hamMenuButtonIcon}>☰</Text>
@@ -365,11 +483,6 @@ function MainApp() {
             </View>
           )
         )}
-
-        <View style={styles.langContainer}>
-          <TouchableOpacity onPress={() => cambiarIdioma('es')} style={[styles.langBtn, idiomaActual.startsWith('es') && styles.langBtnActive]}><Text style={styles.langText}>ES</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => cambiarIdioma('en')} style={[styles.langBtn, idiomaActual.startsWith('en') && styles.langBtnActive]}><Text style={styles.langText}>EN</Text></TouchableOpacity>
-        </View>
       </View>
     </Animated.View>
   );
@@ -405,7 +518,7 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
       <ScrollView contentContainerStyle={{ paddingTop: 0 }} keyboardShouldPersistTaps="handled">
         <LoginPage onVolver={() => setVista('home')} />
@@ -413,19 +526,19 @@ function MainApp() {
       </ScrollView>
     </SafeAreaView>
   );
-  if (vista === 'venta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} /></SafeAreaView>;
-  if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} /></SafeAreaView>;
-  if (vista === 'remates') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} soloRemates={true} onNavigate={navegarA} /></SafeAreaView>;
+  if (vista === 'venta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
+  if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
+  if (vista === 'remates') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} soloRemates={true} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
   if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} onStartChat={(roomId) => { setChatRoomId(roomId); setVista('chat'); }} onEditarPropiedad={(prop) => { setPropiedadParaEditar(prop); setVista('vendedor'); }} /></SafeAreaView>;
-  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} onNavigate={navegarA} user={user} /></SafeAreaView>;
+  if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} onNavigate={navegarA} user={user} isUserPlus={isUserPlus} onScroll={handleScrollPages} /></SafeAreaView>;
   if (vista === 'vendedor') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} onVerPropiedadPublicada={(id) => irAPropiedad(id)} /></SafeAreaView>;
-  if (vista === 'nosotros') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} onNavigate={navegarA} scrollToSection={sobreNosotrosSection} /></SafeAreaView>;
+  if (vista === 'nosotros') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<SobreNosotros onIrServicios={() => setVista('servicios')} onIrPropiedades={() => setVista('venta')} onNavigate={navegarA} scrollToSection={sobreNosotrosSection} onScroll={handleScrollPages} /></SafeAreaView>;
 
   if (vista === 'resenas') return (
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
       <Resenas onVolver={() => setVista('home')} />
     </SafeAreaView>
@@ -435,7 +548,7 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
       <Chat initialRoomId={chatRoomId} onVolver={() => { setChatRoomId(null); setVista('home'); }} />
     </SafeAreaView>
@@ -445,7 +558,7 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
       <Perfil onVolver={() => setVista('home')} />
     </SafeAreaView>
@@ -455,7 +568,7 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
       <Configuracion onVolver={() => setVista('home')} />
     </SafeAreaView>
@@ -466,7 +579,7 @@ function MainApp() {
       <SafeAreaView style={styles.screen}>
         <StatusBar barStyle="light-content" />
         {renderNavbar()}
-        <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+        <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
         {renderLuxuryMobileMenu()}
         <Dashboard
           activeTab={dashboardTab}
@@ -489,7 +602,7 @@ function MainApp() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="light-content" />
       {renderNavbar()}
-      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
+      <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
 
       <Animated.ScrollView
@@ -829,7 +942,7 @@ const styles = StyleSheet.create({
     color: '#525252',
   },
 
-  navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent', overflow: 'hidden' },
+  navAvatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#A07840', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   navAvatarImage: { width: '100%', height: '100%', borderRadius: 17 },
   navAvatarText: { color: '#F2EDE5', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   hamMenuButtonAuthenticated: { padding: 4 },

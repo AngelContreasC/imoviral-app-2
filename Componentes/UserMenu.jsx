@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 
 /* ─────────────────────────────────────────────
    TOKENS DE DISEÑO
@@ -155,7 +155,8 @@ export default function UserMenu({
   dashboardTab,
   setVista,
   setDashboardTab,
-  onSignOut
+  onSignOut,
+  isUserPlus
 }) {
   const { width } = useWindowDimensions();
   const isWide = width > 1024;
@@ -240,16 +241,27 @@ export default function UserMenu({
         {/* HEADER */}
         <View style={S.header}>
           <View style={S.profileSection}>
-            <View style={S.avatar}>
-              {user?.user_metadata?.avatar_url ? (
-                <Image source={{ uri: user.user_metadata.avatar_url }} style={S.avatarImage} />
-              ) : (
-                <Text style={S.avatarText}>{obtenerIniciales()}</Text>
+            <View style={{ position: 'relative' }}>
+              <View style={S.avatar}>
+                {user?.user_metadata?.avatar_url ? (
+                  <Image source={{ uri: user.user_metadata.avatar_url }} style={S.avatarImage} />
+                ) : (
+                  <Text style={S.avatarText}>{obtenerIniciales()}</Text>
+                )}
+              </View>
+              {isUserPlus && (
+                <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#0C0C0C', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: '#A07840', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 2 }}>
+                  <FontAwesome5 name="crown" size={8} color="#A07840" />
+                </View>
               )}
             </View>
             <View style={[S.userInfo, !isWide && { marginRight: 36 }]}>
               <Text style={S.userName} numberOfLines={1}>{obtenerNombreUsuario()}</Text>
-              <Text style={S.userRole} numberOfLines={1}>{user?.email || ''}</Text>
+              {isUserPlus ? (
+                <Text style={{ color: '#A07840', fontSize: 11, fontWeight: '700', marginTop: 2, letterSpacing: 1 }}>INMOVIRAL PLUS</Text>
+              ) : (
+                <Text style={S.userRole} numberOfLines={1}>{user?.email || ''}</Text>
+              )}
             </View>
           </View>
           <CloseButton onPress={onClose} isMobile={!isWide} />

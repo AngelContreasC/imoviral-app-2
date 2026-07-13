@@ -102,7 +102,7 @@ function Premio({ year, name, org, borderRight }) {
   );
 }
 
-export default function SobreNosotros({ onIrServicios, onIrPropiedades, onNavigate, scrollToSection }) {
+export default function SobreNosotros({ onIrServicios, onIrPropiedades, onNavigate, scrollToSection, onScroll }) {
   const { t, i18n } = useTranslation();
   const es = i18n.language.startsWith('es');
   const { width, height } = useWindowDimensions();
@@ -155,7 +155,7 @@ export default function SobreNosotros({ onIrServicios, onIrPropiedades, onNaviga
   ];
 
   return (
-    <ScrollView ref={scrollRef} style={S.root} contentContainerStyle={S.rootContent} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollRef} style={S.root} contentContainerStyle={S.rootContent} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
       
       {/* HERO */}
       <View style={[S.hero, isWide && { flexDirection: 'row', alignItems: 'stretch', minHeight: height * 0.85 }]}>
@@ -271,11 +271,11 @@ export default function SobreNosotros({ onIrServicios, onIrPropiedades, onNaviga
 ───────────────────────────────────────────── */
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
-  rootContent: { paddingTop: 40 },
+  rootContent: { paddingTop: 0 },
   hero: { flexDirection: 'column' },
   heroWide: { flexDirection: 'row', alignItems: 'stretch' },
-  heroContent: { padding: 32, justifyContent: 'center' },
-  heroContentWide: { flex: 1, padding: 56, paddingRight: 32 },
+  heroContent: { padding: 32, paddingTop: 100, justifyContent: 'center' },
+  heroContentWide: { flex: 1, padding: 56, paddingTop: 100, paddingRight: 32 },
   eyebrow: { fontSize: 10, letterSpacing: 4, textTransform: 'uppercase', color: T.gold, marginBottom: 24, fontFamily: T.sans },
   heroTitle: { fontFamily: T.serif, fontSize: 36, fontWeight: '300', color: T.text, marginBottom: 24 },
   heroTitleWide: { fontSize: 54, lineHeight: 64 },
