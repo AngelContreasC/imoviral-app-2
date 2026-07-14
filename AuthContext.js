@@ -128,8 +128,18 @@ export const AuthProvider = ({ children }) => {
       return { data: null, error: new Error('Inicio con Google cancelado o incompleto.') };
     }
 
-    const url = new URL(result.url);
-    const code = url.searchParams.get('code');
+    let code = null;
+    try {
+      const url = new URL(result.url);
+      code = url.searchParams.get('code');
+    } catch (e) {
+      // Fallback para esquemas personalizados en React Native (ej. imoviralapp2://)
+      const match = result.url.match(/[?&]code=([^&#]+)/);
+      if (match) {
+        code = match[1];
+      }
+    }
+
     if (!code) {
       return { data: null, error: new Error('No se recibió código de autorización.') };
     }
