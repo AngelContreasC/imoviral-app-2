@@ -161,6 +161,8 @@ function MainApp() {
 
   // Referencia animada de scroll continuo y sus interpolaciones premium
   const scrollY = useRef(new Animated.Value(0)).current;
+  // Fade-in del landing page (solo opacidad, sin slide para evitar gaps)
+  const homeFadeAnim = useRef(new Animated.Value(0)).current;
   const [hoveredLogin, setHoveredLogin] = useState(false);
   const [hoveredNav, setHoveredNav] = useState(null);
   const [hoveredHeroBtn, setHoveredHeroBtn] = useState(false);
@@ -268,6 +270,15 @@ function MainApp() {
 
   useEffect(() => {
     if (vista !== 'home') return;
+    // Fade-in: reset y re-dispara cada vez que se navega al home
+    homeFadeAnim.setValue(0);
+    Animated.timing(homeFadeAnim, {
+      toValue: 1,
+      duration: 600,
+      delay: 50,
+      useNativeDriver: true,
+    }).start();
+    // Counter-up animado
     let startYears = 0, startProps = 0;
     const timer = setInterval(() => {
       startYears += 12 / 40; startProps += 150 / 40;
@@ -526,9 +537,9 @@ function MainApp() {
       </ScrollView>
     </SafeAreaView>
   );
-  if (vista === 'venta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
-  if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
-  if (vista === 'remates') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta onVerPropiedad={irAPropiedad} soloRemates={true} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
+  if (vista === 'venta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta key="venta" onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
+  if (vista === 'renta') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesRenta key="renta" onVerPropiedad={irAPropiedad} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
+  if (vista === 'remates') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<PropiedadesVenta key="remates" onVerPropiedad={irAPropiedad} soloRemates={true} onNavigate={navegarA} onScroll={handleScrollPages} /></SafeAreaView>;
   if (vista === 'propiedad') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<VerPropiedad propiedadId={propiedadSeleccionada} onVolver={volverDePropiedad} onStartChat={(roomId) => { setChatRoomId(roomId); setVista('chat'); }} onEditarPropiedad={(prop) => { setPropiedadParaEditar(prop); setVista('vendedor'); }} /></SafeAreaView>;
   if (vista === 'servicios') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<ServiciosVirales onIrLogin={() => setVista('login')} onVolver={() => setVista('home')} onNavigate={navegarA} user={user} isUserPlus={isUserPlus} onScroll={handleScrollPages} /></SafeAreaView>;
   if (vista === 'vendedor') return <SafeAreaView style={styles.screen}><StatusBar barStyle="light-content" />{renderNavbar()}<UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />{renderLuxuryMobileMenu()}<Vendedor propiedadParaEditar={propiedadParaEditar} onVolver={() => { setPropiedadParaEditar(null); if (user) { setVista('dashboard'); setDashboardTab('publicaciones'); } else { setVista('home'); } }} onVerPropiedadPublicada={(id) => irAPropiedad(id)} /></SafeAreaView>;
@@ -605,6 +616,8 @@ function MainApp() {
       <UserMenu isOpen={userMenuAbierto} onClose={() => setUserMenuAbierto(false)} user={user} isUserPlus={isUserPlus} vistaActual={vista} dashboardTab={dashboardTab} setVista={setVista} setDashboardTab={setDashboardTab} onSignOut={async () => { setUserMenuAbierto(false); setVista('home'); await signOut(); }} />
       {renderLuxuryMobileMenu()}
 
+      <View style={{ flex: 1, backgroundColor: '#060606' }}>
+      <Animated.View style={{ flex: 1, opacity: homeFadeAnim }}>
       <Animated.ScrollView
         ref={mainScrollRef}
         contentContainerStyle={styles.scrollContainer}
@@ -852,6 +865,8 @@ function MainApp() {
         <Footer onNavigate={navegarA} />
 
       </Animated.ScrollView>
+      </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }

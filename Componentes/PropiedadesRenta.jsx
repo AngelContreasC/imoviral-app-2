@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Platform,
   Pressable,
@@ -388,6 +389,27 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate,
   const numColumns = width > 1024 ? 3 : width > 640 ? 2 : 1;
   const isWideFooter = width > 768;
 
+  // ── Fade-in + slide al montar la página ──
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 700,
+        delay: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 650,
+        delay: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   useEffect(() => {
     const cargar = async () => {
       try {
@@ -432,7 +454,8 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate,
   }, [propiedades, filtro, filtroTipo, orden]);
 
   return (
-    <SafeAreaView style={s.pageWrapper}>
+    <View style={{ flex: 1, backgroundColor: '#0F0D0A' }}>
+    <Animated.View style={[s.pageWrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       <StatusBar barStyle="light-content" backgroundColor={T.bgPage} />
       
       <ScrollView
@@ -585,22 +608,40 @@ export default function PropiedadesRenta({ onVolver, onVerPropiedad, onNavigate,
         <Footer onNavigate={onNavigate} />
 
       </ScrollView>
-    </SafeAreaView>
+    </Animated.View>
+    </View>
   );
 }
 
 // ─────────────────────────────────────────────
 // HOJA DE ESTILOS UNIVERSAL BLINDADA
 // ─────────────────────────────────────────────
+const NAV_HEIGHT = Platform.OS === 'web' ? 72 : 0;
+
 const s = StyleSheet.create({
   pageWrapper: { flex: 1, backgroundColor: T.bgPage },
   mainScroll: { flex: 1 },
   scrollContent: { paddingBottom: 0 },
 
-  // Hero
-  heroFrame: { minHeight: 480, height: '70vh', justifyContent: 'flex-end', backgroundColor: T.bgPage, overflow: 'hidden', position: 'relative' },
-  heroGradientOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,13,10,0.65)' },
-  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, paddingTop: 80, maxWidth: 640 },
+  // Hero — integrado con el navbar fijo
+  heroFrame: {
+    ...Platform.select({
+      web: { marginTop: -NAV_HEIGHT },
+      default: {},
+    }),
+    minHeight: Platform.OS === 'web' ? `calc(85vh + ${NAV_HEIGHT}px)` : 560,
+    height: Platform.OS === 'web' ? `calc(85vh + ${NAV_HEIGHT}px)` : '80%',
+    justifyContent: 'flex-end',
+    backgroundColor: T.bgPage,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroGradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    backgroundImage: 'linear-gradient(to bottom, rgba(6,4,2,0.68) 0%, rgba(15,13,10,0.05) 45%, rgba(15,13,10,0.6) 72%, #0F0D0A 100%)'
+  },
+  heroBodyContainer: { zIndex: 10, paddingHorizontal: 40, paddingBottom: 60, paddingTop: Platform.OS === 'web' ? NAV_HEIGHT + 40 : 80, maxWidth: 640 },
   heroEyebrow: { fontFamily: T.sans, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: T.gold, marginBottom: 16, fontWeight: '400' },
   heroMainHeading: { fontFamily: T.serif, fontSize: 56, color: T.textMain, lineHeight: 62, fontWeight: '300', marginBottom: 16 },
   heroHeadingItalic: { fontStyle: 'italic', color: T.goldDeep },
